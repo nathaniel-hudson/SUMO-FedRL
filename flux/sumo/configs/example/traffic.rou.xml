@@ -1,0 +1,49 @@
+<routes>
+        <vType id="typeWE" accel="0.8" decel="4.5" sigma="0.5" length="2.85" minGap="1" maxSpeed="30" guiShape="passenger"/>
+        <vType id="typeNS" accel="0.8" decel="5" sigma="0.5" length="2.7" minGap="1" maxSpeed="30" guiShape="emergency"/>
+        <vType id="typeSN1" accel="0.8" decel="4.5" sigma="0.5" length="2.7" minGap="1" maxSpeed="30" guiShape="bus"/>
+        <vType id="typeSE" accel="0.8" decel="4.5" sigma="0.5" length="2.7" minGap="1" maxSpeed="30" guiShape="bus"/>
+        <vType id="typeNW" accel="0.8" decel="4.5" sigma="0.5" length="2.7" minGap="1" maxSpeed="30" guiShape="emergency"/>
+        
+        <route id="right" edges="51o 1i 2o 52i" />
+        <route id="left" edges="52o 2i 1o 51i" />
+        <route id="down" edges="54o 4i 3o 53i" />
+        <route id="up" edges="53o 3i 4o 54i" />
+        <route id="upleft" edges="54o 4i 1o 51i" />
+        <route id="southright" edges="53o 3i 2o 52i" />
+    <vehicle id="upleft_0" type="typeNW" route="upleft" depart="0" />
+    <vehicle id="southright_1" type="typeSE" route="southright" depart="3" />
+    <vehicle id="left_2" type="typeWE" route="left" depart="4" />
+    <vehicle id="left_3" type="typeWE" route="left" depart="5" />
+    <vehicle id="southright_4" type="typeSE" route="southright" depart="6" />
+    <vehicle id="up_5" type="typeSN1" route="up" depart="6"/>
+    <vehicle id="southright_6" type="typeSE" route="southright" depart="8" />
+    <vehicle id="right_7" type="typeWE" route="right" depart="9" />
+    <vehicle id="upleft_8" type="typeNW" route="upleft" depart="9" />
+    <vehicle id="up_9" type="typeSN1" route="up" depart="9"/>
+    <vehicle id="right_10" type="typeWE" route="right" depart="10" />
+    <vehicle id="upleft_11" type="typeNW" route="upleft" depart="11" />
+    <vehicle id="southright_12" type="typeSE" route="southright" depart="12" />
+    <vehicle id="upleft_13" type="typeNW" route="upleft" depart="12" />
+    <vehicle id="down_14" type="typeNS" route="down" depart="12" color="1,0,0"/>
+    <vehicle id="up_15" type="typeSN1" route="up" depart="12"/>
+    <vehicle id="down_16" type="typeNS" route="down" depart="13" color="1,0,0"/>
+    <vehicle id="down_17" type="typeNS" route="down" depart="15" color="1,0,0"/>
+    <vehicle id="left_18" type="typeWE" route="left" depart="16" />
+    <vehicle id="down_19" type="typeNS" route="down" depart="16" color="1,0,0"/>
+    <vehicle id="upleft_20" type="typeNW" route="upleft" depart="17" />
+    <vehicle id="right_21" type="typeWE" route="right" depart="18" />
+    <vehicle id="left_22" type="typeWE" route="left" depart="18" />
+    <vehicle id="upleft_23" type="typeNW" route="upleft" depart="20" />
+    <vehicle id="southright_24" type="typeSE" route="southright" depart="21" />
+    <vehicle id="right_25" type="typeWE" route="right" depart="22" />
+    <vehicle id="left_26" type="typeWE" route="left" depart="22" />
+    <vehicle id="down_27" type="typeNS" route="down" depart="22" color="1,0,0"/>
+    <vehicle id="right_28" type="typeWE" route="right" depart="23" />
+    <vehicle id="left_29" type="typeWE" route="left" depart="23" />
+    <vehicle id="southright_30" type="typeSE" route="southright" depart="23" />
+    <vehicle id="left_31" type="typeWE" route="left" depart="25" />
+    <vehicle id="southright_32" type="typeSE" route="southright" depart="25" />
+    <vehicle id="right_33" type="typeWE" route="right" depart="27" />
+    <vehicle id="upleft_34" type="typeNW" route="upleft" depart="27" />
+</routes>

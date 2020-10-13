@@ -1,0 +1,27 @@
+<!-- 
+    This additional file defines the available actions for traffic light control in this
+    simple SUMO example. Each `tlLogic` item represents a legal action (i.e., no possible
+    transition from green -> red) that can be performed at a given time-step. The default
+    and provided durations are recommended, but can be overridden in the logic of the RL
+    agent.
+
+    NOTE: I think this will need to be defined explicitly for *each* traffic light.
+-->
+<additional>
+    <tlLogic id="0" programID="action_0" offset="0" type="static">
+        <phase duration="31" state="GGggrrrrGGggrrrr"/>
+        <phase duration="5"  state="yyggrrrryyggrrrr"/>
+    </tlLogic>
+    <tlLogic id="1" programID="action_1" offset="0" type="static">
+        <phase duration="6"  state="rrGGrrrrrrGGrrrr"/>
+        <phase duration="5"  state="rryyrrrrrryyrrrr"/>
+    </tlLogic>
+    <tlLogic id="2" programID="action_2" offset="0" type="static">
+        <phase duration="31" state="rrrrGGggrrrrGGgg"/>
+        <phase duration="5"  state="rrrryyggrrrryygg"/>
+    </tlLogic>
+    <tlLogic id="3" programID="action_3" offset="0" type="static">
+        <phase duration="6"  state="rrrrrrGGrrrrrrGG"/>
+        <phase duration="5"  state="rrrrrryyrrrrrryy"/>
+    </tlLogic>
+</additional>
