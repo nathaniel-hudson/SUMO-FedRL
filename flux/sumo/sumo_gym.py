@@ -2,6 +2,7 @@ import gym
 import numpy as np
 import traci
 
+from collections import defaultdict
 from gym.spaces import Box
 from sumo_sim import SUMOSimulation
 
@@ -9,38 +10,39 @@ from typing import Any, List, Tuple
 
 """
 TODO:
-+ We need to dynamically collect the names of the traffic light programs for a given
-  SUMO config to support the action performance.
-+ Streamline the entire SUMO/TraCI interface with `SUMOGym`.
+[x] We need to dynamically collect the names of the traffic light programs for a given
+    SUMO config to support the action performance.
+[_] Streamline the entire SUMO/TraCI interface with `SUMOGym`.
+[_] Finalize the representation of the SUMO-Gym (i.e., what are all of the needed class
+    members, how tightly encapsulated is the SUMOSimulation interface going to be, how
+    is the `curr_light` member going to be represented?)
 """
 
 class SUMOGym(gym.Env):
     """Custom Gym environment designed for simple RL experiments using SUMO/TraCI."""
+    name = "SUMO-v1"
     metadata = {"render.modes": ["sumo", "sumo-gui"]}
     n_change_steps = 5
     MAIN_TASK = 0
     TRANS_TASK = 1
     GRID_KEY = "grid"
-    TLS_KEY = "traffic_lights"
+    TLS_KEY  = "traffic_lights"
     
     def __init__(self, sim_config: List[str]):
-        self.name = "SUMO-v1"
         self.sim_config = sim_config
         self.trafficlight_ids = None
-        self.trafficlight_radius: int = 0
+        self.trafficlight_radius = 0
         self.n_trafficlights = 1
         self.n_programs = 4
-        self.curr_light = np.zeros(shape=(self.n_trafficlights,))
+        self.curr_light = defaultdict(tuple) # TODO: Initialize this dict with tlsIDs
+        # self.curr_light = np.zeros(shape=(self.n_trafficlights,))
         self.mask = np.zeros(shape=(self.n_trafficlights))
         self.bounding_box = ((0.0, 0.0), (1020.0, 1020.0))
 
 
     def __do_action(self, action) -> None:
-        """
-        PSEUDOCODE
-            (1)
-            (2)
-        """
+        """TODO"""
+        return None
         trafficlight_that_can_change = (self.mask == 0)
         for tlsID in range(len(trafficlight_that_can_change)):
             if trafficlight_that_can_change[tlsID]:
@@ -55,13 +57,13 @@ class SUMOGym(gym.Env):
         width = int(x_max - x_min)
         height = int(y_max - y_min)
         obs = {
-            self.GRID_DICT_KEY: np.zeros(shape=(width, height), dtype=np.int8),
-            self.TLS_DICT_KEY:  np.zeros(shape=(2*len(self.curr_light)), dtype=np.int8)
+            self.GRID_KEY: np.zeros(shape=(width, height), dtype=np.int8),
+            self.TLS_KEY:  np.zeros(shape=(2*len(self.curr_light)), dtype=np.int8)
         }
 
         for veh_id in list(traci.vehicle.getIDList()):
             x, y = traci.vehicle.getPosition(veh_id)
-            obs[self.GRID_DICT_KEY][int(x), int(y)] = 1
+            obs[self.GRID_KEY][int(x), int(y)] = 1
 
         for tls_id in range(len(self.curr_light)):
             prog_id, task_id = self.curr_light[tls_id]
@@ -76,8 +78,11 @@ class SUMOGym(gym.Env):
 
 
     def __get_done(self) -> bool:
-        """TODO"""
-        return traci.simulation.getMinExpectedNumber() > 0
+        """Simple function that determines if the simulation is finished (True) or not 
+           (False). This is based on whether there is at least (> 0) vehicles remaining to 
+           traverse their routes in the simulation.
+        """
+        return not traci.simulation.getMinExpectedNumber() > 0
 
 
     def step(self, action) -> Tuple[np.ndarray, float, bool, dict]:
@@ -159,7 +164,7 @@ if __name__ == "__main__":
 
     # this is the normal way of using traci. sumo is started as a
     # subprocess and then the python script connects and runs
-    path = join("flux", "sumo", "configs", "example")
+    path = join("configs", "example")
     config = [sumo_binary, "-c", join(path, "traffic.sumocfg"),
                            "--tripinfo-output", join(path, "tripinfo.xml")]
 
