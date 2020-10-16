@@ -1,13 +1,11 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 class FLUXBaseAgent(ABC):
 
+    @abstractmethod
     def __init__(self):
-        """TODO
-        """
         pass
 
+    @abstractmethod
     def observe():
-        """TODO
-        """
         pass

@@ -15,7 +15,8 @@ TODO:
 [_] Streamline the entire SUMO/TraCI interface with `SUMOGym`.
 [_] Finalize the representation of the SUMO-Gym (i.e., what are all of the needed class
     members, how tightly encapsulated is the SUMOSimulation interface going to be, how
-    is the `curr_light` member going to be represented?)
+    is the `curr_light` member going to be represented?).
+[_] Setup the boundary bounds for limiting the view an agent can have.
 """
 
 class SUMOGym(gym.Env):
