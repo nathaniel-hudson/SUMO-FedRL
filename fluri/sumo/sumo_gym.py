@@ -1,3 +1,4 @@
+from fluri.sumo.sumo_sim import SUMOSim
 import gym
 import numpy as np
 import traci
@@ -29,16 +30,18 @@ class SUMOGym(gym.Env):
     GRID_KEY = "grid"
     TLS_KEY  = "traffic_lights"
     
-    def __init__(self, sim_config: List[str]):
-        self.sim_config = sim_config
-        self.trafficlight_ids = None
-        self.trafficlight_radius = 0
-        self.n_trafficlights = 1
-        self.n_programs = 4
-        self.curr_light = defaultdict(tuple) # TODO: Initialize this dict with tlsIDs
-        # self.curr_light = np.zeros(shape=(self.n_trafficlights,))
+    def __init__(self, sim: SUMOSim):
+        self.sim = sim
+
+        self.trafficlights = None
+        self.n_trafficlights = None
+        self.curr_trafficlights = None
+        
         self.mask = np.zeros(shape=(self.n_trafficlights))
         self.bounding_box = ((0.0, 0.0), (1020.0, 1020.0))
+
+        # TODO: These are parameters for features that are currently not being considered.
+        self.trafficlight_radius = 0
 
 
     def __do_action(self, action) -> None:
@@ -78,14 +81,6 @@ class SUMOGym(gym.Env):
         return -1.0
 
 
-    def __get_done(self) -> bool:
-        """Simple function that determines if the simulation is finished (True) or not 
-           (False). This is based on whether there is at least (> 0) vehicles remaining to 
-           traverse their routes in the simulation.
-        """
-        return not traci.simulation.getMinExpectedNumber() > 0
-
-
     def step(self, action) -> Tuple[np.ndarray, float, bool, dict]:
         """TODO"""
         self.__do_action(action)
@@ -93,7 +88,7 @@ class SUMOGym(gym.Env):
 
         observation = self.__get_observation()
         reward = self.__get_reward()
-        done = self.__get_done()
+        done = self.sim.done()
         info = {}
 
         return observation, reward, done, info
@@ -101,13 +96,13 @@ class SUMOGym(gym.Env):
 
     def reset(self):
         """TODO"""
-        try:
-            traci.close()
-        except KeyError:
-            # This basically means no SUMO experiment connected to via TraCI has started.
-            # But, we do this as a precaution.
-            pass
-        traci.start(self.sim_config)
+        if self.sim.is_loaded():
+            self.sim.close()
+        
+        self.sim.start()
+        self.trafficlights = self.sim.get_all_possible_tls_states()
+        self.n_trafficlights = len(self.trafficlights)
+        self.curr_trafficlights = self.sim.get_all_curr_tls_states()
 
 
     @property
@@ -158,6 +153,7 @@ if __name__ == "__main__":
     print(obs["traffic_lights"])
     # env.reset()
 
+    """
     # obs, reward, done, info = env.step(action)
     # first, generate the route file for this simulation
     generate_routefile()
@@ -168,8 +164,18 @@ if __name__ == "__main__":
     path = join("configs", "example")
     config = [sumo_binary, "-c", join(path, "traffic.sumocfg"),
                            "--tripinfo-output", join(path, "tripinfo.xml")]
+    """
 
-    env = SUMOGym(config)
+    path = join("configs", "example")
+    sim = SUMOSim(config={
+        "gui": False,
+        "net-file": join(path, "traffic.net.xml"),
+        "route-files": join(path, "traffic.rou.xml"),
+        "additional-files": join(path, "traffic.det.xml"),
+        "tripinfo-output": join(path, "tripinfo.xml")
+    })
+
+    env = SUMOGym(sim)
     done = False
     step = 0
 

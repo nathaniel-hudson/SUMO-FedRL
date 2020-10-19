@@ -8,7 +8,7 @@
     NOTE: I think this will need to be defined explicitly for *each* traffic light.
 -->
 <additional>
-    <tlLogic id="0" programID="action_0" offset="0" type="static">
+    <!--<tlLogic id="0" programID="action_0" offset="0" type="static">
         <phase duration="31" state="GGggrrrrGGggrrrr"/>
         <phase duration="5"  state="yyggrrrryyggrrrr"/>
     </tlLogic>
@@ -21,6 +21,16 @@
         <phase duration="5"  state="rrrryyggrrrryygg"/>
     </tlLogic>
     <tlLogic id="3" programID="action_3" offset="0" type="static">
+        <phase duration="6"  state="rrrrrrGGrrrrrrGG"/>
+        <phase duration="5"  state="rrrrrryyrrrrrryy"/>
+    </tlLogic>-->
+    <tlLogic id="0" programID="action_0" offset="0" type="static">
+        <phase duration="31" state="GGggrrrrGGggrrrr"/>
+        <phase duration="5"  state="yyggrrrryyggrrrr"/>
+        <phase duration="6"  state="rrGGrrrrrrGGrrrr"/>
+        <phase duration="5"  state="rryyrrrrrryyrrrr"/>
+        <phase duration="31" state="rrrrGGggrrrrGGgg"/>
+        <phase duration="5"  state="rrrryyggrrrryygg"/>
         <phase duration="6"  state="rrrrrrGGrrrrrrGG"/>
         <phase duration="5"  state="rrrrrryyrrrrrryy"/>
     </tlLogic>
