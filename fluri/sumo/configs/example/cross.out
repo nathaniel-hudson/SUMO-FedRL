@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on Mon Oct 19 16:30:30 2020 by Eclipse SUMO Version 1.6.0
+<!-- generated on Tue Oct 20 12:43:17 2020 by Eclipse SUMO sumo Version 7090c177
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
@@ -14,16 +14,14 @@
     </output>
 
     <traci_server>
-        <remote-port value="49644"/>
+        <remote-port value="52427"/>
     </traci_server>
 
 </configuration>
 -->
 
 <detector xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/det_e1_file.xsd">
-    <interval begin="0.00" end="30.00" id="0" nVehContrib="2" flow="240.00" occupancy="1.82" speed="9.89" harmonicMeanSpeed="9.89" length="2.70" nVehEntered="2"/>
-    <interval begin="30.00" end="60.00" id="0" nVehContrib="4" flow="480.00" occupancy="50.37" speed="7.56" harmonicMeanSpeed="6.63" length="2.70" nVehEntered="5"/>
-    <interval begin="60.00" end="90.00" id="0" nVehContrib="6" flow="720.00" occupancy="25.17" speed="3.08" harmonicMeanSpeed="0.77" length="2.70" nVehEntered="5"/>
-    <interval begin="90.00" end="120.00" id="0" nVehContrib="0" flow="0.00" occupancy="0.00" speed="-1.00" harmonicMeanSpeed="-1.00" length="-1.00" nVehEntered="0"/>
-    <interval begin="120.00" end="133.00" id="0" nVehContrib="0" flow="0.00" occupancy="0.00" speed="-1.00" harmonicMeanSpeed="-1.00" length="-1.00" nVehEntered="0"/>
+    <interval begin="0.00" end="30.00" id="0" nVehContrib="4" flow="480.00" occupancy="3.75" speed="9.60" harmonicMeanSpeed="9.60" length="2.70" nVehEntered="4"/>
+    <interval begin="30.00" end="60.00" id="0" nVehContrib="2" flow="240.00" occupancy="65.22" speed="5.34" harmonicMeanSpeed="4.98" length="2.70" nVehEntered="3"/>
+    <interval begin="60.00" end="87.00" id="0" nVehContrib="3" flow="400.00" occupancy="23.92" speed="1.86" harmonicMeanSpeed="0.32" length="2.70" nVehEntered="2"/>
 </detector>

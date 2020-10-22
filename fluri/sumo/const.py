@@ -1,0 +1,1 @@
+MIN_DELAY = 5

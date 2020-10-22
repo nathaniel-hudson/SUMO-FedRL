@@ -172,10 +172,12 @@ if __name__ == "__main__":
     from sumo_util import make_tls_state_network
     from networkx.drawing.nx_agraph import to_agraph 
     g = make_tls_state_network(possible_states)
-    A = to_agraph(g)
-    A.layout("dot")
-    A.draw("delete.png")
+    print(f"Nodes -> {g.nodes(data=True)}")
+    
+    # A = to_agraph(g)
+    # A.layout("dot")
+    # A.draw("delete.png")
 
-    nx.draw_networkx(g)
-    plt.show()
-    print(g.edges())
+    # nx.draw_networkx(g)
+    # plt.show()
+    # print(g.edges())

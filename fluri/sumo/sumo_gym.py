@@ -1,13 +1,14 @@
-from fluri.sumo.sumo_sim import SUMOSim
 import gym
 import numpy as np
+import sumo_util as utils
 import traci
 
+from const import *
 from collections import defaultdict
-from gym.spaces import Box
-from sumo_sim import SUMOSimulation
+from gym import spaces
+from sumo_sim import SUMOSim
 
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 """
 TODO:
@@ -24,7 +25,6 @@ class SUMOGym(gym.Env):
     """Custom Gym environment designed for simple RL experiments using SUMO/TraCI."""
     name = "SUMO-v1"
     metadata = {"render.modes": ["sumo", "sumo-gui"]}
-    n_change_steps = 5
     MAIN_TASK = 0
     TRANS_TASK = 1
     GRID_KEY = "grid"
@@ -36,8 +36,9 @@ class SUMOGym(gym.Env):
         self.trafficlights = None
         self.n_trafficlights = None
         self.curr_trafficlights = None
+        self.trafficlight_network = None
         
-        self.mask = np.zeros(shape=(self.n_trafficlights))
+        self.mask = None
         self.bounding_box = ((0.0, 0.0), (1020.0, 1020.0))
 
         # TODO: These are parameters for features that are currently not being considered.
@@ -47,6 +48,20 @@ class SUMOGym(gym.Env):
     def __do_action(self, action) -> None:
         """TODO"""
         return None
+
+        for tls_id, curr_state in self.curr_trafficlights.items():
+            curr_action = self.trafficlights[tls_id].index(curr_state)
+            next_action = self.action[int(tls_id)]
+
+            curr_node = utils.get_node_id(tls_id, curr_action)
+            next_node = utils.get_node_id(tls_id, next_action)
+            is_valid = next_action in self.trafficlight_network.neighbors(curr_node)
+            if is_valid and self.can_change(tls_id): ## TODO: We need to implement `can_change()`.
+                traci.trafficlight.setRedYellowGreenState(tls_id, next_action)
+                if curr_action != next_action:
+                    ## TODO: We need to add in the part related to the mask for delay.
+                    pass
+
         trafficlight_that_can_change = (self.mask == 0)
         for tlsID in range(len(trafficlight_that_can_change)):
             if trafficlight_that_can_change[tlsID]:
@@ -55,23 +70,26 @@ class SUMOGym(gym.Env):
                 self.curr_light[tlsID] = (program_id, self.MAIN_TASK)
 
 
-    def __get_observation(self) -> np.ndarray:
-        """TODO"""
+    def __get_observation(self) -> Dict[np.ndarray, np.ndarray]:
+        """Returns the current observation of the state space, represented by the grid
+           space for recognizing vehicle locations and the current state of all traffic
+           lights.
+        """
         (x_min, y_min), (x_max, y_max) = self.bounding_box
         width = int(x_max - x_min)
         height = int(y_max - y_min)
         obs = {
-            self.GRID_KEY: np.zeros(shape=(width, height), dtype=np.int8),
-            self.TLS_KEY:  np.zeros(shape=(2*len(self.curr_light)), dtype=np.int8)
+            self.GRID_KEY: np.zeros(shape=(width, height), dtype=np.int32),
+            self.TLS_KEY:  np.zeros(shape=(len(self.trafficlights)), dtype=np.int32)
         }
 
         for veh_id in list(traci.vehicle.getIDList()):
             x, y = traci.vehicle.getPosition(veh_id)
             obs[self.GRID_KEY][int(x), int(y)] = 1
 
-        for tls_id in range(len(self.curr_light)):
-            prog_id, task_id = self.curr_light[tls_id]
-            obs[self.TLS_KEY][tls_id] = 2 * prog_id + task_id
+        for tls_id, curr_state in self.curr_trafficlights.items():
+            index = self.trafficlights[tls_id].index(curr_state)
+            obs[self.TLS_KEY][int(tls_id)] = index
 
         return obs
 
@@ -82,7 +100,7 @@ class SUMOGym(gym.Env):
 
 
     def step(self, action) -> Tuple[np.ndarray, float, bool, dict]:
-        """TODO"""
+        """Performs a single step in the environment, as per the Open AI Gym framework."""
         self.__do_action(action)
         traci.simulationStep()
 
@@ -102,69 +120,50 @@ class SUMOGym(gym.Env):
         self.sim.start()
         self.trafficlights = self.sim.get_all_possible_tls_states()
         self.n_trafficlights = len(self.trafficlights)
-        self.curr_trafficlights = self.sim.get_all_curr_tls_states()
+        self.trafficlight_network = utils.make_tls_state_network(self.trafficlights)
+
+        self.mask = np.zeros(shape=(self.n_trafficlights))
+        self.bounding_box = ((0.0, 0.0), (1020.0, 1020.0))
 
 
     @property
     def action_space(self):
-        """TODO"""
-        return gym.spaces.Box(low=0,
-                              high=self.n_programs,
-                              shape=(self.n_trafficlights,),
-                              dtype=np.int32)
+        """Initializes an instance of the action space as a property of the class."""
+        ## TODO: We need to adjust the `sample()` function for this action_space such that
+        ##       it restricts available actions based on the current action.
+        return spaces.MultiDiscrete([
+            len(self.trafficlights[tls_id]) for tls_id in self.trafficlights
+        ])
 
 
     @property
     def observation_space(self):
-        """TODO"""
+        """Initializes an instance of the observation space as a property of the class."""
         (x_min, y_min), (x_max, y_max) = ((0.0, 0.0), (1020.0, 1020.0))
         width = int(x_max - x_min)
         height = int(y_max - y_min)
 
-        veh_shape = (width, height)
-        light_shape = (self.n_trafficlights,)
-
-        grid_space = Box(
+        grid_shape = (width, height)
+        grid_space = spaces.Box(
             low=0, 
             high=1, 
-            shape=veh_shape, 
+            shape=grid_shape,
             dtype=np.int8
         )
-        tls_space = Box(
-            low=0, 
-            high=2 * self.n_programs - 1, 
-            shape=light_shape, 
-            dtype=np.int8
-        )
+        tls_space = spaces.MultiDiscrete([
+            len(self.trafficlights[tls_id]) for tls_id in self.trafficlights
+        ])
 
-        return gym.spaces.Dict({self.GRID_KEY: grid_space, self.TLS_KEY: tls_space})
+        return spaces.Dict({
+            self.GRID_KEY: grid_space, 
+            self.TLS_KEY:  tls_space
+        })
 
 
 if __name__ == "__main__":
     from collections import defaultdict
     from configs.example.runner import generate_routefile
     from os.path import join
-
-    env = SUMOGym(None)
-    action = env.action_space.sample()
-    obs = env.observation_space.sample()
-
-    print(f"Action -> {action}\nObs -> {obs}")
-    print(obs["traffic_lights"])
-    # env.reset()
-
-    """
-    # obs, reward, done, info = env.step(action)
-    # first, generate the route file for this simulation
-    generate_routefile()
-    sumo_binary = "sumo"
-
-    # this is the normal way of using traci. sumo is started as a
-    # subprocess and then the python script connects and runs
-    path = join("configs", "example")
-    config = [sumo_binary, "-c", join(path, "traffic.sumocfg"),
-                           "--tripinfo-output", join(path, "tripinfo.xml")]
-    """
 
     path = join("configs", "example")
     sim = SUMOSim(config={
@@ -181,10 +180,15 @@ if __name__ == "__main__":
 
     """Execute the TraCI training loop."""
     env.reset()
+
+    action = env.action_space.sample()
+    obs = env.observation_space.sample()
+    print(f"Action -> {action}\nObs -> {obs}")
+    print(obs["traffic_lights"])
+    
     while not done:
         action = env.action_space.sample()
         obs, reward, done, _ = env.step(action)
-        print(f"Observation {step}:\n{obs}")
         step += 1
 
     traci.close()

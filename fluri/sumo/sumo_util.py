@@ -1,6 +1,6 @@
 import networkx as nx
 
-from typing import Set
+from typing import Any, Dict, List, Set
 
 NEXT_STATES = {
     "G": set(["G", "g", "y"]),
@@ -10,6 +10,13 @@ NEXT_STATES = {
 }
 
 def in_order(state: str, next_state: str) -> bool:
+    """Based on the definition of the `NEXT_STATES` constant, this function returns True
+       if and only if the provided `next_state` is a valid successor to `state`, False
+       otherwise. 
+       
+       For example, `in_order("GGrr", "yyrr") -> True` and, on the contrary,
+       `in_order("GGrr", "rrGG") -> False`.
+    """
     if state == next_state:
         return True
     
@@ -25,15 +32,29 @@ def get_possible_next_states(state) -> Set[str]:
     states = set()
 
 
-def make_tls_state_network(possible_states):
-    """{'0': {'yyryyr', 'GGrGGr', 'rrGrrG', 'rryrry'}}"""
+def get_node_id(pre: Any, suf:str) -> str:
+    return f"{pre}:{suf}"
+
+def make_tls_state_network(possible_states: Dict[str, List[str]]):
+    """Given a dict of the form `{'0': ['yyryyr', 'GGrGGr', 'rrGrrG', 'rryrry']}` where
+       the key is the traffic light ID and the value is a list of possible states for that
+       traffic light, this function returns a *directed ego network* that represents the
+       possible action transitions available to a traffic light given its current action.
+       
+       The ego node in this network is the traffic light ID itself, so simplify the
+       indexing for logic outside of this function. Since each traffic light gets its own
+       subgraph, the ego node is a more succinct and logically straight-forward way to
+       identify each traffic light's action subgraph withougt additional expensive 
+       iteration. 
+    """
     g = nx.DiGraph()
-    get_node_id = lambda pre, suf: f"{pre}:{suf}"
 
     for tls_id in possible_states:
+        g.add_node(tls_id)
         for state in possible_states[tls_id]:
-            u = get_node_id(tls_id, state)
-            g.add_node(u, tls_id=tls_id, state=state)
+            node_id = get_node_id(tls_id, state)
+            g.add_node(node_id, tls_id=tls_id, state=state)
+            g.add_edge(tls_id, node_id)
 
         for state in possible_states[tls_id]:
             for next_state in possible_states[tls_id]:
@@ -43,43 +64,3 @@ def make_tls_state_network(possible_states):
                     g.add_edge(u, v)
 
     return g
-
-
-
-
-
-
-# Python 3 program to print all  
-# possible strings of length k 
-      
-# The method that prints all  
-# possible strings of length k. 
-# It is mainly a wrapper over  
-# recursive function printAllKLengthRec() 
-def printAllKLength(set, k): 
-  
-    n = len(set)  
-    printAllKLengthRec(set, "", n, k) 
-  
-# The main recursive method 
-# to print all possible  
-# strings of length k 
-def printAllKLengthRec(set, prefix, n, k): 
-      
-    # Base case: k is 0, 
-    # print prefix 
-    if (k == 0) : 
-        print(prefix) 
-        return
-  
-    # One by one add all characters  
-    # from set and recursively  
-    # call for k equals to k-1 
-    for i in range(n): 
-  
-        # Next character of input added 
-        newPrefix = prefix + set[i] 
-          
-        # k is decreased, because  
-        # we have added a new character 
-        printAllKLengthRec(set, newPrefix, n, k - 1) 
