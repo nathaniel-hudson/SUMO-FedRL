@@ -195,10 +195,10 @@
     <!-- OSM should generate these for you. The ID attribute of a tlLogic item specifies
          which traffic light it will be used for. -->
     <tlLogic id="0" type="static" programID="0" offset="0">
-        <phase duration="20" state="GGrGGr"/>
-        <phase duration="8"  state="yyryyr"/>
-        <phase duration="20" state="rrGrrG"/>
-        <phase duration="8"  state="rryrry"/>
+        <phase duration="20" state="GGrGGr"/> 
+        <phase duration="8"  state="yyryyr"/> 
+        <phase duration="20" state="rrGrrG"/> 
+        <phase duration="8"  state="rryrry"/> 
     </tlLogic>
 
     <!--  -->
