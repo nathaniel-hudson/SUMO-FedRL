@@ -1,6 +1,7 @@
 import gym
 import numpy as np
 import random
+import time
 import traci
 
 from collections import defaultdict
@@ -46,18 +47,14 @@ class TrafficLights:
 
 class SUMOGym(gym.Env):
     """Custom Gym environment designed for simple RL experiments using SUMO/TraCI."""
-    name = "SUMO-v1"
     metadata = {"render.modes": ["sumo", "sumo-gui"]}
-    MAIN_TASK = 0
-    TRANS_TASK = 1
+    name = "SUMO-v1"
     GRID_KEY = "grid"
     TLS_KEY  = "traffic_lights"
     
     def __init__(self, sim: SUMOSim):
         self.sim = sim
-        self.trafficlights = None
-        self.mask = None
-        self.bounding_box = None
+        self.reset()
 
     def __interpret_action(self, tls_id: str, action: List[int]) -> str:
         """Actions  are passed in as a numpy  array of integers. However, this needs to be
@@ -115,7 +112,8 @@ class SUMOGym(gym.Env):
             index = self.trafficlights.states[tls_id].index(curr_state)
             obs[self.TLS_KEY][int(tls_id)] = index
 
-        return obs
+        return obs[self.GRID_KEY]
+        # return obs
 
 
     def __get_reward(self) -> float:
@@ -136,17 +134,19 @@ class SUMOGym(gym.Env):
         return observation, reward, done, info
 
 
-    def reset(self):
+    def reset(self) -> Dict[str, Any]:
         """TODO"""
-        if self.sim.is_loaded():
-            self.sim.close()
-        
-        self.sim.start()
+        self.start()
         self.trafficlights = TrafficLights(self.sim)
         self.mask = (-2 * MIN_DELAY) * np.ones(shape=(self.trafficlights.num))
-        # self.mask = np.zeros(shape=(self.trafficlights.num))
         self.bounding_box = self.sim.get_bounding_box()
+        return self.__get_observation()
 
+    def close(self) -> None:
+        self.sim.close()
+
+    def start(self) -> None:
+        self.sim.start()
 
     @property
     def action_space(self):
@@ -175,6 +175,8 @@ class SUMOGym(gym.Env):
         tls_space = spaces.MultiDiscrete([
             len(self.trafficlights.states[tls_id]) for tls_id in self.trafficlights.states
         ])
+
+        return grid_space
 
         return spaces.Dict({
             self.GRID_KEY: grid_space, 

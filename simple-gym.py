@@ -1,9 +1,13 @@
 
 import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 
 from fluri.sumo.sumo_gym import SUMOGym
 from fluri.sumo.sumo_sim import SUMOSim
 from os.path import join
+
+sns.set_style("ticks")
 
 """
 This simple running example demonstrates how to setup a configuration to run a full
@@ -27,30 +31,35 @@ def main() -> None:
     })
 
     env = SUMOGym(sim)
+    # print(f"Action shape -> {env.action_space.shape}\nObservation shape -> {env.observation_space.shape}")
     data = {
         "actions": [],
-        "steps": []
+        "steps": [],
+        "ep": [],
     }
 
-    def add_record(y1, y2) -> None: 
-        data["actions"].append(y1)
-        data["steps"].append(y2)
+    def add_record(action, step, ep_id) -> None: 
+        data["actions"].append(action[0])
+        data["steps"].append(step)
+        data["ep"].append(ep_id)
 
-    env.reset()
-    done, step = False, 0
-    while not done:
-        action = env.action_space.sample()
-        obs, reward, done, info = env.step(action)
+    n_episodes = 10
+    for ep in range(n_episodes):
+        print(f">> Episode number ({ep+1}/{n_episodes})")
+        env.reset()
+        done, step = False, 0
+        while not done:
+            action = env.action_space.sample()
+            obs, reward, done, info = env.step(action)
 
-        add_record(info["taken_action"], step)
-        step += 1
-        add_record(info["taken_action"], step)
+            add_record(info["taken_action"], step, ep)
+            step += 1
+            add_record(info["taken_action"], step, ep)
 
-    sim.close()
+    env.close()
 
-    plt.plot("steps", "actions", data=data)
-    plt.ylabel("Agent Actions")
-    plt.xlabel("Steps")
+    data = pd.DataFrame.from_dict(data)
+    sns.jointplot(x="steps", y="actions", kind="hist", data=data)
     plt.show()
 
 if __name__ == "__main__":
