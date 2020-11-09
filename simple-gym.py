@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from fluri.sumo.sumo_gym import SumoGym
-from fluri.sumo.sumo_sim import SumoSim
+from fluri.sumo.sumogym import SumoGym
+from fluri.sumo.sumosim import SumoSim
 from os.path import join
 
 sns.set_style("ticks")

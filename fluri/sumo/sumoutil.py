@@ -12,10 +12,20 @@ NEXT_STATES = {
 def in_order(state: str, next_state: str) -> bool:
     """Based on the definition of the `NEXT_STATES` constant, this function returns True
        if and only if the provided `next_state` is a valid successor to `state`, False
-       otherwise. 
-       
-       For example, `in_order("GGrr", "yyrr") -> True` and, on the contrary,
+       otherwise. For example, `in_order("GGrr", "yyrr") -> True` and, on the contrary,
        `in_order("GGrr", "rrGG") -> False`.
+
+    Parameters
+    ----------
+    state : str
+        The current state (e.g., "GGrr").
+    next_state : str
+        The next state (e.g., "yyrr").
+
+    Returns
+    -------
+    bool
+        Returns True if `next_state` is a valid transition, False otherwise.
     """
     if state == next_state:
         return True
@@ -35,7 +45,7 @@ def get_possible_next_states(state) -> Set[str]:
 def get_node_id(pre: Any, suf:str) -> str:
     return f"{pre}:{suf}"
 
-def make_tls_state_network(possible_states: Dict[str, List[str]]):
+def make_tls_state_network(possible_states: Dict[str, List[str]]) -> nx.DiGraph:
     """Given a dict of the form `{'0': ['yyryyr', 'GGrGGr', 'rrGrrG', 'rryrry']}` where
        the key is the traffic light ID and the value is a list of possible states for that
        traffic light, this function returns a *directed ego network* that represents the
@@ -46,6 +56,17 @@ def make_tls_state_network(possible_states: Dict[str, List[str]]):
        subgraph, the ego node is a more succinct and logically straight-forward way to
        identify each traffic light's action subgraph withougt additional expensive 
        iteration. 
+
+    Parameters
+    ----------
+    possible_states : Dict[str, List[str]]
+        A dictionary where keys are the traffic light ids and the values are lists of all
+        possible states the respective traffic light can take.
+
+    Returns
+    -------
+    nx.DiGraph
+        An ego network that corresponds with possible actions for each traffic light.
     """
     g = nx.DiGraph()
 

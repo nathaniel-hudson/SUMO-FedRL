@@ -1,1 +1,1 @@
-MIN_DELAY = 5
+MIN_DELAY = 2 # 5

@@ -7,9 +7,9 @@ import traci
 from collections import defaultdict
 from gym import spaces
 
-from . import sumo_util as utils
+from . import sumoutil as utils
 from .const import *
-from .sumo_sim import SumoSim
+from .sumosim import SumoSim
 
 from typing import Any, Dict, List, Tuple
 
@@ -28,15 +28,23 @@ class TrafficLights:
         # TODO: Currenlty not being considered.
         self.radii = None
 
-    def random_states(self):
-        states = {}
-        for tls_id in self.ids:
-            states[tls_id] = random.choice([
-                self.network.nodes[u]["state"] for u in self.network.neighbors(tls_id)
-            ])
-        return states
+    def random_states(self) -> Dict[str, str]:
+        """Initialize a random state for all the traffic lights in the network.
 
-    def update_curr_states(self):
+        Returns
+        -------
+        Dict[str, str]
+            Random state.
+        """
+        return {
+            tls_id: random.choice([self.network.nodes[u]["state"] 
+                                   for u in self.network.neighbors(tls_id)])
+            for tls_id in self.ids
+        }
+
+    def update_curr_states(self) -> None:
+        """Set the current state by interfacing with SUMO directly using SumoSim.
+        """
         self.curr_states = self.sim.get_all_curr_tls_states()
 
 
@@ -51,6 +59,41 @@ class SumoGym(gym.Env):
         self.sim = sim
         self.grid_shape = grid_shape
         self.reset()
+
+    @property
+    def action_space(self) -> spaces.MultiDiscrete:
+        """Initializes an instance of the action space as a property of the class.
+        
+           TODO: We need to reconsider random sampling for the action space. Maybe we can
+                 write this more simply thatn we currently have it.
+
+        Returns
+        -------
+        spaces.MultiDiscrete
+            Action space.
+        """
+        return spaces.MultiDiscrete([len(self.trafficlights.states[tls_id])
+                                     for tls_id in self.trafficlights.states])
+
+    @property
+    def observation_space(self) -> spaces.Box:
+        """Initializes an instance of the observation space as a property of the class."""
+        grid_space = spaces.Box(
+            low=0,
+            high=10,
+            shape=self.get_obs_dims(),
+            dtype=np.int8
+        )
+        return grid_space
+
+        tls_space = spaces.MultiDiscrete([
+            len(self.trafficlights.states[tls_id])
+            for tls_id in self.trafficlights.states
+        ])
+        return spaces.Dict({
+            self.GRID_KEY: grid_space,
+            self.TLS_KEY:  tls_space
+        })
 
     def step(self, action: List[int]) -> Tuple[np.ndarray, float, bool, dict]:
         """Performs a single step in the environment, as per the Open AI Gym framework.
@@ -115,7 +158,21 @@ class SumoGym(gym.Env):
 
 
     def __do_action(self, action: List[int]) -> List[int]:
-        """TODO"""
+        """This function takes a list of integer values. The integer values correspond
+           with a traffic light state. The list provides the integer state values for each
+           traffic light in the simulation.
+
+        Parameters
+        ----------
+        action : List[int]
+            Action to perform for each traffic light.
+
+        Returns
+        -------
+        List[int]
+            The action that is taken. If the passed in action is legal, then that will be
+            returned. Otherwise, the returned action will be the prior action.
+        """
         can_change = self.mask == 0
         taken_action = action.copy()
 
@@ -152,17 +209,14 @@ class SumoGym(gym.Env):
         """
         sim_h, sim_w = self.get_sim_dims()
         obs_h, obs_w = self.get_obs_dims()
-
         h_scalar = obs_h / sim_h
         w_scalar = obs_w / sim_w
-
         obs = {
             self.GRID_KEY: np.zeros(shape=(obs_h, obs_w), dtype=np.int32),
             self.TLS_KEY:  np.zeros(shape=(self.trafficlights.num), dtype=np.int32)
         }
 
         veh_ids = list(traci.vehicle.getIDList())
-        
         for veh_id in veh_ids:
             # Get the (scaled-down) x/y coordinates for the observation grid.
             x, y = traci.vehicle.getPosition(veh_id)
@@ -173,26 +227,36 @@ class SumoGym(gym.Env):
             # be normalized, we need to change `dtype` to a float-based value.
             obs[self.GRID_KEY][y, x] += 1 #/ len(veh_ids)
 
+        return obs[self.GRID_KEY]
         for tls_id, curr_state in self.trafficlights.curr_states.items():
             index = self.trafficlights.states[tls_id].index(curr_state)
             obs[self.TLS_KEY][int(tls_id)] = index
 
-        return obs[self.GRID_KEY]
-        # return obs
-
 
     def __get_reward(self) -> float:
-        """TODO"""
+        """For now, this is a simple function that returns -1 when the simulation is not
+           done. Otherwise, the function returns 0. The goal's for the agent to prioritize
+           ending the simulation quick.
+
+        Returns
+        -------
+        float
+            The reward for this step.
+        """
         done = self.sim.done()
         return -1.0 if not done else 0.0
 
 
-    
-
     def close(self) -> None:
+        """Close the simulation, thereby ending the the connection to SUMO.
+        """
         self.sim.close()
 
+
     def start(self) -> None:
+        """Start the simulation using the SumoSim interface. This will reload the SUMO
+           SUMO simulation if it's been loaded, otherwise it will start SUMO.
+        """
         self.sim.start()
 
 
@@ -210,6 +274,7 @@ class SumoGym(gym.Env):
         height = int(y_max - y_min)
         return (height, width)
 
+
     def get_obs_dims(self) -> Tuple[int, int]:
         """Gets the dimensions of the grid observation space. If the `grid_shape` param
            is set to None, then the original bounding box's dimensions (provided by TraCI)
@@ -226,35 +291,3 @@ class SumoGym(gym.Env):
             return self.get_sim_dims()
         else:
             return self.grid_shape
-
-
-    @property
-    def action_space(self):
-        """Initializes an instance of the action space as a property of the class."""
-        ## TODO: We need to adjust the `sample()` function for this action_space such that
-        ##       it restricts available actions based on the current action.
-        return spaces.MultiDiscrete([
-            len(self.trafficlights.states[tls_id]) 
-            for tls_id in self.trafficlights.states
-        ])
-
-
-    @property
-    def observation_space(self):
-        """Initializes an instance of the observation space as a property of the class."""
-        grid_space = spaces.Box(
-            low=0, 
-            high=10, 
-            shape=self.get_obs_dims(),
-            dtype=np.int8
-        )
-        return grid_space
-
-        tls_space = spaces.MultiDiscrete([
-            len(self.trafficlights.states[tls_id]) 
-            for tls_id in self.trafficlights.states
-        ])
-        return spaces.Dict({
-            self.GRID_KEY: grid_space, 
-            self.TLS_KEY:  tls_space
-        })

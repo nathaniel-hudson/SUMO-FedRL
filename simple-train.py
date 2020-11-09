@@ -7,8 +7,8 @@ import gym
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from fluri.sumo.sumo_gym import SumoGym
-from fluri.sumo.sumo_sim import SumoSim
+from fluri.sumo.sumogym import SumoGym
+from fluri.sumo.sumosim import SumoSim
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from os.path import join
