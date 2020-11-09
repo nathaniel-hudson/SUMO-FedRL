@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Set, Tuple
 
 SORT_DEFAULT = True
 
-class SUMOSim():
+class SumoSim():
 
     def __init__(self, config: Dict[str, Any]=None):
         """Initialize a wrapper for a SUMO simulation by passing a `config` dict object
@@ -109,6 +109,11 @@ class SUMOSim():
         tree = ET.parse(self.config["net-file"])
         logic = tree.find(f"tlLogic[@id='{tls_id}']")
         states = [phase.attrib["state"] for phase in logic]
+        
+        all_reds = len(states[0]) * "r"
+        if all_reds not in states:
+            states.append(all_reds)
+
         return states if (sort_states == False) else sorted(states)
 
 
@@ -124,13 +129,13 @@ class SUMOSim():
         states = {}
         for logic in tree.findall("tlLogic"):
             idx = logic.attrib["id"]
-            states[idx] = []
+            states[idx] = self.get_possible_tls_states(idx, sort_states=sort_states)
+
+            # for phase in logic:
+            #     states[idx].append(phase.attrib["state"])
             
-            for phase in logic:
-                states[idx].append(phase.attrib["state"])
-            
-            if sort_states:
-                states[idx] = sorted(states[idx])
+            # if sort_states:
+            #     states[idx] = sorted(states[idx])
 
         return states
 

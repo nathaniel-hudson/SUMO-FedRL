@@ -1,5 +1,5 @@
 """
-For this document, we will setup a basic RL pipeline using our SUMOGym environment.
+For this document, we will setup a basic RL pipeline using our SumoGym environment.
 The RL tool we will incorporate is `stablebaselines`.
 """
 
@@ -7,8 +7,8 @@ import gym
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from fluri.sumo.sumo_gym import SUMOGym
-from fluri.sumo.sumo_sim import SUMOSim
+from fluri.sumo.sumo_gym import SumoGym
+from fluri.sumo.sumo_sim import SumoSim
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from os.path import join
@@ -33,7 +33,7 @@ def add_record(action, step, policy) -> None:
 
 def main() -> None:
     path = join("configs", "example")
-    sim = SUMOSim(config = {
+    sim = SumoSim(config = {
         "gui": False,
         "net-file": join(path, "traffic.net.xml"),
         "route-files": join(path, "traffic.rou.xml"),
@@ -42,7 +42,7 @@ def main() -> None:
     })
     
     init_data()
-    env = SUMOGym(sim)
+    env = SumoGym(sim)
     model = PPO('MlpPolicy', env, verbose=1)
     model.learn(total_timesteps=10)
 
