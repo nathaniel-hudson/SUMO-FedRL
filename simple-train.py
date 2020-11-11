@@ -3,20 +3,15 @@ For this document, we will setup a basic RL pipeline using our SumoGym environme
 The RL tool we will incorporate is `stablebaselines`.
 """
 
-import gym
-import matplotlib.pyplot as plt
-import seaborn as sns
-
 from fluri.sumo.sumogym import SumoGym
 from fluri.sumo.sumosim import SumoSim
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from os.path import join
 
-sns.set_style("ticks")
+GRID_SHAPE = (25, 25)
 
 data = None
-
 def init_data() -> None:
     global data
     data = {
@@ -27,48 +22,30 @@ def init_data() -> None:
 
 def add_record(action, step, policy) -> None:
     global data
-    data["action"].append(action)
+    data["action"].append(action[0])
     data["step"].append(step)
     data["policy"].append(policy)
 
-def main() -> None:
+def train(config, total_timesteps: int=int(2e6)):
+    init_data()
+    sim = SumoSim(config=config)
+    env = SumoGym(sim, grid_shape=GRID_SHAPE)
+
+    model = PPO("MlpPolicy", env, verbose=1)
+    model.learn(total_timesteps=total_timesteps)
+    model.save("simple_model")
+    env.close()
+
+def main(total_timesteps: int=int(2e6)) -> None:
     path = join("configs", "example")
-    sim = SumoSim(config = {
+    config = {
         "gui": False,
         "net-file": join(path, "traffic.net.xml"),
         "route-files": join(path, "traffic.rou.xml"),
         "additional-files": join(path, "traffic.det.xml"),
         "tripinfo-output": join(path, "tripinfo.xml")
-    })
-    
-    init_data()
-    env = SumoGym(sim)
-    model = PPO('MlpPolicy', env, verbose=1)
-    model.learn(total_timesteps=10)
-
-    obs = env.reset()
-    done, step = False, 0
-    while not done:
-        action, _states = model.predict(obs, deterministic=True)
-        obs, reward, done, info = env.step(action)
-        add_record(info["taken_action"], step, "random")
-        step += 1
-        add_record(info["taken_action"], step, "random")
-    env.close()
-
-    obs = env.reset()
-    done, step = False, 0
-    while not done:
-        action, _states = model.predict(obs, deterministic=True)
-        obs, reward, done, info = env.step(action)
-        add_record(info["taken_action"], step, "RL")
-        step += 1
-        add_record(info["taken_action"], step, "RL")
-    env.close()
-
-    sns.lineplot(x="step", y="action", hue="policy", style="policy", data=data)
-    plt.show()
-
+    }
+    train(config, total_timesteps)
 
 if __name__ == "__main__":
-    main()
+    main(total_timesteps=int(2e6))
