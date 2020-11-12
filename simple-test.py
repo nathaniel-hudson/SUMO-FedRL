@@ -2,15 +2,15 @@ import gym
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from fluri.sumo.sumogym import SumoGym
-from fluri.sumo.sumosim import SumoSim
+from fluri.sumo.single_agent_env import SingleSumoEnv
+from fluri.sumo.sumo_sim import SumoSim
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 
 from os.path import join
 
-GRID_SHAPE = (25, 25)
+WORLD_SHAPE = (25, 25)
 data = None
 
 def init_data() -> None:
@@ -40,7 +40,7 @@ def main(model) -> None:
     })
     
     init_data()
-    env = SumoGym(sim, grid_shape=GRID_SHAPE)
+    env = SingleSumoEnv(sim, world_shape=WORLD_SHAPE)
 
     ## Random Policy.
     obs = env.reset()
@@ -82,7 +82,7 @@ if __name__ == "__main__":
         "tripinfo-output": join(path, "tripinfo.xml")
     }
     sim = SumoSim(config=config)
-    env = SumoGym(sim, grid_shape=GRID_SHAPE)
+    env = SingleSumoEnv(sim, grid_shape=WORLD_SHAPE)
     model = PPO.load("baseline_model")
 
     # Run the simple evaluation.

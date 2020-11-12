@@ -5,23 +5,24 @@ import traci
 from gym import spaces
 from typing import Any, Dict, List, Tuple
 
-from . import sumoutil as utils
+from . import sumo_util as utils
 from .const import *
-from .sumosim import SumoSim
+from .sumo_env import SumoEnv
+from .sumo_sim import SumoSim
 from .trafficlights import TrafficLights
 
 GUI_DEFAULT = True
 
-class SumoGym(gym.Env):
+class SingleSumoEnv(SumoEnv):
     """Custom Gym environment designed for simple RL experiments using SUMO/TraCI."""
     metadata = {"render.modes": ["sumo", "sumo-gui"]}
-    name = "SumoGym-v1"
-    GRID_KEY = "grid"
+    name = "SingleSumoEnv-v1"
+    WORLD_KEY = "world"
     TLS_KEY  = "traffic_lights"
     
-    def __init__(self, sim: SumoSim, grid_shape: Tuple[int, int]=None):
+    def __init__(self, sim: SumoSim, world_shape: Tuple[int, int]=None):
         self.sim = sim
-        self.grid_shape = grid_shape
+        self.world_shape = world_shape
         self.reset()
 
     @property
@@ -47,26 +48,26 @@ class SumoGym(gym.Env):
         spaces.Box
             The observation space.
         """
-        grid_space = spaces.Box(
+        world_space = spaces.Box(
             low=0,
             high=10,
             shape=self.get_obs_dims(),
             dtype=np.int8
         )
-        return grid_space
+        return world_space
 
         tls_space = spaces.MultiDiscrete([
             len(self.trafficlights.states[tls_id])
             for tls_id in self.trafficlights.states
         ])
         return spaces.Dict({
-            self.GRID_KEY: grid_space,
+            self.WORLD_KEY: world_space,
             self.TLS_KEY:  tls_space
         })
 
 
     def reset(self) -> Dict[str, Any]:
-        """Start a fresh instance of the SumoGym environment.
+        """Start a fresh instance of the SingleSumoEnv environment.
 
         Returns
         -------
@@ -77,7 +78,7 @@ class SumoGym(gym.Env):
         self.trafficlights = TrafficLights(self.sim)
         self.mask = (-2 * MIN_DELAY) * np.ones(shape=(self.trafficlights.num))
         self.bounding_box = self.sim.get_bounding_box()
-        return self.__get_observation()
+        return self._get_observation()
 
 
     def step(self, action: List[int]) -> Tuple[np.ndarray, float, bool, dict]:
@@ -93,11 +94,11 @@ class SumoGym(gym.Env):
         Tuple[np.ndarray, float, bool, dict]
             The current observation, reward, if the simulation is done, and other info.
         """
-        taken_action = self.__do_action(action)
+        taken_action = self._do_action(action)
         traci.simulationStep()
 
-        observation = self.__get_observation()
-        reward = self.__get_reward()
+        observation = self._get_observation()
+        reward = self._get_reward()
         done = self.sim.done()
         info = {"taken_action": taken_action}
 
@@ -147,7 +148,7 @@ class SumoGym(gym.Env):
         Returns
         -------
         Tuple[int, int]
-            (width, height) of SumoGym instance.
+            (width, height) of SingleSumoEnv instance.
         """
         x_min, y_min, x_max, y_max = self.bounding_box
         width = int(x_max - x_min)
@@ -156,10 +157,10 @@ class SumoGym(gym.Env):
 
 
     def get_obs_dims(self) -> Tuple[int, int]:
-        """Gets the dimensions of the grid observation space. If the `grid_shape` param
+        """Gets the dimensions of the world observation space. If the `world_shape` param
            is set to None, then the original bounding box's dimensions (provided by TraCI)
            will be used. This, however, is non-optimal and it is recommended that you
-           provide a smaller dimensionality to represent the `grid_shape` for better
+           provide a smaller dimensionality to represent the `world_shape` for better
            learning.
 
         Returns
@@ -167,13 +168,13 @@ class SumoGym(gym.Env):
         Tuple[int, int]
             (height, width) pair of the observation space.
         """
-        if self.grid_shape is None:
+        if self.world_shape is None:
             return self.get_sim_dims()
         else:
-            return self.grid_shape
+            return self.world_shape
 
 
-    def __do_action(self, action: List[int]) -> List[int]:
+    def _do_action(self, actions: List[int]) -> List[int]:
         """This function takes a list of integer values. The integer values correspond
            with a traffic light state. The list provides the integer state values for each
            traffic light in the simulation.
@@ -190,10 +191,10 @@ class SumoGym(gym.Env):
             returned. Otherwise, the returned action will be the prior action.
         """
         can_change = self.mask == 0
-        taken_action = action.copy()
+        taken_action = actions.copy()
 
         for tls_id, curr_action in self.trafficlights.curr_states.items():
-            next_action = self.__interpret_action(tls_id, action)
+            next_action = self.__interpret_action(tls_id, actions)
             is_valid = self.is_valid_action(tls_id, curr_action, next_action)
 
             if curr_action != next_action and is_valid and can_change[int(tls_id)]:
@@ -210,8 +211,8 @@ class SumoGym(gym.Env):
         return taken_action
 
 
-    def __get_observation(self) -> Dict[np.ndarray, np.ndarray]:
-        """Returns the current observation of the state space, represented by the grid
+    def _get_observation(self) -> Dict[np.ndarray, np.ndarray]:
+        """Returns the current observation of the state space, represented by the world
            space for recognizing vehicle locations and the current state of all traffic
            lights.
 
@@ -225,22 +226,22 @@ class SumoGym(gym.Env):
         h_scalar = obs_h / sim_h
         w_scalar = obs_w / sim_w
         obs = {
-            self.GRID_KEY: np.zeros(shape=(obs_h, obs_w), dtype=np.int32),
+            self.WORLD_KEY: np.zeros(shape=(obs_h, obs_w), dtype=np.int32),
             self.TLS_KEY:  np.zeros(shape=(self.trafficlights.num), dtype=np.int32)
         }
 
         veh_ids = list(traci.vehicle.getIDList())
         for veh_id in veh_ids:
-            # Get the (scaled-down) x/y coordinates for the observation grid.
+            # Get the (scaled-down) x/y coordinates for the observation world.
             x, y = traci.vehicle.getPosition(veh_id)
             x = int(x * w_scalar)
             y = int(y * h_scalar)
 
-            # Add a normalized weight to the respective coordinate in the grid. For it to
+            # Add a normalized weight to the respective coordinate in the world. For it to
             # be normalized, we need to change `dtype` to a float-based value.
-            obs[self.GRID_KEY][y, x] += 1 #/ len(veh_ids)
+            obs[self.WORLD_KEY][y, x] += 1 #/ len(veh_ids)
 
-        return obs[self.GRID_KEY]
+        return obs[self.WORLD_KEY]
         # for tls_id, curr_state in self.trafficlights.curr_states.items():
         #     index = self.trafficlights.states[tls_id].index(curr_state)
         #     obs[self.TLS_KEY][int(tls_id)] = index
@@ -270,7 +271,7 @@ class SumoGym(gym.Env):
         return self.trafficlights.states[tls_id][action[int(tls_id)]]
 
 
-    def __get_reward(self) -> float:
+    def _get_reward(self) -> float:
         """For now, this is a simple function that returns -1 when the simulation is not
            done. Otherwise, the function returns 0. The goal's for the agent to prioritize
            ending the simulation quick.

@@ -201,7 +201,8 @@
         <phase duration="8"  state="rryrry"/> 
     </tlLogic>
 
-    <!--  -->
+    <!-- This is the junction of type `traffic_light`. We can use this to get the position
+         of the traffic light. -->
     <junction id="0" type="traffic_light" x="510.00" y="510.00" incLanes="4i_0 2i_0 3i_0 1i_0" intLanes=":0_0_0 :0_1_0 :0_2_0 :0_3_0 :0_4_0 :0_5_0" shape="506.80,517.20 513.20,517.20 517.20,513.20 517.20,506.80 513.20,502.80 506.80,502.80 502.80,506.80 502.80,513.20">
         <request index="0" response="000000" foes="000100" cont="0"/>
         <request index="1" response="000000" foes="100100" cont="0"/>

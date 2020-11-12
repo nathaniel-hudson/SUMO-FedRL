@@ -1,8 +1,8 @@
 import random
 
-from . import sumoutil as utils
+from . import sumo_util as utils
 from .const import *
-from .sumosim import SumoSim
+from .sumo_sim import SumoSim
 
 from typing import Dict
 

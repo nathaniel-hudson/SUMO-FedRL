@@ -93,7 +93,43 @@ class SumoSim():
         return traci.trafficlight.getRedYellowGreenState(tls_id)
 
 
+    def get_tls_position(self, tls_id: str=None) -> Dict[str, Tuple[str, str]]:
+        """This function reads the provided *.net.xml file to find the (x,y) positions of
+           each traffic light (junction) in the respective road network. By default, this
+           function returns a dictionary (indexed by trafficlight ID) with positions for
+           every traffic light. However, the optional `tls_id` argument allows users to
+           specify a single traffic light. However, the output remains constant for
+           consistency (i.e., a dictionary with one item pair).
+
+        Parameters
+        ----------
+        tls_id : str, optional
+            The id of the traffic light the user wishes to specify, by default None
+
+        Returns
+        -------
+        Dict[str, Tuple[str, str]]
+            A dictionary where each item is (traffic light ID, [x,y] position).
+        """
+        tree = ET.parse(self.config["net-file"])        
+        trafficlights = tree.findall("junction[@type='traffic_light']")
+        positions = {
+            tls.attrib["id"]: (tls.attrib["x"], tls.attrib["y"])
+            for tls in trafficlights
+            if (tls_id is None) or (tls.attrib["id"] == tls_id)
+        }
+        return positions
+
+
     def get_all_curr_tls_states(self) -> Dict[str, str]:
+        """Get a dictionary containing the current states (e.g., "GGrr") of all the 
+           traffic lights in the network.
+
+        Returns
+        -------
+        Dict[str, str]
+            Dictionary containing traffic light states.
+        """
         curr_states = {}
         for tls_id in self.get_traffic_light_ids():
             curr_states[tls_id] = self.curr_tls_state(tls_id)

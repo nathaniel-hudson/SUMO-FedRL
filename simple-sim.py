@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import traci
 
-from fluri.sumo.sumosim import SumoSim
-from fluri.sumo.sumoutil import make_tls_state_network
+from fluri.sumo.sumo_sim import SumoSim
+from fluri.sumo.sumo_util import make_tls_state_network
 from networkx.drawing.nx_agraph import to_agraph 
 from os.path import join
 
@@ -27,22 +27,23 @@ def main() -> None:
         sim.step()
 
     # Print some basic information related to the simulation configuration.
-    print(f"trafficlights -> {sim.get_traffic_light_ids()}")
-    print(f"boundaryBox() -> {sim.get_bounding_box()}")
-    print(f"getRedYellowGreenState() -> {traci.trafficlight.getRedYellowGreenState('0')}")
-    print(f"controlled lanes -> {traci.trafficlight.getControlledLanes('0')}")
-    print(f"controlled links -> {traci.trafficlight.getControlledLinks('0')}")
-    print(f"current state -> {sim.get_all_curr_tls_states()}")
-    print(f"get_possible_tls_states('0') -> {sim.get_possible_tls_states('0')}")
-    possible_states = sim.get_all_possible_tls_states()
-    print(f"get_all_possible_tls_states() -> {sim.get_all_possible_tls_states()}")
+    print(sim.get_tls_position())
+    # print(f"trafficlights -> {sim.get_traffic_light_ids()}")
+    # print(f"boundaryBox() -> {sim.get_bounding_box()}")
+    # print(f"getRedYellowGreenState() -> {traci.trafficlight.getRedYellowGreenState('0')}")
+    # print(f"controlled lanes -> {traci.trafficlight.getControlledLanes('0')}")
+    # print(f"controlled links -> {traci.trafficlight.getControlledLinks('0')}")
+    # print(f"current state -> {sim.get_all_curr_tls_states()}")
+    # print(f"get_possible_tls_states('0') -> {sim.get_possible_tls_states('0')}")
+    # possible_states = sim.get_all_possible_tls_states()
+    # print(f"get_all_possible_tls_states() -> {sim.get_all_possible_tls_states()}")
     sim.close()
 
     # Make the action graph for the single traffic light and draw it.
-    g = make_tls_state_network(possible_states)    
-    A = to_agraph(g)
-    A.layout("dot")
-    A.draw("action-graph.png")
+    # g = make_tls_state_network(possible_states)    
+    # A = to_agraph(g)
+    # A.layout("dot")
+    # A.draw("action-graph.png")
 
 if __name__ == "__main__":
     main()

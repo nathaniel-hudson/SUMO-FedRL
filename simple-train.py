@@ -1,15 +1,15 @@
 """
-For this document, we will setup a basic RL pipeline using our SumoGym environment.
+For this document, we will setup a basic RL pipeline using our SingleSumoEnv environment.
 The RL tool we will incorporate is `stablebaselines`.
 """
 
-from fluri.sumo.sumogym import SumoGym
-from fluri.sumo.sumosim import SumoSim
+from fluri.sumo.single_agent_env import SingleSumoEnv
+from fluri.sumo.sumo_sim import SumoSim
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from os.path import join
 
-GRID_SHAPE = (25, 25)
+WORLD_SHAPE = (25, 25)
 
 data = None
 def init_data() -> None:
@@ -29,7 +29,7 @@ def add_record(action, step, policy) -> None:
 def train(config, total_timesteps: int=int(2e6)):
     init_data()
     sim = SumoSim(config=config)
-    env = SumoGym(sim, grid_shape=GRID_SHAPE)
+    env = SingleSumoEnv(sim, world_shape=WORLD_SHAPE)
 
     model = PPO("MlpPolicy", env, verbose=1)
     model.learn(total_timesteps=total_timesteps)

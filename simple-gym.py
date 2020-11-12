@@ -3,15 +3,15 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from fluri.sumo.sumogym import SumoGym
-from fluri.sumo.sumosim import SumoSim
+from fluri.sumo.single_agent_env import SingleSumoEnv
+from fluri.sumo.sumo_sim import SumoSim
 from os.path import join
 
 sns.set_style("ticks")
 
 """
 This simple running example demonstrates how to setup a configuration to run a full
-training loop using the SumoGym environment with the SumoSim wrapper to simplify the
+training loop using the SingleSumoEnv environment with the SumoSim wrapper to simplify the
 setup needed for SUMO and TraCI.
 
 This is a very *simple* example. For meaningful training via reinforcement learning,
@@ -30,7 +30,7 @@ def main(n_episodes:int=10, gui:bool=True) -> None:
         "tripinfo-output": join(path, "tripinfo.xml")
     })
 
-    env = SumoGym(sim, grid_shape=(20, 20))
+    env = SingleSumoEnv(sim, world_shape=(20, 20))
 
     print(f"Obs shape -> {env.get_obs_dims()}\n"
           f"Sim shape -> {env.get_sim_dims()}")
