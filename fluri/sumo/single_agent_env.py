@@ -21,9 +21,7 @@ class SingleSumoEnv(SumoEnv):
     TLS_KEY  = "traffic_lights"
     
     def __init__(self, sim: SumoSim, world_shape: Tuple[int, int]=None):
-        self.sim = sim
-        self.world_shape = world_shape
-        self.reset()
+        super().__init__(sim, world_shape)
 
     @property
     def action_space(self) -> spaces.MultiDiscrete:
@@ -56,31 +54,6 @@ class SingleSumoEnv(SumoEnv):
         )
         return world_space
 
-        tls_space = spaces.MultiDiscrete([
-            len(self.trafficlights.states[tls_id])
-            for tls_id in self.trafficlights.states
-        ])
-        return spaces.Dict({
-            self.WORLD_KEY: world_space,
-            self.TLS_KEY:  tls_space
-        })
-
-
-    def reset(self) -> Dict[str, Any]:
-        """Start a fresh instance of the SingleSumoEnv environment.
-
-        Returns
-        -------
-        Dict[str, Any]
-            Current observation of the newly reset environment.
-        """
-        self.start()
-        self.trafficlights = TrafficLights(self.sim)
-        self.mask = (-2 * MIN_DELAY) * np.ones(shape=(self.trafficlights.num))
-        self.bounding_box = self.sim.get_bounding_box()
-        return self._get_observation()
-
-
     def step(self, action: List[int]) -> Tuple[np.ndarray, float, bool, dict]:
         """Performs a single step in the environment, as per the Open AI Gym framework.
 
@@ -96,14 +69,14 @@ class SingleSumoEnv(SumoEnv):
         """
         taken_action = self._do_action(action)
         traci.simulationStep()
+        self.world = self._get_world()
 
-        observation = self._get_observation()
+        observation = self.world
         reward = self._get_reward()
         done = self.sim.done()
         info = {"taken_action": taken_action}
 
         return observation, reward, done, info
-
 
     def is_valid_action(self, tls_id: str, curr_action: str, next_action: str) -> bool:
         """Determines if `next_action` is valid given the current action (`curr_action`).
@@ -127,53 +100,6 @@ class SingleSumoEnv(SumoEnv):
         is_valid = next_node in self.trafficlights.network.neighbors(curr_node)
         return is_valid
 
-
-    def close(self) -> None:
-        """Close the simulation, thereby ending the the connection to SUMO.
-        """
-        self.sim.close()
-
-
-    def start(self) -> None:
-        """Start the simulation using the SumoSim interface. This will reload the SUMO
-           SUMO simulation if it's been loaded, otherwise it will start SUMO.
-        """
-        self.sim.start()
-
-
-    def get_sim_dims(self) -> Tuple[int, int]:
-        """Provides the original (height, width) dimensions for the simulation for this
-           Gym environment.
-
-        Returns
-        -------
-        Tuple[int, int]
-            (width, height) of SingleSumoEnv instance.
-        """
-        x_min, y_min, x_max, y_max = self.bounding_box
-        width = int(x_max - x_min)
-        height = int(y_max - y_min)
-        return (height, width)
-
-
-    def get_obs_dims(self) -> Tuple[int, int]:
-        """Gets the dimensions of the world observation space. If the `world_shape` param
-           is set to None, then the original bounding box's dimensions (provided by TraCI)
-           will be used. This, however, is non-optimal and it is recommended that you
-           provide a smaller dimensionality to represent the `world_shape` for better
-           learning.
-
-        Returns
-        -------
-        Tuple[int, int]
-            (height, width) pair of the observation space.
-        """
-        if self.world_shape is None:
-            return self.get_sim_dims()
-        else:
-            return self.world_shape
-
-
     def _do_action(self, actions: List[int]) -> List[int]:
         """This function takes a list of integer values. The integer values correspond
            with a traffic light state. The list provides the integer state values for each
@@ -194,7 +120,7 @@ class SingleSumoEnv(SumoEnv):
         taken_action = actions.copy()
 
         for tls_id, curr_action in self.trafficlights.curr_states.items():
-            next_action = self.__interpret_action(tls_id, actions)
+            next_action = self._interpret_action(tls_id, actions)
             is_valid = self.is_valid_action(tls_id, curr_action, next_action)
 
             if curr_action != next_action and is_valid and can_change[int(tls_id)]:
@@ -210,8 +136,7 @@ class SingleSumoEnv(SumoEnv):
         self.trafficlights.update_curr_states()
         return taken_action
 
-
-    def _get_observation(self) -> Dict[np.ndarray, np.ndarray]:
+    def _get_world(self) -> np.ndarray:
         """Returns the current observation of the state space, represented by the world
            space for recognizing vehicle locations and the current state of all traffic
            lights.
@@ -221,33 +146,21 @@ class SingleSumoEnv(SumoEnv):
         Dict[np.ndarray, np.ndarray]
             Get the current observation of the environment.
         """
-        sim_h, sim_w = self.get_sim_dims()
-        obs_h, obs_w = self.get_obs_dims()
-        h_scalar = obs_h / sim_h
-        w_scalar = obs_w / sim_w
-        obs = {
-            self.WORLD_KEY: np.zeros(shape=(obs_h, obs_w), dtype=np.int32),
-            self.TLS_KEY:  np.zeros(shape=(self.trafficlights.num), dtype=np.int32)
-        }
-
+        world = np.zeros(shape=(self.obs_h, self.obs_w), dtype=np.int32)
         veh_ids = list(traci.vehicle.getIDList())
         for veh_id in veh_ids:
-            # Get the (scaled-down) x/y coordinates for the observation world.
+            # Get the (scaled-down) x- or y-coordinates for the observation world.
             x, y = traci.vehicle.getPosition(veh_id)
-            x = int(x * w_scalar)
-            y = int(y * h_scalar)
+            x = int(x * self.w_scalar)
+            y = int(y * self.h_scalar)
 
             # Add a normalized weight to the respective coordinate in the world. For it to
             # be normalized, we need to change `dtype` to a float-based value.
-            obs[self.WORLD_KEY][y, x] += 1 #/ len(veh_ids)
+            world[y, x] += 1 #/ len(veh_ids)
 
-        return obs[self.WORLD_KEY]
-        # for tls_id, curr_state in self.trafficlights.curr_states.items():
-        #     index = self.trafficlights.states[tls_id].index(curr_state)
-        #     obs[self.TLS_KEY][int(tls_id)] = index
+        return world
 
-
-    def __interpret_action(self, tls_id: str, action: List[int]) -> str:
+    def _interpret_action(self, tls_id: str, action: List[int]) -> str:
         """Actions  are passed in as a numpy  array of integers. However, this needs to be
            interpreted as an action state (e.g., `GGrr`) based on the TLS possible states.
            So,  given an ID  tls=2 and  an action  a=[[1], [3], [0], ..., [2]] (where each 
@@ -270,7 +183,6 @@ class SingleSumoEnv(SumoEnv):
         """
         return self.trafficlights.states[tls_id][action[int(tls_id)]]
 
-
     def _get_reward(self) -> float:
         """For now, this is a simple function that returns -1 when the simulation is not
            done. Otherwise, the function returns 0. The goal's for the agent to prioritize
@@ -281,5 +193,4 @@ class SingleSumoEnv(SumoEnv):
         float
             The reward for this step.
         """
-        done = self.sim.done()
-        return -1.0 if not done else 0.0
+        return -1.0 if not (self.sim.done()) else 0.0

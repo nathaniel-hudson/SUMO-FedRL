@@ -1,5 +1,6 @@
 import gym
 import numpy as np
+import traci
 
 from gym import spaces
 from typing import Tuple
@@ -9,10 +10,8 @@ from .sumo_sim import SumoSim
 
 class MultiSumoEnv(SumoEnv):
 
-    def __init__(self, sim: SumoSim, grid_shape: Tuple[int, int]=None):
-        self.sim = sim
-        self.grid_shape = grid_shape
-        self.reset()
+    def __init__(self, sim: SumoSim, world_shape: Tuple[int, int] = None):
+        super().__init__(sim, world_shape)
 
     @property
     def action_space(self) -> spaces.MultiDiscrete:
@@ -47,7 +46,7 @@ class MultiSumoEnv(SumoEnv):
     def _do_action(self, agent_id, action):
         pass
 
-    def _get_observation(self, agent_id) -> np.ndarray:
+    def _get_world(self, agent_id) -> np.ndarray:
         pass
 
     def _get_reward(self, agent_id) -> float:
@@ -59,4 +58,20 @@ class MultiSumoEnv(SumoEnv):
            then used to grab the sub-matrices of the world to represent each agents'
            view or observation subspace.
         """   
-        pass
+        sim_h, sim_w = self.get_sim_dims()
+        obs_h, obs_w = self.get_obs_dims()
+        h_scalar = obs_h / sim_h
+        w_scalar = obs_w / sim_w
+        world = np.zeros(shape=(obs_h, obs_w), dtype=np.int32)
+
+        veh_ids = list(traci.vehicle.getIDList())
+        for veh_id in veh_ids:
+            # Get the (scaled-down) x/y coordinates for the observation world.
+            x, y = traci.vehicle.getPosition(veh_id)
+            x, y = int(x * w_scalar), int(y * h_scalar)
+
+            # Add a normalized weight to the respective coordinate in the world. For it to
+            # be normalized, we need to change `dtype` to a float-based value.
+            world[y, x] += 1
+
+        self.world = world

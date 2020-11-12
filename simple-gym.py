@@ -37,8 +37,6 @@ def main(n_episodes:int=10, gui:bool=True) -> None:
     print(f"Action shape -> {env.action_space.shape}\n"
           f"Observation shape -> {env.observation_space.shape}")
 
-    # exit(0)
-
     data = {
         "actions": [],
         "steps": [],
