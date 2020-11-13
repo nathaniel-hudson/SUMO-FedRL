@@ -4,7 +4,7 @@ import networkx as nx
 import traci
 
 from fluri.sumo.sumo_sim import SumoSim
-from fluri.sumo.sumo_util import make_tls_state_network
+from fluri.sumo.utils.helper import make_tls_state_network
 from networkx.drawing.nx_agraph import to_agraph 
 from os.path import join
 

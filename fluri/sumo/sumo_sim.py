@@ -5,6 +5,8 @@ import xml.etree.ElementTree as ET
 
 from typing import Any, Dict, List, Set, Tuple
 
+from .utils.random_routes import generate_random_routes
+
 SORT_DEFAULT = True
 
 class SumoSim():

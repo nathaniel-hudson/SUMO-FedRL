@@ -5,7 +5,7 @@ import traci
 from gym import spaces
 from typing import Any, Dict, List, Tuple
 
-from . import sumo_util as utils
+from .utils.helper import  *
 from .const import *
 from .sumo_env import SumoEnv
 from .sumo_sim import SumoSim
@@ -95,8 +95,8 @@ class SingleSumoEnv(SumoEnv):
         bool
             True if `next_action` is valid, False otherwise.
         """
-        curr_node = utils.get_node_id(tls_id, curr_action)
-        next_node = utils.get_node_id(tls_id, next_action)
+        curr_node = get_node_id(tls_id, curr_action)
+        next_node = get_node_id(tls_id, next_action)
         is_valid = next_node in self.trafficlights.network.neighbors(curr_node)
         return is_valid
 

@@ -1,6 +1,6 @@
 import random
 
-from . import sumo_util as utils
+from .utils import helper as utils
 from .const import *
 from .sumo_sim import SumoSim
 
