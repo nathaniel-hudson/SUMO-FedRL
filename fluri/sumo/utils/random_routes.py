@@ -1,4 +1,5 @@
 from typing import List
+from os.path import join
 
 from . import random_routes_support as rrs
 
@@ -11,7 +12,8 @@ def generate_random_routes(
     num_routefiles: int=1,
     begin_time: int=0,
     end_time: int=3600,
-    seed: float=None
+    seed: float=None,
+    dir: str=None,
 ) -> List[str]:
     """This function generates a *.rou.xml file for vehicles in the given road network.
 
@@ -34,6 +36,8 @@ def generate_random_routes(
     for i in range(num_routefiles):
         routefile = "traffic.rou.xml" if (num_routefiles == 1) \
                     else f"traffic_{i}.rou.xml"
+        if dir is not None:
+            routefile = join(dir, routefile)
         opts = rrs.set_options(netfile=net_name, 
                                routefile=routefile, 
                                begin=begin_time,
@@ -41,7 +45,8 @@ def generate_random_routes(
                                length=True, 
                                period=end_time/num_vehicles,
                                generator=generator.lower(), 
-                               seed=seed)
+                               seed=seed,
+                               dir=dir)
         routes.append(routefile)
         res = rrs.main(opts)
         print(f"Routes generated -> {res}")

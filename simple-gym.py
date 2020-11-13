@@ -22,18 +22,19 @@ results for your agent(s).
 
 def main(n_episodes:int=10, gui:bool=True) -> None:
     # Execute the TraCI training loop.
-    path = join("configs", "two_inter")
-    netfile = join(path, "two_inter.net.xml")
+    path = join("configs", "example")
+    netfile = join(path, "traffic.net.xml")
     rand_routes = generate_random_routes(
         net_name=netfile,
         num_vehicles=300,
-        generator="arcsine"
+        generator="arcsine",
+        dir=path
     )
     sim = SumoSim(config = {
         "gui": gui,
         "net-file": netfile,
-        "route-files": join(path, rand_routes.pop()),
-        "additional-files": join(path, "traffic.det.xml"),
+        "route-files": rand_routes.pop(),
+        # "additional-files": join(path, "traffic.det.xml"),
         "tripinfo-output": join(path, "tripinfo.xml")
     })
 
@@ -74,4 +75,4 @@ def main(n_episodes:int=10, gui:bool=True) -> None:
     plt.show()
 
 if __name__ == "__main__":
-    main(n_episodes=10, gui=False)
+    main(n_episodes=10, gui=True)

@@ -151,11 +151,12 @@ class SingleSumoEnv(SumoEnv):
         for veh_id in veh_ids:
             # Get the (scaled-down) x- or y-coordinates for the observation world.
             x, y = traci.vehicle.getPosition(veh_id)
-            x = int(x * self.w_scalar)
-            y = int(y * self.h_scalar)
+            x = min(int(x * self.w_scalar), self.obs_w - 1)
+            y = min(int(y * self.h_scalar), self.obs_h - 1)
 
             # Add a normalized weight to the respective coordinate in the world. For it to
             # be normalized, we need to change `dtype` to a float-based value.
+            # print(f"world.shape = {world.shape}\ny = {y}\nx = {x}")
             world[y, x] += 1 #/ len(veh_ids)
 
         return world

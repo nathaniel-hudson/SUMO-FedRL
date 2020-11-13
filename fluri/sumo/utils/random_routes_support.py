@@ -36,6 +36,7 @@ if 'SUMO_HOME' in os.environ:
 import sumolib  # noqa
 from sumolib.miscutils import euclidean  # noqa
 from sumolib.geomhelper import naviDegree, minAngleDegreeDiff  # noqa
+from os.path import join
 
 DUAROUTER = sumolib.checkBinary('duarouter')
 
@@ -55,7 +56,8 @@ def set_options(
     length=None, 
     period=None, 
     generator=None, 
-    seed=None
+    seed=None,
+    dir=""
 ):
     optParser = optparse.OptionParser()
     optParser.add_option("-n", "--net-file", dest="netfile",
@@ -63,7 +65,7 @@ def set_options(
     optParser.add_option("-a", "--additional-files", dest="additional",
                          help="define additional files to be loaded by the router")
     optParser.add_option("-o", "--output-trip-file", dest="tripfile",
-                         default="trips.trips.xml", help="define the output trip filename")
+                         default=join(dir, "trips.trips.xml"), help="define the output trip filename")
     optParser.add_option("-r", "--route-file", dest="routefile",
                          help="generates route file with duarouter")
     optParser.add_option("--vtype-output", dest="vtypeout",
@@ -209,14 +211,14 @@ def set_options(
     return options
 
 
-def get_options(args=None):
+def get_options(args=None, dir=""):
     optParser = optparse.OptionParser()
     optParser.add_option("-n", "--net-file", dest="netfile",
                          help="define the net file (mandatory)")
     optParser.add_option("-a", "--additional-files", dest="additional",
                          help="define additional files to be loaded by the router")
     optParser.add_option("-o", "--output-trip-file", dest="tripfile",
-                         default="trips.trips.xml", help="define the output trip filename")
+                         default=join(dir, "trips.trips.xml"), help="define the output trip filename")
     optParser.add_option("-r", "--route-file", dest="routefile",
                          help="generates route file with duarouter")
     optParser.add_option("--vtype-output", dest="vtypeout",
@@ -502,34 +504,48 @@ def buildTripGenerator(net, options):
         for edge in net.getEdges():
             if not edge.is_fringe():
                 max_length = max(max_length, edge.getLength())
+
         forbidden_source_fringe = None if options.allow_fringe else "_outgoing"
-        forbidden_sink_fringe = None if options.allow_fringe else "_incoming"
+        forbidden_sink_fringe   = None if options.allow_fringe else "_incoming"
+
         source_generator = RandomEdgeGenerator(
-            net, get_prob_fun(options, "_incoming", forbidden_source_fringe, max_length))
+            net, 
+            get_prob_fun(options, "_incoming", forbidden_source_fringe, max_length)
+        )
         sink_generator = RandomEdgeGenerator(
-            net, get_prob_fun(options, "_outgoing", forbidden_sink_fringe, max_length))
+            net, 
+            get_prob_fun(options, "_outgoing", forbidden_sink_fringe, max_length)
+        )
+
         if options.weightsprefix:
             if os.path.isfile(options.weightsprefix + SOURCE_SUFFIX):
                 source_generator = RandomEdgeGenerator(
-                    net, LoadedProps(options.weightsprefix + SOURCE_SUFFIX))
+                    net, 
+                    LoadedProps(options.weightsprefix + SOURCE_SUFFIX)
+                )
             if os.path.isfile(options.weightsprefix + SINK_SUFFIX):
                 sink_generator = RandomEdgeGenerator(
-                    net, LoadedProps(options.weightsprefix + SINK_SUFFIX))
+                    net, 
+                    LoadedProps(options.weightsprefix + SINK_SUFFIX)
+                )
     except InvalidGenerator:
-        print("Error: no valid edges for generating source or destination. Try using option --allow-fringe",
-              file=sys.stderr)
+        print("Error: no valid edges for generating source or destination. "
+              "Try using option --allow-fringe", file=sys.stderr)
         return None
 
     try:
         via_generator = RandomEdgeGenerator(
-            net, get_prob_fun(options, None, None, 1))
+            net, 
+            get_prob_fun(options, None, None, 1)
+        )
         if options.weightsprefix and os.path.isfile(options.weightsprefix + VIA_SUFFIX):
             via_generator = RandomEdgeGenerator(
-                net, LoadedProps(options.weightsprefix + VIA_SUFFIX))
+                net, 
+                LoadedProps(options.weightsprefix + VIA_SUFFIX)
+            )
     except InvalidGenerator:
         if options.intermediate > 0:
-            print(
-                "Error: no valid edges for generating intermediate points", file=sys.stderr)
+            print("Error: no valid edges for generating intermediate points", file=sys.stderr)
             return None
         else:
             via_generator = None
@@ -635,9 +651,10 @@ def main(options):
     if options.min_distance > net.getBBoxDiameter() * (options.intermediate + 1):
         options.intermediate = int(
             math.ceil(options.min_distance / net.getBBoxDiameter())) - 1
-        print(("Warning: setting number of intermediate waypoints to %s to achieve a minimum trip length of " +
-               "%s in a network with diameter %.2f.") % (
-            options.intermediate, options.min_distance, net.getBBoxDiameter()))
+        print(f"Warning: setting number of intermediate waypoints to "
+              f"{options.intermediate} to achieve a minimum trip length of "
+              f"{options.min_distance} in a network with diameter "
+              f"{net.getBBoxDiameter():.2f}.")
 
     if options.angle_weight != 1:
         xmin, ymin, xmax, ymax = net.getBoundary()
