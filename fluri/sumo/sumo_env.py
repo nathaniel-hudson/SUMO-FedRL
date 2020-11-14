@@ -74,9 +74,9 @@ class SumoEnv(ABC, gym.Env):
         """
         self.sim.start()
 
-    ## _____________________________________________ ##
-    ## ABSTRACT METHODS THAT NEED TO BE IMPLEMENTED. ##
-    ## --------------------------------------------- ##
+    ## ================================================================= ##
+    ## ABSTRACT METHODS THAT NEED TO BE IMPLEMENTED BY CHILDREN CLASSES. ##
+    ## ----------------------------------------------------------------- ##
     @abstractmethod
     def action_space(self):
         pass

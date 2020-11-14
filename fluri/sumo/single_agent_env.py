@@ -13,6 +13,16 @@ from .trafficlights import TrafficLights
 
 GUI_DEFAULT = True
 
+"""
+TODO:
+    + We need to incorporate scalars for compressing the observation space dimensionality.
+      This would simplify the compression process while allowing for an easy way to main-
+      tain dimension ratio. For instance, `foo(dims=(300,200), scalar=0.5) -> (150, 100)`.
+    + We need to consider a "timeout" version of performing the `__done()` function. This
+      should provide faster training. But, at the same time, this may not be necessary. 
+      But, the option could be useful for larger networks.
+"""
+
 class SingleSumoEnv(SumoEnv):
     """Custom Gym environment designed for simple RL experiments using SUMO/TraCI."""
     metadata = {"render.modes": ["sumo", "sumo-gui"]}
@@ -22,6 +32,8 @@ class SingleSumoEnv(SumoEnv):
     
     def __init__(self, sim: SumoSim, world_shape: Tuple[int, int]=None):
         super().__init__(sim, world_shape)
+        tls_ids = self.sim.get_traffic_light_ids()
+        self.tls_ids_2_ints = {tls_id: i for i, tls_id in enumerate(tls_ids)}
 
     @property
     def action_space(self) -> spaces.MultiDiscrete:
@@ -122,16 +134,17 @@ class SingleSumoEnv(SumoEnv):
         for tls_id, curr_action in self.trafficlights.curr_states.items():
             next_action = self._interpret_action(tls_id, actions)
             is_valid = self.is_valid_action(tls_id, curr_action, next_action)
+            tls_id_int = self.tls_ids_2_ints[tls_id]
 
-            if curr_action != next_action and is_valid and can_change[int(tls_id)]:
+            if curr_action != next_action and is_valid and can_change[tls_id_int]:
                 traci.trafficlight.setRedYellowGreenState(tls_id, next_action)
-                self.mask[int(tls_id)] = -2 * MIN_DELAY
+                self.mask[tls_id_int] = -2 * MIN_DELAY
 
             else:
                 traci.trafficlight.setRedYellowGreenState(tls_id, curr_action)
-                self.mask[int(tls_id)] = min(0, self.mask[int(tls_id)] + 1)
-                taken_action[int(tls_id)] = self.trafficlights.states[tls_id].\
-                                            index(curr_action)
+                self.mask[tls_id_int] = min(0, self.mask[tls_id_int] + 1)
+                taken_action[tls_id_int] = self.trafficlights.states[tls_id].\
+                                           index(curr_action)
 
         self.trafficlights.update_curr_states()
         return taken_action
@@ -161,7 +174,9 @@ class SingleSumoEnv(SumoEnv):
 
         return world
 
-    def _interpret_action(self, tls_id: str, action: List[int]) -> str:
+    ## TODO: Actions need to be converted into Dicts to support non-integer tls_ids.
+
+    def _interpret_action(self, tls_id: str, action: List[str]) -> str:
         """Actions  are passed in as a numpy  array of integers. However, this needs to be
            interpreted as an action state (e.g., `GGrr`) based on the TLS possible states.
            So,  given an ID  tls=2 and  an action  a=[[1], [3], [0], ..., [2]] (where each 
@@ -182,7 +197,8 @@ class SingleSumoEnv(SumoEnv):
             The string state that corresponds with the selected action for the given
             traffic light.
         """
-        return self.trafficlights.states[tls_id][action[int(tls_id)]]
+        i = self.tls_ids_2_ints[tls_id]
+        return self.trafficlights.states[tls_id][action[i]]
 
     def _get_reward(self) -> float:
         """For now, this is a simple function that returns -1 when the simulation is not

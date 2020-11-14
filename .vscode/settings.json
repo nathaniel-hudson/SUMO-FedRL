@@ -1,3 +1,4 @@
 {
-    "workbench.colorTheme": "GitHub Dark"
+    "workbench.colorTheme": "GitHub Dark",
+    "todo-tree.tree.showCountsInTree": true
 }

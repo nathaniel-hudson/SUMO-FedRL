@@ -20,24 +20,34 @@ you would likely need more complex environments and routing scenarios for compel
 results for your agent(s).
 """
 
-def main(n_episodes:int=10, gui:bool=True) -> None:
+def main(
+    n_episodes: int, 
+    n_vehicles: int, 
+    gui: bool
+) -> None:
     # Execute the TraCI training loop.
     path = join("configs", "example")
     netfile = join(path, "traffic.net.xml")
-    rand_routes = generate_random_routes(
-        net_name=netfile,
-        num_vehicles=300,
-        generator="arcsine",
-        dir=path
-    )
-    sim = SumoSim(config = {
+    rand_routes = generate_random_routes(netfile, n_vehicles,  "arcsine",  dir=path)
+    single_sim = SumoSim(config={
         "gui": gui,
         "net-file": netfile,
         "route-files": rand_routes.pop(),
-        # "additional-files": join(path, "traffic.det.xml"),
+        "additional-files": join(path, "traffic.det.xml"),
         "tripinfo-output": join(path, "tripinfo.xml")
     })
 
+    path = join("configs", "two_inter")
+    netfile = join(path, "two_inter.net.xml")
+    rand_routes = generate_random_routes(netfile, n_vehicles,  "arcsine",  dir=path)
+    double_sim = SumoSim(config={
+        "gui": gui,
+        "net-file": netfile,
+        "route-files": rand_routes.pop(),
+        # "tripinfo-output": join(path, "tripinfo.xml")
+    })
+
+    sim = double_sim
     env = SingleSumoEnv(sim, world_shape=(20, 20))
 
     print(f"Obs shape -> {env.get_obs_dims()}\n"
@@ -75,4 +85,12 @@ def main(n_episodes:int=10, gui:bool=True) -> None:
     plt.show()
 
 if __name__ == "__main__":
-    main(n_episodes=10, gui=True)
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Process some integers.")
+    parser.add_argument("--n_episodes", type=int, default=1, help="Number of episodes.")
+    parser.add_argument("--n_vehicles", type=int, default=300, help="Number of vehicles.")
+    parser.add_argument("--gui", default=False, action="store_true")
+    args = parser.parse_args()
+
+    main(args.n_episodes, args.n_vehicles, args.gui)
