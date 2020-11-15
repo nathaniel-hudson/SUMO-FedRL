@@ -87,10 +87,12 @@ def main(
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Process some integers.")
+    parser = argparse.ArgumentParser()
     parser.add_argument("--n_episodes", type=int, default=1, help="Number of episodes.")
-    parser.add_argument("--n_vehicles", type=int, default=300, help="Number of vehicles.")
-    parser.add_argument("--gui", default=False, action="store_true")
+    parser.add_argument("--n_vehicles", type=int, default=750, help="Number of vehicles.")
+    parser.add_argument("--gui", dest='gui', action="store_true")
+    parser.add_argument("--no-gui", dest='gui', action="store_false")
+    parser.set_defaults(gui=True)
     args = parser.parse_args()
-
-    main(args.n_episodes, args.n_vehicles, args.gui)
+    
+    main(n_episodes=args.n_episodes, n_vehicles=args.n_vehicles, gui=args.gui)

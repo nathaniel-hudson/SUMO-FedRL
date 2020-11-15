@@ -10,9 +10,9 @@ from .trafficlights import TrafficLights
 
 class SumoEnv(ABC, gym.Env):
 
-    def __init__(self, sim: SumoSim, world_shape: Tuple[int, int] = None):
+    def __init__(self, sim: SumoSim, world_dim: Tuple[int, int]=None):
         self.sim = sim
-        self.world_shape = world_shape
+        self.world_dim = world_dim
         self.reset()
 
     def reset(self):
@@ -47,10 +47,10 @@ class SumoEnv(ABC, gym.Env):
         return (height, width)
 
     def get_obs_dims(self) -> Tuple[int, int]:
-        """Gets the dimensions of the world observation space. If the `world_shape` param
+        """Gets the dimensions of the world observation space. If the `world_dim` param
            is set to None, then the original bounding box's dimensions (provided by TraCI)
            will be used. This, however, is non-optimal and it is recommended that you
-           provide a smaller dimensionality to represent the `world_shape` for better
+           provide a smaller dimensionality to represent the `world_dim` for better
            learning.
 
         Returns
@@ -58,10 +58,10 @@ class SumoEnv(ABC, gym.Env):
         Tuple[int, int]
             (height, width) pair of the observation space.
         """
-        if self.world_shape is None:
+        if self.world_dim is None:
             return self.get_sim_dims()
         else:
-            return self.world_shape
+            return self.world_dim
 
     def close(self) -> None:
         """Close the simulation, thereby ending the the connection to SUMO.

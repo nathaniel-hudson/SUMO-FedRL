@@ -30,8 +30,13 @@ class SingleSumoEnv(SumoEnv):
     WORLD_KEY = "world"
     TLS_KEY  = "traffic_lights"
     
-    def __init__(self, sim: SumoSim, world_shape: Tuple[int, int]=None):
-        super().__init__(sim, world_shape)
+    def __init__(
+        self, 
+        sim: SumoSim, 
+        world_dim: Tuple[int, int]=None,
+        obs_widths: Dict[str, int]=None,
+    ):
+        super().__init__(sim, world_dim)
         tls_ids = self.sim.get_traffic_light_ids()
         self.tls_ids_2_ints = {tls_id: i for i, tls_id in enumerate(tls_ids)}
 
@@ -132,11 +137,11 @@ class SingleSumoEnv(SumoEnv):
         taken_action = actions.copy()
 
         for tls_id, curr_action in self.trafficlights.curr_states.items():
-            next_action = self._interpret_action(tls_id, actions)
+            next_action = self.interpret_action(tls_id, actions)
             is_valid = self.is_valid_action(tls_id, curr_action, next_action)
             tls_id_int = self.tls_ids_2_ints[tls_id]
 
-            if curr_action != next_action and is_valid and can_change[tls_id_int]:
+            if (curr_action != next_action) and is_valid and can_change[tls_id_int]:
                 traci.trafficlight.setRedYellowGreenState(tls_id, next_action)
                 self.mask[tls_id_int] = -2 * MIN_DELAY
 
@@ -169,14 +174,13 @@ class SingleSumoEnv(SumoEnv):
 
             # Add a normalized weight to the respective coordinate in the world. For it to
             # be normalized, we need to change `dtype` to a float-based value.
-            # print(f"world.shape = {world.shape}\ny = {y}\nx = {x}")
             world[y, x] += 1 #/ len(veh_ids)
 
         return world
 
     ## TODO: Actions need to be converted into Dicts to support non-integer tls_ids.
 
-    def _interpret_action(self, tls_id: str, action: List[str]) -> str:
+    def interpret_action(self, tls_id: str, action: List[str]) -> str:
         """Actions  are passed in as a numpy  array of integers. However, this needs to be
            interpreted as an action state (e.g., `GGrr`) based on the TLS possible states.
            So,  given an ID  tls=2 and  an action  a=[[1], [3], [0], ..., [2]] (where each 

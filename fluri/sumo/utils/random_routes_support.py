@@ -45,6 +45,21 @@ SINK_SUFFIX = ".dst.xml"
 VIA_SUFFIX = ".via.xml"
 
 randomGenerator = None
+verbosity = 0
+
+VERBOSE_LEVELS = {
+    "NOTHING": 0,
+    "WARNINGS": 1,
+}
+
+def __print(*msg: str) -> None:
+    """This function just wraps the standard `print()` function so that it follows the
+       verbosity rules. This is mostly to avoid exhaustive warning messages caused by this
+       script document.
+    """
+    global verbosity
+    if verbosity > 0:
+        print(msg)
 
 
 def set_options(
@@ -184,18 +199,18 @@ def set_options(
     if options.pedestrians:
         options.vclass = 'pedestrian'
         if options.flows > 0:
-            print("Error: Person flows are not supported yet", file=sys.stderr)
+            __print("Error: Person flows are not supported yet", file=sys.stderr)
             sys.exit(1)
 
     if options.validate and options.routefile is None:
         options.routefile = "routes.rou.xml"
 
     if options.period <= 0:
-        print("Error: Period must be positive", file=sys.stderr)
+        __print("Error: Period must be positive", file=sys.stderr)
         sys.exit(1)
 
     if options.jtrrouter and options.flows <= 0:
-        print("Error: Option --jtrrouter must be used with option --flows", file=sys.stderr)
+        __print("Error: Option --jtrrouter must be used with option --flows", file=sys.stderr)
         sys.exit(1)
 
     if options.vehicle_class:
@@ -205,7 +220,7 @@ def set_options(
             options.vtypeID = options.vehicle_class
 
         if 'type=' in options.tripattrs:
-            print("Error: trip-attribute 'type' cannot be used together with option --vehicle-class", file=sys.stderr)
+            __print("Error: trip-attribute 'type' cannot be used together with option --vehicle-class", file=sys.stderr)
             sys.exit(1)
 
     return options
@@ -315,18 +330,18 @@ def get_options(args=None, dir=""):
     if options.pedestrians:
         options.vclass = 'pedestrian'
         if options.flows > 0:
-            print("Error: Person flows are not supported yet", file=sys.stderr)
+            __print("Error: Person flows are not supported yet", file=sys.stderr)
             sys.exit(1)
 
     if options.validate and options.routefile is None:
         options.routefile = "routes.rou.xml"
 
     if options.period <= 0:
-        print("Error: Period must be positive", file=sys.stderr)
+        __print("Error: Period must be positive", file=sys.stderr)
         sys.exit(1)
 
     if options.jtrrouter and options.flows <= 0:
-        print("Error: Option --jtrrouter must be used with option --flows", file=sys.stderr)
+        __print("Error: Option --jtrrouter must be used with option --flows", file=sys.stderr)
         sys.exit(1)
 
     if options.vehicle_class:
@@ -336,7 +351,7 @@ def get_options(args=None, dir=""):
             options.vtypeID = options.vehicle_class
 
         if 'type=' in options.tripattrs:
-            print("Error: trip-attribute 'type' cannot be used together with option --vehicle-class", file=sys.stderr)
+            __print("Error: trip-attribute 'type' cannot be used together with option --vehicle-class", file=sys.stderr)
             sys.exit(1)
 
     return options
@@ -352,13 +367,13 @@ class CustomRandom(object):
 
     def __init__(self, generator, seed):
         if generator is None:
-            print( "Empty generator given" )
+            __print( "Empty generator given" )
             sys.exit( 0 )
 
         self.generator = generator
         if self.generator == 'default':
             if seed is None:
-                print( "Empty seed given" )
+                __print( "Empty seed given" )
                 sys.exit( 0 )
             random.seed( seed )
 
@@ -472,7 +487,7 @@ def get_prob_fun(options, fringe_bonus, fringe_forbidden, max_length):
             nx, ny = options.angle_center
             edgeAngle = naviDegree(math.atan2(ey - ny, ex - nx))
             angleDiff = minAngleDegreeDiff(options.angle, edgeAngle)
-            # print("e=%s nc=%s ec=%s ea=%s a=%s ad=%s" % (
+            # __print("e=%s nc=%s ec=%s ea=%s a=%s ad=%s" % (
             #    edge.getID(), options.angle_center, (ex,ey), edgeAngle,
             #    options.angle, angleDiff))
             # relDist = 2 * euclidean((ex, ey), options.angle_center) / max(xmax - xmin, ymax - ymin)
@@ -529,7 +544,7 @@ def buildTripGenerator(net, options):
                     LoadedProps(options.weightsprefix + SINK_SUFFIX)
                 )
     except InvalidGenerator:
-        print("Error: no valid edges for generating source or destination. "
+        __print("Error: no valid edges for generating source or destination. "
               "Try using option --allow-fringe", file=sys.stderr)
         return None
 
@@ -545,7 +560,7 @@ def buildTripGenerator(net, options):
             )
     except InvalidGenerator:
         if options.intermediate > 0:
-            print("Error: no valid edges for generating intermediate points", file=sys.stderr)
+            __print("Error: no valid edges for generating intermediate points", file=sys.stderr)
             return None
         else:
             via_generator = None
@@ -594,7 +609,7 @@ def split_trip_attributes(tripattrs, pedestrians, hasType):
             allattrs.append(a)
         else:
             if len(allattrs) == 0:
-                print("Warning: invalid trip-attribute '%s'" % a)
+                __print("Warning: invalid trip-attribute '%s'" % a)
             else:
                 allattrs[-1] += ' ' + a
 
@@ -642,7 +657,7 @@ def main(options):
     global randomGenerator
     randomGenerator = CustomRandom(options.generator, options.seed)
     
-    # print(randomGenerator)
+    # __print(randomGenerator)
     #sys.exit(0)
     #if options.seed:
     #    random.seed(options.seed)
@@ -651,7 +666,7 @@ def main(options):
     if options.min_distance > net.getBBoxDiameter() * (options.intermediate + 1):
         options.intermediate = int(
             math.ceil(options.min_distance / net.getBBoxDiameter())) - 1
-        print(f"Warning: setting number of intermediate waypoints to "
+        __print(f"Warning: setting number of intermediate waypoints to "
               f"{options.intermediate} to achieve a minimum trip length of "
               f"{options.min_distance} in a network with diameter "
               f"{net.getBBoxDiameter():.2f}.")
@@ -719,7 +734,7 @@ def main(options):
                     fouttrips.write('    <trip id="%s" depart="%.2f"%s/>\n' % (
                         label, depart, combined_attrs))
         except Exception as exc:
-            print(exc, file=sys.stderr)
+            __print(exc, file=sys.stderr)
         return idx + 1
 
     with open(options.tripfile, 'w') as fouttrips:
@@ -740,7 +755,7 @@ def main(options):
                     else:
                         # draw n times from a Bernoulli distribution
                         # for an average arrival rate of 1 / period
-                        # print("what") # NOTE NCH: Huh?
+                        # __print("what") # NOTE NCH: Huh?
                         prob = 1.0 / options.period / options.binomial
                         for _ in range(options.binomial):
                             if randomGenerator.random() < prob:
@@ -774,14 +789,14 @@ def main(options):
 
     if options.routefile:
         args2 = args + ['-o', options.routefile]
-        print("calling ", " ".join(args2))
+        __print("calling ", " ".join(args2))
         subprocess.call(args2)
 
     if options.validate:
         # write to temporary file because the input is read incrementally
         tmpTrips = options.tripfile + ".tmp"
         args2 = args + ['-o', tmpTrips, '--write-trips']
-        print("calling ", " ".join(args2))
+        __print("calling ", " ".join(args2))
         subprocess.call(args2)
         os.remove(options.tripfile)  # on windows, rename does not overwrite
         os.rename(tmpTrips, options.tripfile)
