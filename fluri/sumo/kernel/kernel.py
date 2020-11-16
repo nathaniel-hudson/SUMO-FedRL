@@ -107,3 +107,4 @@ class SumoKernel():
         traci.simulationStep()
 
     def get_tls_observations() -> Dict[str, np.ndarray]:
+        pass
