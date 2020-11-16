@@ -4,9 +4,9 @@ import traci
 import warnings
 import xml.etree.ElementTree as ET
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
-from .trafficlights import TrafficLights
+from .trafficlights import TrafficLights, TrafficLightHub
 from .world import World
 
 from ..utils.random_routes import generate_random_routes
@@ -15,7 +15,7 @@ SORT_DEFAULT = True
 
 class SumoKernel():
 
-    def __init__(self, config: Dict[str, Any]=None):
+    def __init__(self, config: Dict[str, Any]=None, scale_factor: float=1.0):
         """Initialize a wrapper for a SUMO simulation by passing a `config` dict object
            that stores the command-line arguments needed for a SUMO simulation.
 
@@ -34,6 +34,8 @@ class SumoKernel():
             + Additional files (likely not really needed).
         '''
 
+        assert 0.0 < scale_factor and scale_factor <= 1.0
+
         self.config = {
             "gui": config.get("gui", False),
             "configuration-file": config.get("configuration-file", None),
@@ -42,8 +44,8 @@ class SumoKernel():
             "additional-files": config.get("additional-files", None),
             "tripinfo-output": config.get("tripinfo-output", None),
         }
-        self.world = World(config)
-        self.traffic_lights = TrafficLights(config)
+        self.world = World(self.config["net-file"], scale_factor)
+        self.trafficlight_hub = TrafficLightHub(self.config["net-file"])
 
 
     def get_command_args(self) -> List[str]:
@@ -69,6 +71,38 @@ class SumoKernel():
     def generate_routes(self):
         """TODO"""
         pass
+
+
+    def get_tls_observations(
+        self, 
+        obs_width: float=0.2,
+        return_dict: bool=True,
+    ) -> Union[Dict[str, np.ndarray], np.ndarray]:
+        assert 0 < obs_width and obs_width <= 1
+
+        observations = {} if return_dict else []
+        width = int(self.world.get_dimensions()[0] * obs_width)
+        for tls in self.trafficlight_hub:
+            (x, y) = self.world.convert_coords(tls.get_position())
+            top_left = (x - width, y - width)
+            bottom_right = (x + width, y + width)
+            
+            obs = self.world.observe(top_left, bottom_right)
+            if return_dict:
+                observations[tls.id] = obs
+            else:
+                observations.append(obs)
+
+        if return_dict:
+            return observations
+        else:
+            return np.ndarray(observations)
+
+
+
+    # <|==============================================================================|> #
+    # <|==============================================================================|> #
+    # <|==============================================================================|> #
 
 
     def is_loaded(self) -> bool:
@@ -105,6 +139,3 @@ class SumoKernel():
     def step(self) -> None:
         """TODO"""
         traci.simulationStep()
-
-    def get_tls_observations() -> Dict[str, np.ndarray]:
-        pass

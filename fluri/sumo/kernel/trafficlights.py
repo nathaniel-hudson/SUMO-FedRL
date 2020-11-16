@@ -187,6 +187,9 @@ class TrafficLight:
         except traci.exceptions.FatalTraCIError:
             pass
 
+    def get_position(self) -> Tuple[int, int]:
+        return self.position
+
 
 class TrafficLightHub:
     """
