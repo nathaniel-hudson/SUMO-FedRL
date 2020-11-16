@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from fluri.sumo.single_agent_env import SingleSumoEnv
-from fluri.sumo.sumo_sim import SumoSim
+from fluri.sumo.sumo_sim import SumoKernel
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
@@ -31,7 +31,7 @@ def add_record(action, step, policy, total_reward) -> None:
 
 def main(model) -> None:
     path = join("configs", "example")
-    sim = SumoSim(config={
+    sim = SumoKernel(config={
         "gui": True,
         "net-file": join(path, "traffic.net.xml"),
         "route-files": join(path, "traffic.rou.xml"),
@@ -40,7 +40,7 @@ def main(model) -> None:
     })
     
     init_data()
-    env = SingleSumoEnv(sim, world_shape=WORLD_SHAPE)
+    env = SingleSumoEnv(sim, world_dim=WORLD_SHAPE)
 
     ## Random Policy.
     obs = env.reset()
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         "additional-files": join(path, "traffic.det.xml"),
         "tripinfo-output": join(path, "tripinfo.xml")
     }
-    sim = SumoSim(config=config)
+    sim = SumoKernel(config=config)
     env = SingleSumoEnv(sim, grid_shape=WORLD_SHAPE)
     model = PPO.load("baseline_model")
 

@@ -1,0 +1,2 @@
+# SUMO Kernel
+This portion of the code is dedicated to essentially wrapping the separate components of the SUMO simulation such that they are accessible in Python. Not all of the code in TraCI for SUMO simulations is immediately usable outside of SUMO. For instance, object IDs are string values; the world of a simulation can involve negative indices; etc.

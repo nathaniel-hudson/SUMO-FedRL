@@ -2,7 +2,7 @@ import networkx as nx
 
 from typing import Any, Dict, List, Set
 
-from .core import get_node_id
+from ..utils.core import get_node_id
 
 NEXT_STATES = {
     "G": set(["G", "g", "y"]),

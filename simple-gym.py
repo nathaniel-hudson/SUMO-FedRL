@@ -4,7 +4,7 @@ import pandas as pd
 import seaborn as sns
 
 from fluri.sumo.single_agent_env import SingleSumoEnv
-from fluri.sumo.sumo_sim import SumoSim
+from fluri.sumo.sumo_sim import SumoKernel
 from fluri.sumo.utils.random_routes import generate_random_routes
 from os.path import join
 
@@ -12,7 +12,7 @@ sns.set_style("ticks")
 
 """
 This simple running example demonstrates how to setup a configuration to run a full
-training loop using the SingleSumoEnv environment with the SumoSim wrapper to simplify the
+training loop using the SingleSumoEnv environment with the SumoKernel wrapper to simplify the
 setup needed for SUMO and TraCI.
 
 This is a very *simple* example. For meaningful training via reinforcement learning,
@@ -29,7 +29,7 @@ def main(
     path = join("configs", "example")
     netfile = join(path, "traffic.net.xml")
     rand_routes = generate_random_routes(netfile, n_vehicles,  "arcsine",  dir=path)
-    single_sim = SumoSim(config={
+    single_sim = SumoKernel(config={
         "gui": gui,
         "net-file": netfile,
         "route-files": rand_routes.pop(),
@@ -40,7 +40,7 @@ def main(
     path = join("configs", "two_inter")
     netfile = join(path, "two_inter.net.xml")
     rand_routes = generate_random_routes(netfile, n_vehicles,  "arcsine",  dir=path)
-    double_sim = SumoSim(config={
+    double_sim = SumoKernel(config={
         "gui": gui,
         "net-file": netfile,
         "route-files": rand_routes.pop(),
@@ -48,7 +48,7 @@ def main(
     })
 
     sim = double_sim
-    env = SingleSumoEnv(sim, world_shape=(20, 20))
+    env = SingleSumoEnv(sim, world_dim=(20, 20))
 
     print(f"Obs shape -> {env.get_obs_dims()}\n"
           f"Sim shape -> {env.get_sim_dims()}")
@@ -73,6 +73,8 @@ def main(
         while not done:
             action = env.action_space.sample()
             obs, reward, done, info = env.step(action)
+
+            print(f"$ Step #{step}:\n{env._get_observation()}\n")
 
             add_record(info["taken_action"], step, ep)
             step += 1

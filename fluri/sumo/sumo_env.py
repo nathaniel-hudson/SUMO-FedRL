@@ -5,12 +5,12 @@ from abc import ABC, abstractmethod
 from typing import Any, Tuple
 
 from .const import *
-from .sumo_sim import SumoSim
-from .trafficlights import TrafficLights
+from .kernel.kernel import SumoKernel
+from .kernel.trafficlights import TrafficLights
 
 class SumoEnv(ABC, gym.Env):
 
-    def __init__(self, sim: SumoSim, world_dim: Tuple[int, int]=None):
+    def __init__(self, sim: SumoKernel, world_dim: Tuple[int, int]=None):
         self.sim = sim
         self.world_dim = world_dim
         self.reset()
@@ -69,7 +69,7 @@ class SumoEnv(ABC, gym.Env):
         self.sim.close()
 
     def start(self) -> None:
-        """Start the simulation using the SumoSim interface. This will reload the SUMO
+        """Start the simulation using the SumoKernel interface. This will reload the SUMO
            SUMO simulation if it's been loaded, otherwise it will start SUMO.
         """
         self.sim.start()

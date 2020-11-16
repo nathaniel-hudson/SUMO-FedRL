@@ -4,7 +4,7 @@ The RL tool we will incorporate is `stablebaselines`.
 """
 
 from fluri.sumo.single_agent_env import SingleSumoEnv
-from fluri.sumo.sumo_sim import SumoSim
+from fluri.sumo.sumo_sim import SumoKernel
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from os.path import join
@@ -28,8 +28,8 @@ def add_record(action, step, policy) -> None:
 
 def train(config, total_timesteps: int=int(2e6)):
     init_data()
-    sim = SumoSim(config=config)
-    env = SingleSumoEnv(sim, world_shape=WORLD_SHAPE)
+    sim = SumoKernel(config=config)
+    env = SingleSumoEnv(sim, world_dim=WORLD_SHAPE)
 
     model = PPO("MlpPolicy", env, verbose=1)
     model.learn(total_timesteps=total_timesteps)

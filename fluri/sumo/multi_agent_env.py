@@ -6,12 +6,12 @@ from gym import spaces
 from typing import Tuple
 
 from .sumo_env import SumoEnv
-from .sumo_sim import SumoSim
+from .sumo_sim import SumoKernel
 
 class MultiSumoEnv(SumoEnv):
 
-    def __init__(self, sim: SumoSim, world_shape: Tuple[int, int] = None):
-        super().__init__(sim, world_shape)
+    def __init__(self, sim: SumoKernel, world_dim: Tuple[int, int] = None):
+        super().__init__(sim, world_dim)
 
     @property
     def action_space(self) -> spaces.MultiDiscrete:

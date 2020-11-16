@@ -5,11 +5,12 @@ import traci
 from gym import spaces
 from typing import Any, Dict, List, Tuple
 
-from .utils.helper import  *
+from .utils.core import get_node_id
 from .const import *
 from .sumo_env import SumoEnv
-from .sumo_sim import SumoSim
-from .trafficlights import TrafficLights
+
+from .kernel.kernel import SumoKernel
+from .kernel.trafficlights import TrafficLights
 
 GUI_DEFAULT = True
 
@@ -32,13 +33,18 @@ class SingleSumoEnv(SumoEnv):
     
     def __init__(
         self, 
-        sim: SumoSim, 
+        sim: SumoKernel, 
         world_dim: Tuple[int, int]=None,
         obs_widths: Dict[str, int]=None,
     ):
         super().__init__(sim, world_dim)
         tls_ids = self.sim.get_traffic_light_ids()
         self.tls_ids_2_ints = {tls_id: i for i, tls_id in enumerate(tls_ids)}
+
+        if obs_widths is None:
+            self.obs_widths = {tls_id: 75 for tls_id in self.trafficlights.ids}
+        else:
+            self.obs_widths = obs_widths
 
     @property
     def action_space(self) -> spaces.MultiDiscrete:
@@ -112,6 +118,7 @@ class SingleSumoEnv(SumoEnv):
         bool
             True if `next_action` is valid, False otherwise.
         """
+        # TODO: Move `get_node_id` outside of the helper file.
         curr_node = get_node_id(tls_id, curr_action)
         next_node = get_node_id(tls_id, next_action)
         is_valid = next_node in self.trafficlights.network.neighbors(curr_node)
@@ -153,6 +160,29 @@ class SingleSumoEnv(SumoEnv):
 
         self.trafficlights.update_curr_states()
         return taken_action
+
+
+    def _get_observation(self) -> Dict[str, np.ndarray]:
+        conv = lambda x: int(float(x))
+
+        obs = {}
+        w, h = conv(self.sim_w), conv(self.sim_h)
+        
+        for tls_id in self.trafficlights.ids:
+            radius = conv(self.obs_widths[tls_id] / 2)
+            x, y = self.trafficlights.positions[tls_id]
+            x, y = conv(x), conv(y)
+            x1, y1 = max(0, x - radius), max(0, y - radius)
+            x2, y2 = min(x + radius, w), min(y + radius, h)
+
+            # print(type(x1), type(y1), type(x2), type(y2))
+            print(f"w -> {w}; h -> {h}; x -> {x}; y -> {y};\n"
+                  f"x1 -> {x1}; y1 -> {y1}; x2 -> {x2}; y2 -> {y2}")
+
+            obs[tls_id] = self.world[y1:y2, x1:x2]
+        
+        return obs
+
 
     def _get_world(self) -> np.ndarray:
         """Returns the current observation of the state space, represented by the world
