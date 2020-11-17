@@ -4,7 +4,7 @@ import pandas as pd
 import seaborn as sns
 
 from fluri.sumo.single_agent_env import SingleSumoEnv
-from fluri.sumo.sumo_sim import SumoKernel
+from fluri.sumo.kernel.kernel import SumoKernel
 from fluri.sumo.utils.random_routes import generate_random_routes
 from os.path import join
 
@@ -26,6 +26,7 @@ def main(
     gui: bool
 ) -> None:
     # Execute the TraCI training loop.
+    '''
     path = join("configs", "example")
     netfile = join(path, "traffic.net.xml")
     rand_routes = generate_random_routes(netfile, n_vehicles,  "arcsine",  dir=path)
@@ -46,14 +47,23 @@ def main(
         "route-files": rand_routes.pop(),
         # "tripinfo-output": join(path, "tripinfo.xml")
     })
+    '''
 
-    sim = double_sim
-    env = SingleSumoEnv(sim, world_dim=(20, 20))
+    # sim = double_sim
+    path = join("configs", "two_inter")
+    netfile = join(path, "two_inter.net.xml")
 
-    print(f"Obs shape -> {env.get_obs_dims()}\n"
-          f"Sim shape -> {env.get_sim_dims()}")
-    print(f"Action shape -> {env.action_space.shape}\n"
-          f"Observation shape -> {env.observation_space.shape}")
+    print("Generating random route files... ", end="")
+    rand_routes = generate_random_routes(netfile, n_vehicles,  "arcsine",  dir=path)
+    print("Done!")
+
+    print("Initializing `SingleSumoEnv`... ", end="")
+    env = SingleSumoEnv(config={
+        "gui": gui,
+        "net-file": netfile,
+        "route-files": rand_routes.pop()
+    })
+    print("Done!")
 
     data = {
         "actions": [],
@@ -73,10 +83,8 @@ def main(
         while not done:
             action = env.action_space.sample()
             obs, reward, done, info = env.step(action)
-
-            print(f"$ Step #{step}:\n{env._get_observation()}\n")
-
             add_record(info["taken_action"], step, ep)
+            # print(f"Step #{step} action -> {action}; taken_action -> {info['taken_action']}")
             step += 1
             add_record(info["taken_action"], step, ep)
 

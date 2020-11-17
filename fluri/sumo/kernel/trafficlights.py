@@ -4,7 +4,6 @@ import traci
 import warnings
 import xml.etree.ElementTree as ET
 
-from .kernel import SumoKernel
 from ..utils import helper as utils
 from ..utils.core import get_node_id
 from ..const import *
@@ -74,13 +73,13 @@ def make_tls_state_network(tls_id: str, possible_states: List[str]) -> nx.DiGrap
     """
     g = nx.DiGraph()
     # g.add_node(tls_id)
-    for state in possible_states[tls_id]:
+    for state in possible_states:
         node_id = get_node_id(tls_id, state)
         g.add_node(node_id, tls_id=tls_id, state=state)
         g.add_edge(tls_id, node_id)
 
-    for state in possible_states[tls_id]:
-        for next_state in possible_states[tls_id]:
+    for state in possible_states:
+        for next_state in possible_states:
             if in_order(state, next_state):
                 u = get_node_id(tls_id, state)
                 v = get_node_id(tls_id, next_state)
@@ -94,11 +93,11 @@ def get_tls_position(
     road_netfile: str
 ) -> Tuple[str, str]:
     """This function reads the provided *.net.xml file to find the (x,y) positions of
-        each traffic light (junction) in the respective road network. By default, this
-        function returns a dictionary (indexed by trafficlight ID) with positions for
-        every traffic light. However, the optional `tls_id` argument allows users to
-        specify a single traffic light. However, the output remains constant for
-        consistency (i.e., a dictionary with one item pair).
+       each traffic light (junction) in the respective road network. By default, this
+       function returns a dictionary (indexed by trafficlight ID) with positions for
+       every traffic light. However, the optional `tls_id` argument allows users to
+       specify a single traffic light. However, the output remains constant for
+       consistency (i.e., a dictionary with one item pair).
 
     Parameters
     ----------
@@ -143,18 +142,19 @@ def possible_tls_states(
     List[str]
         A list of all the possible states the given traffic light can take.
     """
-    tree = ET.parse(road_netfile)
-    logic = tree.find(f"tlLogic[@id='{tls_id}']")
-    states = [phase.attrib["state"] for phase in logic]
-    
-    # There needs to be an "all reds" state where every light is red. This is an
-    # absorbing state and is not guaranteed to be in a traffic light logic. So, this
-    # bit of code ensures it is included as a possible state.
-    all_reds = len(states[0]) * "r"
-    if all_reds not in states:
-        states.append(all_reds)
+    with open(road_netfile, "r") as f:
+        tree = ET.parse(f)
+        logic = tree.find(f"tlLogic[@id='{tls_id}']")
+        states = [phase.attrib["state"] for phase in logic]
+        
+        # There needs to be an "all reds" state where every light is red. This is an
+        # absorbing state and is not guaranteed to be in a traffic light logic. So, this
+        # bit of code ensures it is included as a possible state.
+        all_reds = len(states[0]) * "r"
+        if all_reds not in states:
+            states.append(all_reds)
 
-    return states if (sort_states == False) else sorted(states)
+        return states if (sort_states == False) else sorted(states)
 
 
 class TrafficLight:
@@ -170,12 +170,10 @@ class TrafficLight:
     ):
         self.id: int = tls_id
         self.position: Tuple[int, int] = get_tls_position(self.id, road_netfile)
-        self.possible_states: List[str] = possible_tls_states(self.id, sort_states)
-        self.action_transition_net: nx.DiGraph = make_tls_state_network({
-            self.id: self.possible_states
-        })
+        self.possible_states: List[str] = possible_tls_states(self.id, road_netfile, sort_states)
+        self.action_transition_net: nx.DiGraph = make_tls_state_network(self.id, self.possible_states)
         self.state = random.choice([
-            self.network.nodes[u]["state"] 
+            self.action_transition_net.nodes[u]["state"] 
             for u in self.action_transition_net.neighbors(self.id)
         ])
 
@@ -189,6 +187,27 @@ class TrafficLight:
 
     def get_position(self) -> Tuple[int, int]:
         return self.position
+
+    def get_state(self, index: int) -> str:
+        return self.possible_states[index]
+
+    def valid_next_state(self, next_state: str) -> bool:
+        """Determines if `next_state` is valid given the current state.
+
+        Parameters
+        ----------
+        next_state : str
+            The proposed next state provided by the user.
+
+        Returns
+        -------
+        bool
+            Returns True if `next_state` is a valid transition, False otherwise.
+        """
+        curr_node = get_node_id(self.id, self.state)
+        next_node = get_node_id(self.id, next_state)
+        is_valid = next_node in self.action_transition_net.neighbors(curr_node)
+        return is_valid
 
 
 class TrafficLightHub:
@@ -232,11 +251,11 @@ class TrafficLightHub:
     def update_current_states(self) -> None:
         """Update the current states by interfacing with SUMO directly using SumoKernel.
         """
-        for trafficlight in self.hub.items():
-            trafficlight.update_current_state()
+        for tls in self.hub.values():
+            tls.update_current_state()
 
     def __iter__(self):
-        return self.hub.__iter__()
+        return self.hub.values().__iter__()
 
     def __getitem__(self, tls_id: str) -> TrafficLight:
         return self.hub[tls_id]

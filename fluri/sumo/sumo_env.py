@@ -2,35 +2,31 @@ import gym
 import numpy as np
 
 from abc import ABC, abstractmethod
-from typing import Any, Tuple
+from typing import Any, Dict, Tuple
 
 from .const import *
 from .kernel.kernel import SumoKernel
-from .kernel.trafficlights import TrafficLights
+
+"""
+TODO: The entire environments setup needs to be reformatted.
+"""
 
 class SumoEnv(ABC, gym.Env):
 
-    def __init__(self, sim: SumoKernel, world_dim: Tuple[int, int]=None):
-        self.sim = sim
-        self.world_dim = world_dim
+    def __init__(self, config: Dict[str, Any], scale_factor: float=0.5):
+        assert 0.0 < scale_factor and scale_factor <= 1.0
+
+        pass
+        self.config = config
+        self.kernel = SumoKernel(self.config, scale_factor)
+        self.scale_factor = scale_factor
         self.reset()
 
     def reset(self):
         # Start the simulation and get details surrounding the war.
         self.start()
-        self.trafficlights = TrafficLights(self.sim)
-        self.mask = (-2 * MIN_DELAY) * np.ones(shape=(self.trafficlights.num))
-        self.bounding_box = self.sim.get_bounding_box()
-
-        # These values are with regard to the height and width of the world itself.
-        # These values are used to get matrix representations of the world for learning.
-        self.sim_h, self.sim_w = self.get_sim_dims()
-        self.obs_h, self.obs_w = self.get_obs_dims()
-        self.h_scalar = self.obs_h / self.sim_h
-        self.w_scalar = self.obs_w / self.sim_w
-
-        self.world = self._get_world()
-        return self.world
+        self.action_timer = (-2 * MIN_DELAY) * np.ones(shape=(len(self.kernel.tls_hub)))
+        return self.kernel.world.observe()
 
     def get_sim_dims(self) -> Tuple[int, int]:
         """Provides the original (height, width) dimensions for the simulation for this
@@ -66,13 +62,13 @@ class SumoEnv(ABC, gym.Env):
     def close(self) -> None:
         """Close the simulation, thereby ending the the connection to SUMO.
         """
-        self.sim.close()
+        self.kernel.close()
 
     def start(self) -> None:
         """Start the simulation using the SumoKernel interface. This will reload the SUMO
            SUMO simulation if it's been loaded, otherwise it will start SUMO.
         """
-        self.sim.start()
+        self.kernel.start()
 
     ## ================================================================= ##
     ## ABSTRACT METHODS THAT NEED TO BE IMPLEMENTED BY CHILDREN CLASSES. ##

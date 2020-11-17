@@ -49,7 +49,7 @@ def generate_random_routes(
                                dir=dir)
         routes.append(routefile)
         res = rrs.main(opts)
-        print(f"Routes generated -> {res}")
+        # print(f"Routes generated -> {res}")
 
     return routes
 

@@ -2,9 +2,19 @@
 For this document, we will setup a basic RL pipeline using our SingleSumoEnv environment.
 The RL tool we will incorporate is `stablebaselines`.
 """
+import ray
+
+from ray import tune
+from ray.rllib.agents.ppo import PPOTrainer
+
+"""
+Ray RlLib agent training example.
+https://github.com/ray-project/ray/blob/master/rllib/examples/custom_train_fn.py
+"""
+
 
 from fluri.sumo.single_agent_env import SingleSumoEnv
-from fluri.sumo.sumo_sim import SumoKernel
+from fluri.sumo.kernel.kernel import SumoKernel
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from os.path import join

@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 
 from typing import Any, Dict, List, Tuple, Union
 
-from .trafficlights import TrafficLights, TrafficLightHub
+from .trafficlights import TrafficLight, TrafficLightHub
 from .world import World
 
 from ..utils.random_routes import generate_random_routes
@@ -45,7 +45,7 @@ class SumoKernel():
             "tripinfo-output": config.get("tripinfo-output", None),
         }
         self.world = World(self.config["net-file"], scale_factor)
-        self.trafficlight_hub = TrafficLightHub(self.config["net-file"])
+        self.tls_hub = TrafficLightHub(self.config["net-file"]) # TODO: Slow as hell.
 
 
     def get_command_args(self) -> List[str]:
@@ -82,7 +82,7 @@ class SumoKernel():
 
         observations = {} if return_dict else []
         width = int(self.world.get_dimensions()[0] * obs_width)
-        for tls in self.trafficlight_hub:
+        for tls in self.tls_hub:
             (x, y) = self.world.convert_coords(tls.get_position())
             top_left = (x - width, y - width)
             bottom_right = (x + width, y + width)

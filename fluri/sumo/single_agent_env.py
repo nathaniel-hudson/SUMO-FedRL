@@ -5,12 +5,8 @@ import traci
 from gym import spaces
 from typing import Any, Dict, List, Tuple
 
-from .utils.core import get_node_id
 from .const import *
 from .sumo_env import SumoEnv
-
-from .kernel.kernel import SumoKernel
-from .kernel.trafficlights import TrafficLights
 
 GUI_DEFAULT = True
 
@@ -28,23 +24,13 @@ class SingleSumoEnv(SumoEnv):
     """Custom Gym environment designed for simple RL experiments using SUMO/TraCI."""
     metadata = {"render.modes": ["sumo", "sumo-gui"]}
     name = "SingleSumoEnv-v1"
-    WORLD_KEY = "world"
-    TLS_KEY  = "traffic_lights"
     
     def __init__(
         self, 
-        sim: SumoKernel, 
-        world_dim: Tuple[int, int]=None,
-        obs_widths: Dict[str, int]=None,
+        config: Dict[str, Any], 
+        scale_factor: float=0.5
     ):
-        super().__init__(sim, world_dim)
-        tls_ids = self.sim.get_traffic_light_ids()
-        self.tls_ids_2_ints = {tls_id: i for i, tls_id in enumerate(tls_ids)}
-
-        if obs_widths is None:
-            self.obs_widths = {tls_id: 75 for tls_id in self.trafficlights.ids}
-        else:
-            self.obs_widths = obs_widths
+        super().__init__(config, scale_factor)
 
     @property
     def action_space(self) -> spaces.MultiDiscrete:
@@ -57,8 +43,8 @@ class SingleSumoEnv(SumoEnv):
         spaces.MultiDiscrete
             The action space.
         """
-        return spaces.MultiDiscrete([len(self.trafficlights.states[tls_id])
-                                     for tls_id in self.trafficlights.states])
+        return spaces.MultiDiscrete([len(tls.possible_states)
+                                     for tls in self.kernel.tls_hub])
 
     @property
     def observation_space(self) -> spaces.Box:
@@ -92,37 +78,14 @@ class SingleSumoEnv(SumoEnv):
         """
         taken_action = self._do_action(action)
         traci.simulationStep()
-        self.world = self._get_world()
+        self.kernel.world.update()
 
-        observation = self.world
+        observation = self.kernel.world.observe()
         reward = self._get_reward()
-        done = self.sim.done()
+        done = self.kernel.done()
         info = {"taken_action": taken_action}
 
         return observation, reward, done, info
-
-    def is_valid_action(self, tls_id: str, curr_action: str, next_action: str) -> bool:
-        """Determines if `next_action` is valid given the current action (`curr_action`).
-
-        Parameters
-        ----------
-        tls_id : str
-            The traffic light ID.
-        curr_action : str
-            The state of the current action.
-        next_action : str
-            The state of the next action.
-
-        Returns
-        -------
-        bool
-            True if `next_action` is valid, False otherwise.
-        """
-        # TODO: Move `get_node_id` outside of the helper file.
-        curr_node = get_node_id(tls_id, curr_action)
-        next_node = get_node_id(tls_id, next_action)
-        is_valid = next_node in self.trafficlights.network.neighbors(curr_node)
-        return is_valid
 
     def _do_action(self, actions: List[int]) -> List[int]:
         """This function takes a list of integer values. The integer values correspond
@@ -140,99 +103,35 @@ class SingleSumoEnv(SumoEnv):
             The action that is taken. If the passed in action is legal, then that will be
             returned. Otherwise, the returned action will be the prior action.
         """
-        can_change = self.mask == 0
+        can_change = self.action_timer == 0
         taken_action = actions.copy()
 
-        for tls_id, curr_action in self.trafficlights.curr_states.items():
-            next_action = self.interpret_action(tls_id, actions)
-            is_valid = self.is_valid_action(tls_id, curr_action, next_action)
-            tls_id_int = self.tls_ids_2_ints[tls_id]
+        # TODO: Delegate this, perhaps, to the `SumoKernel` class.
+        tls_index = {tls.id: i for i, tls in enumerate(self.kernel.tls_hub)}
 
-            if (curr_action != next_action) and is_valid and can_change[tls_id_int]:
-                traci.trafficlight.setRedYellowGreenState(tls_id, next_action)
-                self.mask[tls_id_int] = -2 * MIN_DELAY
+        for tls in self.kernel.tls_hub:
+            tls_int = tls_index[tls.id]
+            curr_state = tls.state
+            next_state = tls.get_state(actions[tls_int])
+            is_valid = tls.valid_next_state(next_state)
 
+            # If this condition is true, then the RYG state of the current traffic light
+            # `tls` will be changed to the selected `next_state` provided by `actions`.
+            # This only occurs if the next state and current state are not the same, the
+            # transition is valid, and the `tls` is available to change. If so, then
+            # the change is made and the timer is reset.
+            if (curr_state != next_state) and is_valid and can_change[tls_int]:
+                traci.trafficlight.setRedYellowGreenState(tls.id, next_state)
+                self.action_timer[tls_int] = -2 * MIN_DELAY
+            # Otherwise, keep the state the same, update the taken action, and then 
+            # decrease the remaining time by +1.
             else:
-                traci.trafficlight.setRedYellowGreenState(tls_id, curr_action)
-                self.mask[tls_id_int] = min(0, self.mask[tls_id_int] + 1)
-                taken_action[tls_id_int] = self.trafficlights.states[tls_id].\
-                                           index(curr_action)
+                traci.trafficlight.setRedYellowGreenState(tls.id, curr_state)
+                taken_action[tls_int] = tls.possible_states.index(curr_state)
+                self.action_timer[tls_int] = min(0, self.action_timer[tls_int] + 1)
 
-        self.trafficlights.update_curr_states()
+        self.kernel.tls_hub.update_current_states()
         return taken_action
-
-
-    def _get_observation(self) -> Dict[str, np.ndarray]:
-        conv = lambda x: int(float(x))
-
-        obs = {}
-        w, h = conv(self.sim_w), conv(self.sim_h)
-        
-        for tls_id in self.trafficlights.ids:
-            radius = conv(self.obs_widths[tls_id] / 2)
-            x, y = self.trafficlights.positions[tls_id]
-            x, y = conv(x), conv(y)
-            x1, y1 = max(0, x - radius), max(0, y - radius)
-            x2, y2 = min(x + radius, w), min(y + radius, h)
-
-            # print(type(x1), type(y1), type(x2), type(y2))
-            print(f"w -> {w}; h -> {h}; x -> {x}; y -> {y};\n"
-                  f"x1 -> {x1}; y1 -> {y1}; x2 -> {x2}; y2 -> {y2}")
-
-            obs[tls_id] = self.world[y1:y2, x1:x2]
-        
-        return obs
-
-
-    def _get_world(self) -> np.ndarray:
-        """Returns the current observation of the state space, represented by the world
-           space for recognizing vehicle locations and the current state of all traffic
-           lights.
-
-        Returns
-        -------
-        Dict[np.ndarray, np.ndarray]
-            Get the current observation of the environment.
-        """
-        world = np.zeros(shape=(self.obs_h, self.obs_w), dtype=np.int32)
-        veh_ids = list(traci.vehicle.getIDList())
-        for veh_id in veh_ids:
-            # Get the (scaled-down) x- or y-coordinates for the observation world.
-            x, y = traci.vehicle.getPosition(veh_id)
-            x = min(int(x * self.w_scalar), self.obs_w - 1)
-            y = min(int(y * self.h_scalar), self.obs_h - 1)
-
-            # Add a normalized weight to the respective coordinate in the world. For it to
-            # be normalized, we need to change `dtype` to a float-based value.
-            world[y, x] += 1 #/ len(veh_ids)
-
-        return world
-
-    ## TODO: Actions need to be converted into Dicts to support non-integer tls_ids.
-
-    def interpret_action(self, tls_id: str, action: List[str]) -> str:
-        """Actions  are passed in as a numpy  array of integers. However, this needs to be
-           interpreted as an action state (e.g., `GGrr`) based on the TLS possible states.
-           So,  given an ID  tls=2 and  an action  a=[[1], [3], [0], ..., [2]] (where each 
-           integer  value  corresponds with  the index  of the  states for a given traffic 
-           light), return the state corresponding to the index provided by action.
-
-        Parameters
-        ----------
-        tls_id : str
-            ID of the designated traffic light.
-        action : List[int]
-            Action vector where each element selects the action for the respective traffic
-            light.
-
-        Returns
-        -------
-        str
-            The string state that corresponds with the selected action for the given
-            traffic light.
-        """
-        i = self.tls_ids_2_ints[tls_id]
-        return self.trafficlights.states[tls_id][action[i]]
 
     def _get_reward(self) -> float:
         """For now, this is a simple function that returns -1 when the simulation is not
@@ -244,4 +143,4 @@ class SingleSumoEnv(SumoEnv):
         float
             The reward for this step.
         """
-        return -1.0 if not (self.sim.done()) else 0.0
+        return -1.0 if not (self.kernel.done()) else 0.0
