@@ -12,12 +12,11 @@ GUI_DEFAULT = True
 
 """
 TODO:
-    + We need to incorporate scalars for compressing the observation space dimensionality.
-      This would simplify the compression process while allowing for an easy way to main-
-      tain dimension ratio. For instance, `foo(dims=(300,200), scalar=0.5) -> (150, 100)`.
     + We need to consider a "timeout" version of performing the `__done()` function. This
       should provide faster training. But, at the same time, this may not be necessary. 
       But, the option could be useful for larger networks.
+    + For consistency, we may need to revise it such that it has a constant height and
+      width.
 """
 
 class SingleSumoEnv(SumoEnv):
@@ -57,9 +56,9 @@ class SingleSumoEnv(SumoEnv):
         """
         world_space = spaces.Box(
             low=0,
-            high=10,
-            shape=self.get_obs_dims(),
-            dtype=np.int8
+            high=1,
+            shape=self.kernel.world.get_dimensions(),
+            dtype=np.float32
         )
         return world_space
 
@@ -78,7 +77,7 @@ class SingleSumoEnv(SumoEnv):
         """
         taken_action = self._do_action(action)
         traci.simulationStep()
-        self.kernel.world.update()
+        self.kernel.update()
 
         observation = self.kernel.world.observe()
         reward = self._get_reward()
@@ -106,13 +105,9 @@ class SingleSumoEnv(SumoEnv):
         can_change = self.action_timer == 0
         taken_action = actions.copy()
 
-        # TODO: Delegate this, perhaps, to the `SumoKernel` class.
-        tls_index = {tls.id: i for i, tls in enumerate(self.kernel.tls_hub)}
-
         for tls in self.kernel.tls_hub:
-            tls_int = tls_index[tls.id]
             curr_state = tls.state
-            next_state = tls.get_state(actions[tls_int])
+            next_state = tls.get_state(actions[tls.index])
             is_valid = tls.valid_next_state(next_state)
 
             # If this condition is true, then the RYG state of the current traffic light
@@ -120,17 +115,16 @@ class SingleSumoEnv(SumoEnv):
             # This only occurs if the next state and current state are not the same, the
             # transition is valid, and the `tls` is available to change. If so, then
             # the change is made and the timer is reset.
-            if (curr_state != next_state) and is_valid and can_change[tls_int]:
+            if (curr_state != next_state) and is_valid and can_change[tls.index]:
                 traci.trafficlight.setRedYellowGreenState(tls.id, next_state)
-                self.action_timer[tls_int] = -2 * MIN_DELAY
+                self.action_timer[tls.index] = -2 * MIN_DELAY
             # Otherwise, keep the state the same, update the taken action, and then 
             # decrease the remaining time by +1.
             else:
                 traci.trafficlight.setRedYellowGreenState(tls.id, curr_state)
-                taken_action[tls_int] = tls.possible_states.index(curr_state)
-                self.action_timer[tls_int] = min(0, self.action_timer[tls_int] + 1)
+                taken_action[tls.index] = tls.possible_states.index(curr_state)
+                self.action_timer[tls.index] = min(0, self.action_timer[tls.index] + 1)
 
-        self.kernel.tls_hub.update_current_states()
         return taken_action
 
     def _get_reward(self) -> float:

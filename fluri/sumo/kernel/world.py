@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 from typing import Tuple
 
 X1, Y1, X2, Y2 = range(4)
+NORMALIZE_DEFAULT = True
 
 class World(object):
 
@@ -55,7 +56,7 @@ class World(object):
 
     def update(
         self, 
-        normalize: bool=False
+        normalize: bool=NORMALIZE_DEFAULT
     ) -> None:
         """Update the internal representations of the world in the SUMO simulation -- both
            the original and the scaled-down representation. The internal representations
@@ -86,7 +87,8 @@ class World(object):
 
         self.world = world
         self.scaled_world = scaled_world if (normalize == False) \
-                            else scaled_world / len(veh_ids)
+                            else scaled_world / len(veh_ids) if (len(veh_ids) > 0) \
+                            else scaled_world
 
 
     def observe(

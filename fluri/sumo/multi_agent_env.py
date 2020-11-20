@@ -6,7 +6,7 @@ from gym import spaces
 from typing import Tuple
 
 from .sumo_env import SumoEnv
-from .sumo_sim import SumoKernel
+from .kernel.kernel import SumoKernel
 
 class MultiSumoEnv(SumoEnv):
 

@@ -12,8 +12,8 @@ sns.set_style("ticks")
 
 """
 This simple running example demonstrates how to setup a configuration to run a full
-training loop using the SingleSumoEnv environment with the SumoKernel wrapper to simplify the
-setup needed for SUMO and TraCI.
+training loop using the SingleSumoEnv environment with the SumoKernel wrapper to simplify 
+the setup needed for SUMO and TraCI.
 
 This is a very *simple* example. For meaningful training via reinforcement learning,
 you would likely need more complex environments and routing scenarios for compelling
@@ -25,45 +25,16 @@ def main(
     n_vehicles: int, 
     gui: bool
 ) -> None:
-    # Execute the TraCI training loop.
-    '''
-    path = join("configs", "example")
-    netfile = join(path, "traffic.net.xml")
-    rand_routes = generate_random_routes(netfile, n_vehicles,  "arcsine",  dir=path)
-    single_sim = SumoKernel(config={
-        "gui": gui,
-        "net-file": netfile,
-        "route-files": rand_routes.pop(),
-        "additional-files": join(path, "traffic.det.xml"),
-        "tripinfo-output": join(path, "tripinfo.xml")
-    })
-
     path = join("configs", "two_inter")
     netfile = join(path, "two_inter.net.xml")
-    rand_routes = generate_random_routes(netfile, n_vehicles,  "arcsine",  dir=path)
-    double_sim = SumoKernel(config={
-        "gui": gui,
-        "net-file": netfile,
-        "route-files": rand_routes.pop(),
-        # "tripinfo-output": join(path, "tripinfo.xml")
-    })
-    '''
-
-    # sim = double_sim
-    path = join("configs", "two_inter")
-    netfile = join(path, "two_inter.net.xml")
-
-    print("Generating random route files... ", end="")
-    rand_routes = generate_random_routes(netfile, n_vehicles,  "arcsine",  dir=path)
-    print("Done!")
-
-    print("Initializing `SingleSumoEnv`... ", end="")
     env = SingleSumoEnv(config={
         "gui": gui,
         "net-file": netfile,
-        "route-files": rand_routes.pop()
+        "rand_route_args": {
+            "n_vehicles": 1000,
+            "end_time": 300
+        }
     })
-    print("Done!")
 
     data = {
         "actions": [],
@@ -84,7 +55,6 @@ def main(
             action = env.action_space.sample()
             obs, reward, done, info = env.step(action)
             add_record(info["taken_action"], step, ep)
-            # print(f"Step #{step} action -> {action}; taken_action -> {info['taken_action']}")
             step += 1
             add_record(info["taken_action"], step, ep)
 
@@ -99,7 +69,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_episodes", type=int, default=1, help="Number of episodes.")
-    parser.add_argument("--n_vehicles", type=int, default=750, help="Number of vehicles.")
+    parser.add_argument("--n_vehicles", type=int, default=7500, help="Number of vehicles.")
     parser.add_argument("--gui", dest='gui', action="store_true")
     parser.add_argument("--no-gui", dest='gui', action="store_false")
     parser.set_defaults(gui=True)

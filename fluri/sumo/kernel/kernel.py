@@ -12,6 +12,7 @@ from .world import World
 from ..utils.random_routes import generate_random_routes
 
 SORT_DEFAULT = True
+VERBOSE_DEFAULT = 0
 
 class SumoKernel():
 
@@ -36,6 +37,8 @@ class SumoKernel():
 
         assert 0.0 < scale_factor and scale_factor <= 1.0
 
+        # TODO: Create a function that "validates" a config so that 
+        #       it has everything necessary for a SUMO simulation.
         self.config = {
             "gui": config.get("gui", False),
             "configuration-file": config.get("configuration-file", None),
@@ -48,13 +51,21 @@ class SumoKernel():
         self.tls_hub = TrafficLightHub(self.config["net-file"]) # TODO: Slow as hell.
 
 
-    def get_command_args(self) -> List[str]:
+    def get_command_args(self, verbose=VERBOSE_DEFAULT) -> List[str]:
         """This generates a list of strings that are used by the TraCI API to start a
            SUMO simulation given the provided parameters that are stored in the `config`
            dict object.
+
+           Parameters
+           ----------
+           verbose : int, optional
+               If the passed int value is not 0, then warnings on SUMO's end will be 
+               displayed; otherwise they will be hidden (default 0).
         """
         program_cmd = "sumo-gui" if self.config["gui"] == True else "sumo"
         command_args = [program_cmd]
+        if verbose == 0:
+            command_args.extend(["--no-warnings", "true"])
         
         for cmd, args in self.config.items():
             if cmd == "gui" or args == None:
@@ -98,6 +109,10 @@ class SumoKernel():
         else:
             return np.ndarray(observations)
 
+
+    def update(self) -> None:
+        self.world.update()
+        self.tls_hub.update_current_states()
 
 
     # <|==============================================================================|> #

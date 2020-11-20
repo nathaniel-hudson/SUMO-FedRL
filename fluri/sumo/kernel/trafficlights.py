@@ -166,8 +166,10 @@ class TrafficLight:
         self, 
         tls_id: int, 
         road_netfile: str,
-        sort_states: bool=SORT_DEFAULT
+        sort_states: bool=SORT_DEFAULT,
+        index: int=None
     ):
+        self.index = index
         self.id: int = tls_id
         self.position: Tuple[int, int] = get_tls_position(self.id, road_netfile)
         self.possible_states: List[str] = possible_tls_states(self.id, road_netfile, sort_states)
@@ -222,10 +224,10 @@ class TrafficLightHub:
         obs_radius: int=None
     ):
         self.road_netfile = road_netfile
-        self.ids = self.get_traffic_light_ids()
+        self.ids = sorted([tls_id for tls_id in self.get_traffic_light_ids()])
         self.hub = {
-            tls_id: TrafficLight(tls_id, self.road_netfile, sort_states)
-            for tls_id in self.ids
+            tls_id: TrafficLight(tls_id, self.road_netfile, sort_states, index=i)
+            for i, tls_id in enumerate(self.ids)
         }
 
         # TODO: Currently not being considered.
