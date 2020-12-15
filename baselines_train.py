@@ -15,7 +15,7 @@ def train(config, total_timesteps: int=int(2e6)):
     env = SingleSumoEnv(config=config)
     model = PPO("MlpPolicy", env, verbose=1)
     model.learn(total_timesteps=total_timesteps)
-    model.save("simple_model")
+    model.save("two_inter_model")
     env.close()
 
 if __name__ == "__main__":
@@ -25,4 +25,4 @@ if __name__ == "__main__":
         "net-file": join(path, "two_inter.net.xml"),
         "tripinfo-output": join(path, "tripinfo.xml")
     }
-    train(config, 100)
+    train(config, int(2e5))

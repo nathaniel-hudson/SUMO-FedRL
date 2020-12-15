@@ -2,6 +2,8 @@ import gym
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from collections import defaultdict
+
 from fluri.sumo.single_agent_env import SingleSumoEnv
 from fluri.sumo.kernel.kernel import SumoKernel
 
@@ -10,64 +12,47 @@ from stable_baselines3.common.env_checker import check_env
 
 from os.path import join
 
-WORLD_SHAPE = (25, 25)
-data = None
+data = defaultdict(list) # {"action": [], "step": [], "policy": [], "total_reward": []}
 
-def init_data() -> None:
-    global data
-    data = {
-        "action": [],
-        "step": [],
-        "policy": [],
-        "total_reward": [],
-    }
+def add_record(action, step, policy, reward) -> None: 
+    for i, a_i in enumerate(action):
+        data["tls"].append(i)
+        data["action"].append(a_i)
+        data["step"].append(step)
+        data["policy"].append(policy)
+        data["reward"].append(reward)
 
-def add_record(action, step, policy, total_reward) -> None:
-    global data
-    data["action"].append(action[0])
-    data["step"].append(step)
-    data["policy"].append(policy)
-    data["total_reward"].append(total_reward)
-
-def main(model) -> None:
-    init_data()
-    path = join("configs", "two_inter")
+if __name__ == "__main__":
+    # Load the pre-trained model and initialize the environment.
+    model = PPO.load("two_inter_model")
     env = SingleSumoEnv(config={
-        "gui": False,
-        "net-file": join(path, "two_inter.net.xml"),
-        "tripinfo-output": join(path, "tripinfo.xml")
+        "gui": True,
+        "net-file": join("configs", "two_inter", "two_inter.net.xml")
     })
 
-    ## Random Policy.
+    # Run through an episode using a random policy.
     obs = env.reset()
     done, step, total_reward = False, 0, 0
     while not done:
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
         total_reward += reward
-        add_record(info["taken_action"], step, "random", total_reward)
+        add_record(info["taken_action"], step, "Random", total_reward)
         step += 1
 
-    ## RL Policy.
+    # Run through an episode using the trained PPO policy.
     obs = env.reset()
     done, step, total_reward = False, 0, 0
     while not done:
-        mask = []
-        action, _states = model.predict(obs, deterministic=True)
-        # print(f"Action #{step} -> {action}\n")
+        action, _ = model.predict(obs, deterministic=True)
         obs, reward, done, info = env.step(action)
         total_reward += reward
-        add_record(info["taken_action"], step, "RL", total_reward)
+        add_record(info["taken_action"], step, "PPO", total_reward)
         step += 1
     env.close()
     
-    sns.lineplot(x="step", y="action", hue="policy", style="policy", data=data)
+    # Plot the results
+    f, (ax1, ax2) = plt.subplots(1, 2, sharey=False)
+    sns.lineplot(x="step", y="action", hue="policy", style="tls", ax=ax1, data=data)
+    sns.lineplot(x="step", y="total_reward", hue="policy", ax=ax2, data=data)
     plt.show()
-
-    sns.lineplot(x="step", y="total_reward", hue="policy", style="policy", data=data)
-    plt.show()
-
-if __name__ == "__main__":
-    # Set up the configuration for the environment and load the pre-trained model.
-    model = PPO.load("simple_model")
-    main(model)

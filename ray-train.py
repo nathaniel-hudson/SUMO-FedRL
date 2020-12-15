@@ -127,7 +127,7 @@ if __name__ == "__main__":
     status = "{:2d} reward {:6.2f}/{:6.2f}/{:6.2f} len {:4.2f} saved {}"
     out_file =join("out", "models", "simple-ray")
 
-    for n in range(10):
+    for n in range(2):
         result = agent.train()
         state = agent.save(out_file)
         append_dict(train_data, result)

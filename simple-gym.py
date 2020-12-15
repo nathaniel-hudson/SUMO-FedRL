@@ -1,78 +1,49 @@
-
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+from collections import defaultdict
 from fluri.sumo.single_agent_env import SingleSumoEnv
 from fluri.sumo.kernel.kernel import SumoKernel
 from fluri.sumo.utils.random_routes import generate_random_routes
 from os.path import join
 
 sns.set_style("ticks")
+data = defaultdict(list)
 
-"""
-This simple running example demonstrates how to setup a configuration to run a full
-training loop using the SingleSumoEnv environment with the SumoKernel wrapper to simplify 
-the setup needed for SUMO and TraCI.
+def add_record(action, step, policy, reward) -> None: 
+    for i, a_i in enumerate(action):
+        data["tls"].append(i)
+        data["action"].append(a_i)
+        data["step"].append(step)
+        data["policy"].append(policy)
+        data["reward"].append(reward)
 
-This is a very *simple* example. For meaningful training via reinforcement learning,
-you would likely need more complex environments and routing scenarios for compelling
-results for your agent(s).
-"""
-
-def main(
-    n_episodes: int, 
-    n_vehicles: int, 
-    gui: bool
-) -> None:
-    path = join("configs", "two_inter")
-    netfile = join(path, "two_inter.net.xml")
+if __name__ == "__main__":
+    n_episodes = 1
     env = SingleSumoEnv(config={
-        "gui": gui,
-        "net-file": netfile,
+        "gui": True,
+        "net-file": join("configs", "two_inter", "two_inter.net.xml"),
         "rand_route_args": {
-            "n_vehicles": 1000,
+            "n_vehicles": (100, 500),
             "end_time": 300
         }
     })
 
-    data = {
-        "actions": [],
-        "steps": [],
-        "ep": [],
-    }
-
-    def add_record(action, step, ep_id) -> None: 
-        data["actions"].append(action[0])
-        data["steps"].append(step)
-        data["ep"].append(ep_id)
-
     for ep in range(n_episodes):
-        print(f">> Episode number ({ep+1}/{n_episodes})")
         env.reset()
-        done, step = False, 0
+        done, step, total_reward = False, 0, 0
         while not done:
             action = env.action_space.sample()
             obs, reward, done, info = env.step(action)
-            add_record(info["taken_action"], step, ep)
+            total_reward += reward
+            add_record(info["taken_action"], step, "Random", total_reward)
             step += 1
-            add_record(info["taken_action"], step, ep)
 
     env.close()
 
+    # Do a simple lineplot of the actions taken over time.
     data = pd.DataFrame.from_dict(data)
-    sns.jointplot(x="steps", y="actions", kind="kde", data=data)
+    sns.lineplot(x="step", y="action", hue="policy", style="tls", data=data)
     plt.show()
-
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--n_episodes", type=int, default=1, help="Number of episodes.")
-    parser.add_argument("--n_vehicles", type=int, default=7500, help="Number of vehicles.")
-    parser.add_argument("--gui", dest='gui', action="store_true")
-    parser.add_argument("--no-gui", dest='gui', action="store_false")
-    parser.set_defaults(gui=True)
-    args = parser.parse_args()
     
-    main(n_episodes=args.n_episodes, n_vehicles=args.n_vehicles, gui=args.gui)
