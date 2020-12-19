@@ -12,11 +12,10 @@ GUI_DEFAULT = True
 
 """
 TODO:
-    + We need to consider a "timeout" version of performing the `__done()` function. This
-      should provide faster training. But, at the same time, this may not be necessary. 
-      But, the option could be useful for larger networks.
-    + For consistency, we may need to revise it such that it has a constant height and
-      width.
+    + We need to adjust this w.r.t. the updated vision of the state-space.
+    + This code will be broken with the changes introduced during implementation of the
+      multi-agent environment using the new state space representation. We will handle
+      it LATER.
 """
 
 class SingleSumoEnv(SumoEnv):
@@ -102,7 +101,7 @@ class SingleSumoEnv(SumoEnv):
             The action that is taken. If the passed in action is legal, then that will be
             returned. Otherwise, the returned action will be the prior action.
         """
-        can_change = self.action_timer == 0
+        can_change = (self.action_timer == 0)
         taken_action = actions.copy()
 
         for tls in self.kernel.tls_hub:
@@ -117,13 +116,14 @@ class SingleSumoEnv(SumoEnv):
             # the change is made and the timer is reset.
             if (curr_state != next_state) and is_valid and can_change[tls.index]:
                 traci.trafficlight.setRedYellowGreenState(tls.id, next_state)
-                self.action_timer[tls.index] = -2 * MIN_DELAY
+                self.action_timer[tls.index] = self._restart_timer()
             # Otherwise, keep the state the same, update the taken action, and then 
             # decrease the remaining time by +1.
             else:
                 traci.trafficlight.setRedYellowGreenState(tls.id, curr_state)
                 taken_action[tls.index] = tls.possible_states.index(curr_state)
-                self.action_timer[tls.index] = min(0, self.action_timer[tls.index] + 1)
+                print(tls.index)
+                self._decr_timer(tls.index)
 
         return taken_action
 

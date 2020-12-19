@@ -19,23 +19,29 @@ class SumoEnv(ABC, gym.Env):
         assert 0.0 < scale_factor and scale_factor <= 1.0
 
         self.config = config
-
         self.path = os.path.split(self.config["net-file"])[0] # "foo/bar/car" => "foo/bar"
         self.config["route-files"] = os.path.join(self.path, "traffic.rou.xml")
 
         self.kernel = SumoKernel(self.config, scale_factor)
         self.scale_factor = scale_factor
         self.rand_routes_on_reset = self.config.get("rand_routes_on_reset", True)
-        self.__first_round = True
+        # self.__first_round = True
         self.reset()
 
+    def _restart_timer(self) -> np.ndarray:
+        self.action_timer = MIN_DELAY * np.ones(shape=(len(self.kernel.tls_hub)))
+
+    def _decr_timer(self, index) -> None:
+        self.action_timer = max(0, self.action_timer[index]-1)
+
     def reset(self):
-        # Start the simulation and get details surrounding the war.
-        if self.rand_routes_on_reset or self.__first_round:
+        # Start the simulation and get details surrounding the world.
+        if self.rand_routes_on_reset:# or self.__first_round:
             self.rand_routes()
-            self.__first_round = False
+            # self.__first_round = False
         self.start()
-        self.action_timer = (-2 * MIN_DELAY) * np.ones(shape=(len(self.kernel.tls_hub)))
+        # self.action_timer = (-2 * MIN_DELAY) * np.ones(shape=(len(self.kernel.tls_hub)))
+        self._restart_timer()
         return self.kernel.world.observe()
 
     def close(self) -> None:

@@ -124,7 +124,11 @@ class World(object):
         else:
             return self.world.shape
 
-    def convert_coords(self, coord: Tuple[int, int], use_scaled_world: bool=True) -> Tuple[int, int]:
+    def convert_coords(
+        self, 
+        coord: Tuple[int, int], 
+        use_scaled_world: bool=True
+    ) -> Tuple[int, int]:
         clip = lambda val, max_val: max(0, min(val, max_val))
         
         x, y = coord

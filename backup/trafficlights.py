@@ -1,5 +1,4 @@
 import networkx as nx
-import numpy as np
 import random
 import traci
 import warnings
@@ -18,6 +17,111 @@ NEXT_STATES = {
     "y": set(["y", "r"]),
     "r": set(["G", "g", "r"])
 }
+
+def is_cycle(graph: nx.DiGraph) -> bool:
+    """Returns True if the provided graph is a cycle graph, False otherwise. A cycle 
+       graph is a directed graph where each node has one edge to another node and 
+       the topology resembles a circle.
+
+    Parameters
+    ----------
+    graph : nx.DiGraph
+        A NetworkX directed graph.
+
+    Returns
+    -------
+    bool
+        True if a cycle graph, False otherwise.
+    """
+    if not nx.is_directed(graph):
+        return False
+    
+    if graph.number_of_edges() != graph.number_of_nodes():
+        return False
+    
+    node, traversed_nodes, counter = set(), graph.number_of_nodes(), list(graph.nodes)[0]
+    while counter:
+        # Get the current node's neighbors and check if it's valid for a cycle graph.
+        neighbors = list(graph.neighbors(node))
+        if len(neighbors) != 1:
+            return False
+        
+        # Go to the next node.
+        traversed_nodes.add(node)
+        node = neighbors[0]
+        counter -= 1
+        
+    return len(traversed_nodes) == graph.number_of_nodes()
+
+def in_order(state: str, next_state: str) -> bool:
+    """Based on the definition of the `NEXT_STATES` constant, this function returns True
+       if and only if the provided `next_state` is a valid successor to `state`, False
+       otherwise. For example, `in_order("GGrr", "yyrr") -> True` and, on the contrary,
+       `in_order("GGrr", "rrGG") -> False`.
+
+    Parameters
+    ----------
+    state : str
+        The current state (e.g., "GGrr").
+    next_state : str
+        The next state (e.g., "yyrr").
+
+    Returns
+    -------
+    bool
+        Returns True if `next_state` is a valid transition, False otherwise.
+    """
+    if state == next_state:
+        return True
+    
+    if len(state) != len(next_state):
+        return False
+        
+    for i in range(len(state)):
+        if next_state[i] not in NEXT_STATES[state[i]]:
+            return False
+    return True
+
+
+def make_tls_state_network(tls_id: str, possible_states: List[str]) -> nx.DiGraph:
+    """Given a dict of the form `{'0': ['yyryyr', 'GGrGGr', 'rrGrrG', 'rryrry']}` where
+       the key is the traffic light ID and the value is a list of possible states for that
+       traffic light, this function returns a *directed ego network* that represents the
+       possible action transitions available to a traffic light given its current action.
+       
+       The ego node in this network is the traffic light ID itself, so simplify the
+       indexing for logic outside of this function. Since each traffic light gets its own
+       subgraph, the ego node is a more succinct and logically straight-forward way to
+       identify each traffic light's action subgraph withougt additional expensive 
+       iteration. 
+
+    Parameters
+    ----------
+    possible_states : Dict[str, List[str]]
+        A dictionary where keys are the traffic light ids and the values are lists of all
+        possible states the respective traffic light can take.
+
+    Returns
+    -------
+    nx.DiGraph
+        An ego network that corresponds with possible actions for each traffic light.
+    """
+    g = nx.DiGraph()
+    # g.add_node(tls_id)
+    for state in possible_states:
+        node_id = get_node_id(tls_id, state)
+        g.add_node(node_id, tls_id=tls_id, state=state)
+        g.add_edge(tls_id, node_id)
+
+    for state in possible_states:
+        for next_state in possible_states:
+            if in_order(state, next_state):
+                u = get_node_id(tls_id, state)
+                v = get_node_id(tls_id, next_state)
+                g.add_edge(u, v)
+
+    return g
+
 
 def get_tls_position(
     tls_id: str, 
@@ -92,49 +196,54 @@ def possible_tls_states(
 
 
 class TrafficLight:
-    """This class represents an indidivual `trafficlight` (tls) in SUMO. The purpose is to
-       simplify the necessary code for the needs of the RL environments in FLURI.
     """
+    TODO: Fill in.
+    """
+
     def __init__(
         self, 
         tls_id: int, 
         road_netfile: str,
         sort_states: bool=SORT_DEFAULT,
         index: int=None,
-        force_all_red: bool=False
+        force_all_red: bool=True
     ):
         # The `index` data member is for the consistently simple indexing for actions
         # that are represented via lists. This is important for the `stable-baselines`
         # implementation that does not support Dict spaces.
-        self.index: int = index 
-        self.id: int = tls_id
-        self.program: List[str] = possible_tls_states(
-            self.id, 
-            road_netfile, 
-            sort_states, 
-            force_all_red=force_all_red
-        )
-        self.num_phases: int = len(self.program)
-        self.state: str = random.randrange(self.num_phases)
-        self.phase: int = self.program[self.phase]
+        self.index = index 
+        self.id = tls_id
+        self.position = get_tls_position(self.id, road_netfile)
+        self.possible_states = possible_tls_states(self.id, 
+                                                   road_netfile, 
+                                                   sort_states, 
+                                                   force_all_red=force_all_red)
+        self.action_transition_net = make_tls_state_network(self.id, self.possible_states)
+        self.transition_net_is_cycle_graph = is_cycle(self.action_transition_net)
+        self.state = random.choice([
+            self.action_transition_net.nodes[u]["state"] 
+            for u in self.action_transition_net.neighbors(self.id)
+        ])
 
-    def curr_state(self) -> None:
+    def update_current_state(self) -> None:
         """Update the current state by interacting with `traci`."""
         try:
-            self.phase = traci.trafficlight.getRedYellowGreenState(self.id)
-            self.state = self.program.index(self.phase)
+            self.state = traci.trafficlight.getRedYellowGreenState(self.id)
         except traci.exceptions.FatalTraCIError:
             pass
 
-    def next_phase(self) -> None:
-        next_state = (self.state+1) % self.num_phases
-        next_phase = self.program[next_state]
-        try:
-            traci.trafficlight.setRedYellowGreenState(self.phase)
-            self.state = next_state
-            self.phase = next_phase
-        except traci.exceptions.FatalTraCIError:
-            pass
+    def get_position(self) -> Tuple[int, int]:
+        return self.position
+
+    def get_state(self, index: int) -> str:
+        return self.possible_states[index]
+
+    def get_next_state(self, return_index: bool=True) -> Union[int, str]:
+        assert self.transition_net_is_cycle_graph, "Action graph must be a cycle graph."
+        
+        curr_node = get_node_id(self.id, self.state)
+        next_node = self.action_transition_net.neighbors(curr_node)[0]
+        return next_node
 
     def valid_next_state(self, next_state: str) -> bool:
         """Determines if `next_state` is valid given the current state.
@@ -153,17 +262,6 @@ class TrafficLight:
         next_node = get_node_id(self.id, next_state)
         is_valid = next_node in self.action_transition_net.neighbors(curr_node)
         return is_valid
-
-    def get_observation(self) -> np.ndarray:
-        """Returns an observation of the traffic light, with each of the features of 
-           interest.
-
-        Returns
-        -------
-        np.ndarray
-            Array containing the values of each of the features.
-        """
-        n_vehicles, avg_speed, n_occupancy, wait_time, travel_time, n_halt = range(6)
 
 
 class TrafficLightHub:
