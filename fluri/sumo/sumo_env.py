@@ -7,51 +7,30 @@ from typing import Any, Dict, Tuple
 
 from .const import *
 from .kernel.kernel import SumoKernel
+from .timer import ActionTimer
 from .utils.random_routes import generate_random_routes
 
 """
 TODO: The entire environments setup needs to be reformatted.
 """
 
-class SumoEnv(ABC, gym.Env):
+class SumoEnv(ABC):
 
-    def __init__(self, config: Dict[str, Any], scale_factor: float=0.5):
-        assert 0.0 < scale_factor and scale_factor <= 1.0
+    def __init__(self, config: Dict[str, Any]):
 
         self.config = config
         self.path = os.path.split(self.config["net-file"])[0] # "foo/bar/car" => "foo/bar"
         self.config["route-files"] = os.path.join(self.path, "traffic.rou.xml")
 
-        self.kernel = SumoKernel(self.config, scale_factor)
-        self.scale_factor = scale_factor
+        self.kernel = SumoKernel(self.config)
+        self.action_timer = ActionTimer(len(self.kernel.tls_hub))
         self.rand_routes_on_reset = self.config.get("rand_routes_on_reset", True)
-        # self.__first_round = True
         self.reset()
-
-    def _restart_timer(self) -> np.ndarray:
-        self.action_timer = MIN_DELAY * np.ones(shape=(len(self.kernel.tls_hub)))
-
-    def _decr_timer(self, index) -> None:
-        self.action_timer = max(0, self.action_timer[index]-1)
 
     def reset(self):
         # Start the simulation and get details surrounding the world.
-        if self.rand_routes_on_reset:# or self.__first_round:
+        if self.rand_routes_on_reset:
             self.rand_routes()
-            # self.__first_round = False
-        self.start()
-        self._restart_timer()
-        return self.kernel.world.observe()
-
-    def close(self) -> None:
-        """Close the simulation, thereby ending the the connection to SUMO.
-        """
-        self.kernel.close()
-
-    def start(self) -> None:
-        """Start the simulation using the SumoKernel interface. This will reload the SUMO
-           SUMO simulation if it's been loaded, otherwise it will start SUMO.
-        """
         self.kernel.start()
 
     def rand_routes(self) -> None:

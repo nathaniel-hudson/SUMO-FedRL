@@ -8,7 +8,14 @@ X1, Y1, X2, Y2 = range(4)
 NORMALIZE_DEFAULT = True
 
 class World(object):
-
+    """This class serves the role of monitoring/maintaining a high-level view of the 
+       visual associated with the GUI. A matrix is stored where numerical values 
+       correspond to the number of vehicles in a given space. 
+       
+       For the purposes of this work, we do not employ this approach to representing the
+       world in SUMO (in lieu of a lane-by-lane) observational view used with 
+       trafficlights. However, this remains an open problem for expansion.
+    """
     def __init__(
         self, 
         road_netfile: str, 

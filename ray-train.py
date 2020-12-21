@@ -1,15 +1,18 @@
 """
-For this document, we will setup a basic RL pipeline using our SingleSumoEnv environment.
+For this document, we will setup a basic RL pipeline using our SinglePolicySumoEnv environment.
 The RL tool we will incorporate is `stablebaselines`.
 
 Refer to this recent and similar SumoRL tool that has an example for MARL using RlLib:
 https://github.com/LucasAlegre/sumo-rl/blob/master/experiments/a3c_4x4grid.py
 """
-from fluri.sumo.multi_agent_env import MultiPolicyEnv
+from argparse import ArgumentError
+from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
 import gym
 from numpy.lib.function_base import append
+import os
 import random
 import ray
+import ray.rllib.agents.ppo as ppo
 
 from ray import tune
 from ray.rllib.agents.ppo import PPOTrainer
@@ -21,7 +24,7 @@ https://github.com/ray-project/ray/blob/master/rllib/examples/custom_train_fn.py
 """
 
 
-from fluri.sumo.single_agent_env import SingleSumoEnv
+from fluri.sumo.single_agent_env import SinglePolicySumoEnv
 from fluri.sumo.kernel.kernel import SumoKernel
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
@@ -52,7 +55,7 @@ def add_record(action, step, policy) -> None:
 def train(config, total_timesteps: int=int(2e6)):
     init_data()
     sim = SumoKernel(config=config)
-    env = SingleSumoEnv(sim, world_dim=WORLD_SHAPE)
+    env = SinglePolicySumoEnv(sim)
 
     model = PPO("MlpPolicy", env, verbose=1)
     model.learn(total_timesteps=total_timesteps)
@@ -102,30 +105,41 @@ def ray_train_fn(config, reporter, n_training_steps: int=10): #int(2e6)):
     train_data_df.to_csv(join("out", "train_data", "simple-ray.csv"))
 
 
-if __name__ == "__main__":
-    import os
-    import ray.rllib.agents.ppo as ppo
-
-    # config = {
-    #     "lr": 0.01,
-    #     "num_gpus": int(os.environ.get("RLLIB_NUM_GPUS", "0")),
-    #     "num_workers": 0,
-    #     "framework": "torch",
-    # }
-    # resources = PPOTrainer.default_resource_request(config).to_json()
-    # tune.run(ray_train_fn, resources_per_trial=resources, config=config)
-    # config = ppo.DEFAULT_CONFIG.copy()
-    # config["log_level"] = "WARN"
-
-    env = MultiPolicyEnv(config={
-        "gui": False,
-        "net-file": join("configs", "two_inter", "two_inter.net.xml")
-    })
-    obs_space = env.observation_space()
-    act_space = env.action_space()
-
+def singleagent_ray_train() -> None:
     ray.init()
-    agent = PPOTrainer(env=MultiPolicyEnv, config={
+    agent = PPOTrainer(env=SinglePolicySumoEnv, config={
+        "lr": 0.01,
+        "num_gpus": 0,#int(os.environ.get("RLLIB_NUM_GPUS", 0)),
+        "num_workers": 0,
+        "framework": "torch",
+        "env_config": {
+            "gui": False,
+            "net-file": join("configs", "two_inter", "two_inter.net.xml")
+        }
+    })
+    train_data = {}
+    status = "{:2d} reward {:6.2f}/{:6.2f}/{:6.2f} len {:4.2f} saved {}"
+    out_file =join("out", "models", "simple-ray")
+
+    for n in range(2):
+        result = agent.train()
+        state = agent.save(out_file)
+        append_dict(train_data, result)
+        print(status.format(
+            n + 1, result["episode_reward_min"], result["episode_reward_mean"],
+            result["episode_reward_max"], result["episode_len_mean"], 
+            out_file.split(os.sep)[-1]
+        ))
+
+    state = agent.save(join("out", "models", "simple-ray"))
+    agent.stop()
+
+    ray.shutdown()
+
+
+def multiagent_ray_train() -> None:
+    ray.init()
+    agent = PPOTrainer(env=MultiPolicySumoEnv, config={
         "multiagent": {
             "policies": {
                 "tls": (None, obs_space, act_space, {"gamma": 0.95})
@@ -159,3 +173,20 @@ if __name__ == "__main__":
     agent.stop()
 
     ray.shutdown()
+
+if __name__ == "__main__":
+    SINGLEAGENT = 1
+    MULTIAGENT  = 2
+    kind = input("Designate training kind: [1] single-agent or [2] multi-agent: ")
+    while kind != "1" and kind != "2":
+        kind = input("Try again... Enter [1] single-agent or [2] multi-agent: ")
+    
+    kind = int(kind)
+    if kind == SINGLEAGENT:
+        print("single...")
+        singleagent_ray_train()
+    elif kind == MULTIAGENT:
+        print("multi...")
+        multiagent_ray_train()
+    else:
+        raise ArgumentError("Illegal argument provided to argparser.")

@@ -2,7 +2,8 @@ import networkx as nx
 
 from typing import Any, Dict, List, Set
 
-from ..utils.core import get_node_id
+# from ..utils.core import get_node_id
+get_node_id = lambda _: 1 ## NOTE: Dummy lambda function to silence IDE warnings.
 
 NEXT_STATES = {
     "G": set(["G", "g", "y"]),

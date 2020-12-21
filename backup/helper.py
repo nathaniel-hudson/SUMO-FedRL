@@ -2,7 +2,9 @@ import networkx as nx
 
 from typing import Any, Dict, List, Set
 
-from .core import get_node_id
+# from .core import get_node_id
+get_node_id = lambda _: 1 ## NOTE: Dummy lambda function to silence IDE warnings.
+
 
 NEXT_STATES = {
     "G": set(["G", "g", "y"]),
@@ -42,8 +44,6 @@ def in_order(state: str, next_state: str) -> bool:
 
 def get_possible_next_states(state) -> Set[str]:
     states = set()
-
-
 
 def make_tls_state_network(possible_states: Dict[str, List[str]]) -> nx.DiGraph:
     """Given a dict of the form `{'0': ['yyryyr', 'GGrGGr', 'rrGrrG', 'rryrry']}` where

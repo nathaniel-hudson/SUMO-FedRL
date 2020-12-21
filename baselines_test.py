@@ -4,7 +4,7 @@ import seaborn as sns
 
 from collections import defaultdict
 
-from fluri.sumo.single_agent_env import SingleSumoEnv
+from fluri.sumo.single_agent_env import SinglePolicySumoEnv
 from fluri.sumo.kernel.kernel import SumoKernel
 
 from stable_baselines3 import PPO
@@ -25,7 +25,7 @@ def add_record(action, step, policy, reward) -> None:
 if __name__ == "__main__":
     # Load the pre-trained model and initialize the environment.
     model = PPO.load("two_inter_model")
-    env = SingleSumoEnv(config={
+    env = SinglePolicySumoEnv(config={
         "gui": True,
         "net-file": join("configs", "two_inter", "two_inter.net.xml")
     })

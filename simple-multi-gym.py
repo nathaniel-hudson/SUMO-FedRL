@@ -4,14 +4,14 @@ import seaborn as sns
 import traci
 
 from collections import defaultdict
-from fluri.sumo.multi_agent_env import MultiPolicyEnv
+from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
 from fluri.sumo.kernel.kernel import SumoKernel
 from fluri.sumo.utils.random_routes import generate_random_routes
 from os.path import join
 from typing import Tuple
 
 def main() -> pd.DataFrame:
-    env = MultiPolicyEnv(config={
+    env = MultiPolicySumoEnv(config={
         "gui": False,
         "net-file": join("configs", "two_inter", "two_inter.net.xml"),
         "rand_route_args": {
@@ -43,7 +43,7 @@ def main() -> pd.DataFrame:
 
     env.close()
 
-    # Do a simple lineplot of the actions taken over time.
+    # Do a simple lineplot of the cumulative reward taken over time.
     sns.set_style("ticks")
     total_reward = pd.DataFrame.from_dict(total_reward)
     sns.lineplot(

@@ -2,6 +2,7 @@ import gym
 import numpy as np
 import traci
 
+from collections import OrderedDict, defaultdict
 from gym import spaces
 from typing import Any, Dict, List, Tuple
 
@@ -18,17 +19,16 @@ TODO:
       it LATER.
 """
 
-class SingleSumoEnv(SumoEnv):
+class SinglePolicySumoEnv(SumoEnv, gym.Env):
     """Custom Gym environment designed for simple RL experiments using SUMO/TraCI."""
     metadata = {"render.modes": ["sumo", "sumo-gui"]}
-    name = "SingleSumoEnv-v1"
+    name = "SinglePolicySumoEnv-v1"
     
     def __init__(
         self, 
-        config: Dict[str, Any], 
-        scale_factor: float=0.5
+        config: Dict[str, Any]
     ):
-        super().__init__(config, scale_factor)
+        super().__init__(config)
 
     @property
     def action_space(self) -> spaces.MultiDiscrete:
@@ -41,11 +41,10 @@ class SingleSumoEnv(SumoEnv):
         spaces.MultiDiscrete
             The action space.
         """
-        return spaces.MultiDiscrete([len(tls.possible_states)
-                                     for tls in self.kernel.tls_hub])
+        return spaces.Box(low=0, high=1, shape=(len(self.kernel.tls_hub),), dtype=int)
 
     @property
-    def observation_space(self, kind: np.dtype=np.float16) -> spaces.Box:
+    def observation_space(self, kind: np.dtype=np.float64) -> spaces.Box:
         """Initializes an instance of the observation space as a property of the class.
 
         Returns
@@ -60,21 +59,19 @@ class SingleSumoEnv(SumoEnv):
             high = np.finfo(kind).max
         n = len(self.kernel.tls_hub)
         return spaces.Dict({
-            "num_vehicles":  spaces.Box(low=0, high=high, shape=(1 ,n), dtype=kind),
-            "avg_speed":     spaces.Box(low=0, high=high, shape=(1, n), dtype=kind),
-            "num_occupancy": spaces.Box(low=0, high=high, shape=(1, n), dtype=kind),
-            "wait_time":     spaces.Box(low=0, high=high, shape=(1, n), dtype=kind),
-            "travel_time":   spaces.Box(low=0, high=high, shape=(1, n), dtype=kind),
-            "num_halt":      spaces.Box(low=0, high=high, shape=(1, n), dtype=kind),
-            "curr_state":    spaces.Box(low=0, high=high, shape=(1, n), dtype=kind),
+            "num_vehicles":  spaces.Box(low=0, high=high, shape=(n,), dtype=kind),
+            "avg_speed":     spaces.Box(low=0, high=high, shape=(n,), dtype=kind),
+            "num_occupancy": spaces.Box(low=0, high=high, shape=(n,), dtype=kind),
+            "wait_time":     spaces.Box(low=0, high=high, shape=(n,), dtype=kind),
+            "travel_time":   spaces.Box(low=0, high=high, shape=(n,), dtype=kind),
+            "num_halt":      spaces.Box(low=0, high=high, shape=(n,), dtype=kind),
+            "curr_state":    spaces.Box(low=0, high=high, shape=(n,), dtype=kind),
         })
-        # world_space = spaces.Box(
-        #     low=0,
-        #     high=1,
-        #     shape=self.kernel.world.get_dimensions(),
-        #     dtype=np.float32
-        # )
-        # return world_space
+
+    def reset(self):
+        # Start the simulation and get details surrounding the world.
+        super().reset()
+        return self._observe()
 
     def step(self, action: List[int]) -> Tuple[np.ndarray, float, bool, dict]:
         """Performs a single step in the environment, as per the Open AI Gym framework.
@@ -90,15 +87,16 @@ class SingleSumoEnv(SumoEnv):
             The current observation, reward, if the simulation is done, and other info.
         """
         taken_action = self._do_action(action)
-        traci.simulationStep()
-        self.kernel.update()
+        self.kernel.step()
 
-        observation = self.kernel.world.observe()
-        reward = self._get_reward()
+        obs = self._observe()
+        reward = self._get_reward(obs)
         done = self.kernel.done()
         info = {"taken_action": taken_action}
 
-        return observation, reward, done, info
+        # print(f"SinglePolicySumoEnv.step() -> obs:\n{observation}\n")
+
+        return obs, reward, done, info
 
     def _do_action(self, actions: List[int]) -> List[int]:
         """This function takes a list of integer values. The integer values correspond
@@ -116,33 +114,29 @@ class SingleSumoEnv(SumoEnv):
             The action that is taken. If the passed in action is legal, then that will be
             returned. Otherwise, the returned action will be the prior action.
         """
-        can_change = (self.action_timer == 0)
         taken_action = actions.copy()
-
         for tls in self.kernel.tls_hub:
-            curr_state = tls.state
-            next_state = tls.get_state(actions[tls.index])
-            is_valid = tls.valid_next_state(next_state)
+            act = actions[tls.index]
+            can_change = self.action_timer.can_change(tls.index)
 
             # If this condition is true, then the RYG state of the current traffic light
             # `tls` will be changed to the selected `next_state` provided by `actions`.
             # This only occurs if the next state and current state are not the same, the
             # transition is valid, and the `tls` is available to change. If so, then
             # the change is made and the timer is reset.
-            if (curr_state != next_state) and is_valid and can_change[tls.index]:
-                traci.trafficlight.setRedYellowGreenState(tls.id, next_state)
-                self.action_timer[tls.index] = self._restart_timer()
+            if act == 1 and can_change:
+                tls.next_phase()
+                self.action_timer.restart(tls.index)
+                taken_action[tls.index] = 1
             # Otherwise, keep the state the same, update the taken action, and then 
-            # decrease the remaining time by +1.
+            # decrease the remaining time by 1.
             else:
-                traci.trafficlight.setRedYellowGreenState(tls.id, curr_state)
-                taken_action[tls.index] = tls.possible_states.index(curr_state)
-                print(tls.index)
-                self._decr_timer(tls.index)
+                self.action_timer.decr(tls.index)
+                taken_action[tls.index] = 0
 
         return taken_action
 
-    def _get_reward(self) -> float:
+    def _get_reward(self, obs: OrderedDict) -> float:
         """For now, this is a simple function that returns -1 when the simulation is not
            done. Otherwise, the function returns 0. The goal's for the agent to prioritize
            ending the simulation quick.
@@ -152,4 +146,17 @@ class SingleSumoEnv(SumoEnv):
         float
             The reward for this step.
         """
-        return -1.0 if not (self.kernel.done()) else 0.0
+        num_halt = np.array(obs["num_halt"])
+        wait_time = np.array(obs["wait_time"])
+        travel_time = np.array(obs["travel_time"])
+        return sum(-1*num_halt) + sum(-1*wait_time) + sum(-1*travel_time)
+        # return sum(-obs["num_halt"][i] - obs["wait_time"][i] - obs["travel_time"][i]
+        #             for i in range(len(obs["num_halt"])))
+
+    def _observe(self) -> OrderedDict:
+        obs = defaultdict(list)
+        for tls in self.kernel.tls_hub:
+            tls_obs = tls.get_observation()
+            for feature, value in tls_obs.items():
+                obs[feature].append(value)
+        return dict(obs)

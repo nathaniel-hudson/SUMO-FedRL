@@ -8,7 +8,6 @@ import xml.etree.ElementTree as ET
 from collections import OrderedDict
 from typing import Any, Dict, List, Set, Tuple, Union
 
-from ..utils import helper as utils
 from ..utils.core import get_node_id
 from ..const import *
 
@@ -26,10 +25,10 @@ class TrafficLight:
     """
     def __init__(
         self, 
+        index: int,
         tls_id: int, 
         netfile: str,
         sort_phases: bool=SORT_DEFAULT,
-        index: int=None,
         force_all_red: bool=False
     ):
         # The `index` data member is for the consistently simple indexing for actions
@@ -42,7 +41,7 @@ class TrafficLight:
         self.state: int = random.randrange(self.num_phases)
         self.phase: str = self.program[self.state]
 
-    def curr_state(self) -> None:
+    def update(self) -> None:
         """Update the current state by interacting with `traci`."""
         try:
             self.phase = traci.trafficlight.getRedYellowGreenState(self.id)
@@ -60,24 +59,6 @@ class TrafficLight:
         except traci.exceptions.FatalTraCIError:
             pass
 
-    def valid_next_state(self, next_state: str) -> bool:
-        """Determines if `next_state` is valid given the current state.
-
-        Parameters
-        ----------
-        next_state : str
-            The proposed next state provided by the user.
-
-        Returns
-        -------
-        bool
-            Returns True if `next_state` is a valid transition, False otherwise.
-        """
-        curr_node = get_node_id(self.id, self.state)
-        next_node = get_node_id(self.id, next_state)
-        is_valid = next_node in self.action_transition_net.neighbors(curr_node)
-        return is_valid
-
     def get_observation(self) -> OrderedDict:
         """Returns an observation of the traffic light, with each of the features of 
            interest.
@@ -87,36 +68,28 @@ class TrafficLight:
         np.ndarray
             Array containing the values of each of the features.
         """
-        total_num_vehs = 0
-        total_avg_speed = 0
-        total_num_occupancy = 0
-        total_wait_time = 0
-        total_travel_time = 0
-        total_num_halt = 0
+        num_vehs = 0
+        avg_speed = 0
+        num_occupancy = 0
+        wait_time = 0
+        travel_time = 0
+        num_halt = 0
 
         for lane in traci.trafficlight.getControlledLanes(self.id):
-            num_vehs, avg_speed, num_occupancy, wait_time, travel_time, num_halt = \
-                traci.lane.getLastStepVehicleNumber(lane), \
-                traci.lane.getLastStepMeanSpeed(lane), \
-                traci.lane.getLastStepOccupancy(lane), \
-                traci.lane.getWaitingTime(lane), \
-                traci.lane.getTraveltime(lane), \
-                traci.lane.getLastStepHaltingNumber(lane)
-            
-            total_num_vehs += num_vehs
-            total_avg_speed += avg_speed
-            total_num_occupancy += num_occupancy
-            total_wait_time += wait_time
-            total_travel_time += travel_time
-            total_num_halt += num_halt
+            num_vehs += traci.lane.getLastStepVehicleNumber(lane)
+            avg_speed += traci.lane.getLastStepMeanSpeed(lane)
+            num_occupancy += traci.lane.getLastStepOccupancy(lane)
+            wait_time += traci.lane.getWaitingTime(lane)
+            travel_time += traci.lane.getTraveltime(lane)
+            num_halt += traci.lane.getLastStepHaltingNumber(lane)
 
         return OrderedDict({
-            "num_vehicles":  total_num_vehs,
-            "avg_speed":     total_avg_speed,
-            "num_occupancy": total_num_occupancy,
-            "wait_time":     total_wait_time,
-            "travel_time":   total_travel_time,
-            "num_halt":      total_num_halt,
+            "num_vehicles":  num_vehs,
+            "avg_speed":     avg_speed,
+            "num_occupancy": num_occupancy,
+            "wait_time":     wait_time,
+            "travel_time":   travel_time,
+            "num_halt":      num_halt,
             "curr_state":    self.state,
         })
 
@@ -155,28 +128,25 @@ class TrafficLight:
 
 
 class TrafficLightHub:
+    """A simple data structure that stores all of the trafficlights in a given SUMO
+       simulation. This class should be used for initializing and creating instances of
+       trafficlight objects (for simplicity). Additionally, this class supports indexing
+       and iteration.
     """
-    TODO: Fill in.
-    """
-
     def __init__(
         self, 
         road_netfile: str, 
         sort_phases: bool=SORT_DEFAULT, 
-        obs_radius: int=None
     ):
         self.road_netfile = road_netfile
         self.ids = sorted([tls_id for tls_id in self.get_traffic_light_ids()])
-        self.hub = {
-            tls_id: TrafficLight(tls_id, self.road_netfile, sort_phases, index=i)
-            for i, tls_id in enumerate(self.ids)
-        }
-
-        # TODO: Currently not being considered.
-        self.radii = None
+        self.hub = OrderedDict({
+            tls_id: TrafficLight(index, tls_id, self.road_netfile, sort_phases)
+            for index, tls_id in enumerate(self.ids)
+        })
 
     def get_traffic_light_ids(self) -> List[str]:
-        """Get a list of all the traffic light IDs in the *.net.xml file.
+        """Get a list of all the traffic light IDs in the provided *.net.xml file.
 
         Returns
         -------
@@ -196,9 +166,9 @@ class TrafficLightHub:
         """Update the current states by interfacing with SUMO directly using SumoKernel.
         """
         for tls in self.hub.values():
-            tls.update_current_state()
+            tls.update()
 
-    def __iter__(self):
+    def __iter__(self) -> iter:
         return self.hub.values().__iter__()
 
     def __getitem__(self, tls_id: str) -> TrafficLight:
