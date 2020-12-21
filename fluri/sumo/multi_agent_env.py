@@ -1,126 +1,141 @@
 import gym
 import numpy as np
+import os
 import traci
 
+from collections import OrderedDict
 from gym import spaces
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
-from typing import Tuple
+from typing import Dict, Tuple
 
-from .sumo_env import SumoEnv
+from .const import *
 from .kernel.kernel import SumoKernel
-
+from .sumo_env import SumoEnv
+from .utils.random_routes import generate_random_routes
 
 class MultiPolicyEnv(MultiAgentEnv):
 
     def __init__(self, config):
         self.config = config
-        self.kernel(self.config)
+        self.path = os.path.split(self.config["net-file"])[0] # "foo/bar/car" => "foo/bar"
+        self.config["route-files"] = os.path.join(self.path, "traffic.rou.xml")
 
-    def observation_space(self):
-        pass
+        self.kernel = SumoKernel(self.config)
+        self.rand_routes_on_reset = self.config.get("rand_routes_on_reset", True)
+        self.reset()
+
+    # @property
+    def action_space(self) -> spaces.Dict:
+        """Property for the action space for this environment. The space is a spaces.Dict
+           object where each item's key is a trafficlight ID used in SUMO and the value is
+           a spaces.Box object for binary values.
+
+        Returns
+        -------
+        spaces.Dict
+            Action space.
+        """
+        return spaces.Dict({
+            tls.id: spaces.Box(low=0, high=1, shape=(1,), dtype=int)
+            for tls in self.kernel.tls_hub
+        })
+
+    # @property
+    def observation_space(self, kind: np.dtype=np.float16) -> spaces.Dict:
+        """Property for the observation space for this environemnt. The space is a 
+           spaces.Dict object where each item's key is a trafficlight ID used in SUMO and 
+           the value is another spaces.Dict object containing the 7 features of interest.
+
+        Returns
+        -------
+        spaces.Dict
+            Observation space.
+        """
+        # Get the maximum value of the numpy data type.
+        try: high = np.iinfo(kind).max               # Handles numpy integer data types.
+        except ValueError: high = np.finfo(kind).max # Handles numpy float data types.
+        return spaces.Dict({
+            tls.id: spaces.Dict({
+                "num_vehicles":  spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
+                "avg_speed":     spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
+                "num_occupancy": spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
+                "wait_time":     spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
+                "travel_time":   spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
+                "num_halt":      spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
+                "curr_state":    spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
+            })
+            for tls in self.kernel.tls_hub
+        })
 
     def reset(self):
+        # Start the simulation and get details surrounding the world.
+        if self.rand_routes_on_reset:
+            self.rand_routes()
+        self.start()
+
         self.step_counter = 0
-        return {
-            tls.id: tls.state
+        self._restart_timer()
+        return OrderedDict({
+            tls.id: tls.get_observation()
             for tls in self.kernel.tls_hub
-        }
+        })
 
-    def step(self, action_dict):
-
+    def step(self, action_dict: OrderedDict) -> Tuple[Dict, Dict, Dict, Dict]:
         self._do_action(action_dict)
+        self.kernel.step()
 
         obs = {
             tls.id: tls.get_observation()
             for tls in self.kernel.tls_hub
         }
-
         reward = {
-            tls.id: 0
+            tls.id: self._get_reward(obs[tls.id])
             for tls in self.kernel.tls_hub
         }
+        done = self.kernel.done()
+        info = {}
 
-        done = {
-            "__all__": self.kernel.done()
-        }
+        return obs, reward, done, info
 
     def _do_action(self, action_dict):
         can_change = (self.action_timer == 0)
         did_change = None
         for tls in self.kernel.tls_hub:
-            if can_change[tls.index]:
+            if action_dict[tls.id][0] and can_change[tls.index]:
                 tls.next_phase()
+            else:
+                self._decr_timer(tls.index)
 
-# class MultiSumoEnv(SumoEnv):
-
-#     def __init__(self, sim: SumoKernel, world_dim: Tuple[int, int] = None):
-#         super().__init__(sim, world_dim)
-
-#     @property
-#     def action_space(self) -> spaces.MultiDiscrete:
-#         n_traffic_lights = 10
-#         return spaces.MultiDiscrete([5
-#                                      for i in range(n_traffic_lights)])
-
-#     @property
-#     def observation_Space(self) -> spaces.Box:
-#         kind = np.int32
-#         high = np.iinfo(kind).max
-#         return spaces.Dict({
-#             "num_vehicles":  spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
-#             "avg_speed":     spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
-#             "num_occupancy": spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
-#             "wait_time":     spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
-#             "travel_time":   spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
-#             "num_halt":      spaces.Box(low=0, high=high, shape=(1,), dtype=kind)
-#         })
+    def _get_reward(self, obs: OrderedDict) -> float:
+        return -obs["num_halt"] - obs["wait_time"] - obs["travel_time"]
 
 
+    ## ================================================================================ ##
 
-#     def reset(self):
-#         obs_n = dict()
-#         reward_n = dict()
-#         done_n = dict()
-#         info_n = {"n": []}
-#         # ...
-#         return obs_n, reward_n, done_n, info_n
 
-#     def step(self, actions: dict):
-#         # Perform given actions for each agent and then take ONE simulation step in SUMO.
-#         for agent in self.agent:
-#             self._do_action(agent, actions[agent])
-#         self.sim.step()
-#         self.__update_world()
+    def close(self) -> None:
+        """Close the simulation, thereby ending the the connection to SUMO.
+        """
+        self.kernel.close()
 
-#     def _do_action(self, agent_id, action):
-#         pass
+    def start(self) -> None:
+        """Start the simulation using the SumoKernel interface. This will reload the SUMO
+           SUMO simulation if it's been loaded, otherwise it will start SUMO.
+        """
+        self.kernel.start()
 
-#     def _get_world(self, agent_id) -> np.ndarray:
-#         pass
+    def rand_routes(self) -> None:
+        net_name = self.config["net-file"]
+        rand_args = self.config.get("rand_route_args", dict())
+        rand_args["n_routefiles"] = 1 # NOTE: Simplifies the process.
+        generate_random_routes(net_name=net_name, path=self.path, **rand_args)
 
-#     def _get_reward(self, agent_id) -> float:
-#         pass
 
-#     def __update_world(self) -> None:
-#         """To (efficiently) get an accurate view of each agents' observation space, this 
-#            function simply updates the cached view of the entire world's state. This is
-#            then used to grab the sub-matrices of the world to represent each agents'
-#            view or observation subspace.
-#         """   
-#         sim_h, sim_w = self.get_sim_dims()
-#         obs_h, obs_w = self.get_obs_dims()
-#         h_scalar = obs_h / sim_h
-#         w_scalar = obs_w / sim_w
-#         world = np.zeros(shape=(obs_h, obs_w), dtype=np.int32)
+    def _restart_timer(self, index=None) -> np.ndarray:
+        if index is None:
+            self.action_timer = MIN_DELAY * np.ones(shape=(len(self.kernel.tls_hub)))
+        else:
+            self.action_timer[index] = MIN_DELAY
 
-#         veh_ids = list(traci.vehicle.getIDList())
-#         for veh_id in veh_ids:
-#             # Get the (scaled-down) x/y coordinates for the observation world.
-#             x, y = traci.vehicle.getPosition(veh_id)
-#             x, y = int(x * w_scalar), int(y * h_scalar)
-
-#             # Add a normalized weight to the respective coordinate in the world. For it to
-#             # be normalized, we need to change `dtype` to a float-based value.
-#             world[y, x] += 1
-
-#         self.world = world
+    def _decr_timer(self, index) -> None:
+        self.action_timer[index] = max(0, self.action_timer[index]-1)

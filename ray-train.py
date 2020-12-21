@@ -2,8 +2,10 @@
 For this document, we will setup a basic RL pipeline using our SingleSumoEnv environment.
 The RL tool we will incorporate is `stablebaselines`.
 """
+from fluri.sumo.multi_agent_env import MultiPolicyEnv
 import gym
 from numpy.lib.function_base import append
+import random
 import ray
 
 from ray import tune
@@ -96,11 +98,10 @@ def ray_train_fn(config, reporter, n_training_steps: int=10): #int(2e6)):
     train_data_df = pd.DataFrame.from_dict(train_data)
     train_data_df.to_csv(join("out", "train_data", "simple-ray.csv"))
 
+
 if __name__ == "__main__":
     import os
     import ray.rllib.agents.ppo as ppo
-
-    ray.init()
 
     # config = {
     #     "lr": 0.01,
@@ -112,10 +113,24 @@ if __name__ == "__main__":
     # tune.run(ray_train_fn, resources_per_trial=resources, config=config)
     # config = ppo.DEFAULT_CONFIG.copy()
     # config["log_level"] = "WARN"
-    
-    agent = PPOTrainer(env=SingleSumoEnv, config={
+
+    env = MultiPolicyEnv(config={
+        "gui": False,
+        "net-file": join("configs", "two_inter", "two_inter.net.xml")
+    })
+    obs_space = env.observation_space()
+    act_space = env.action_space()
+
+    ray.init()
+    agent = PPOTrainer(env=MultiPolicyEnv, config={
+        "multiagent": {
+            "policies": {
+                "tls": (None, obs_space, act_space, {"gamma": 0.95})
+            },
+            "policy_mapping_fn": lambda _: "tls"
+        },
         "lr": 0.01,
-        "num_gpus": 0,
+        "num_gpus": int(os.environ.get("RLLIB_NUM_GPUS", 0)),
         "num_workers": 0,
         "framework": "torch",
         "env_config": {
@@ -133,7 +148,8 @@ if __name__ == "__main__":
         append_dict(train_data, result)
         print(status.format(
             n + 1, result["episode_reward_min"], result["episode_reward_mean"],
-            result["episode_reward_max"], result["episode_len_mean"], {out_file.split(os.sep)[-1]}
+            result["episode_reward_max"], result["episode_len_mean"], 
+            out_file.split(os.sep)[-1]
         ))
 
     state = agent.save(join("out", "models", "simple-ray"))

@@ -40,7 +40,6 @@ class SumoEnv(ABC, gym.Env):
             self.rand_routes()
             # self.__first_round = False
         self.start()
-        # self.action_timer = (-2 * MIN_DELAY) * np.ones(shape=(len(self.kernel.tls_hub)))
         self._restart_timer()
         return self.kernel.world.observe()
 
