@@ -52,8 +52,10 @@ class MultiPolicyEnv(MultiAgentEnv):
             Observation space.
         """
         # Get the maximum value of the numpy data type.
-        try: high = np.iinfo(kind).max               # Handles numpy integer data types.
-        except ValueError: high = np.finfo(kind).max # Handles numpy float data types.
+        try: 
+            high = np.iinfo(kind).max # Handles numpy integer data types.
+        except ValueError: 
+            high = np.finfo(kind).max # Handles numpy float data types.
         return spaces.Dict({
             tls.id: spaces.Dict({
                 "num_vehicles":  spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
@@ -114,8 +116,7 @@ class MultiPolicyEnv(MultiAgentEnv):
 
 
     def close(self) -> None:
-        """Close the simulation, thereby ending the the connection to SUMO.
-        """
+        """Close the simulation, thereby ending the the connection to SUMO."""
         self.kernel.close()
 
     def start(self) -> None:

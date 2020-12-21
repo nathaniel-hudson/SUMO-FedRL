@@ -1,6 +1,9 @@
 """
 For this document, we will setup a basic RL pipeline using our SingleSumoEnv environment.
 The RL tool we will incorporate is `stablebaselines`.
+
+Refer to this recent and similar SumoRL tool that has an example for MARL using RlLib:
+https://github.com/LucasAlegre/sumo-rl/blob/master/experiments/a3c_4x4grid.py
 """
 from fluri.sumo.multi_agent_env import MultiPolicyEnv
 import gym

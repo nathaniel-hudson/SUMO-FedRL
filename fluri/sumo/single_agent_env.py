@@ -45,7 +45,7 @@ class SingleSumoEnv(SumoEnv):
                                      for tls in self.kernel.tls_hub])
 
     @property
-    def observation_space(self) -> spaces.Box:
+    def observation_space(self, kind: np.dtype=np.float16) -> spaces.Box:
         """Initializes an instance of the observation space as a property of the class.
 
         Returns
@@ -53,13 +53,28 @@ class SingleSumoEnv(SumoEnv):
         spaces.Box
             The observation space.
         """
-        world_space = spaces.Box(
-            low=0,
-            high=1,
-            shape=self.kernel.world.get_dimensions(),
-            dtype=np.float32
-        )
-        return world_space
+        # Get the maximum value of the numpy data (int or float) type.
+        try:
+            high = np.iinfo(kind).max
+        except ValueError:
+            high = np.finfo(kind).max
+        n = len(self.kernel.tls_hub)
+        return spaces.Dict({
+            "num_vehicles":  spaces.Box(low=0, high=high, shape=(1 ,n), dtype=kind),
+            "avg_speed":     spaces.Box(low=0, high=high, shape=(1, n), dtype=kind),
+            "num_occupancy": spaces.Box(low=0, high=high, shape=(1, n), dtype=kind),
+            "wait_time":     spaces.Box(low=0, high=high, shape=(1, n), dtype=kind),
+            "travel_time":   spaces.Box(low=0, high=high, shape=(1, n), dtype=kind),
+            "num_halt":      spaces.Box(low=0, high=high, shape=(1, n), dtype=kind),
+            "curr_state":    spaces.Box(low=0, high=high, shape=(1, n), dtype=kind),
+        })
+        # world_space = spaces.Box(
+        #     low=0,
+        #     high=1,
+        #     shape=self.kernel.world.get_dimensions(),
+        #     dtype=np.float32
+        # )
+        # return world_space
 
     def step(self, action: List[int]) -> Tuple[np.ndarray, float, bool, dict]:
         """Performs a single step in the environment, as per the Open AI Gym framework.
