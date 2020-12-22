@@ -6,7 +6,7 @@ import traci
 from collections import OrderedDict
 from gym import spaces
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from .const import *
 from .kernel.kernel import SumoKernel
@@ -23,90 +23,38 @@ class TLAgent(gym.Env):
 class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
 
     def __init__(self, config):
-        self.config = config
-        self.path = os.path.split(self.config["net-file"])[0] # "foo/bar/car" => "foo/bar"
-        self.config["route-files"] = os.path.join(self.path, "traffic.rou.xml")
+        super().__init__(config)
 
-        self.kernel = SumoKernel(self.config)
-        self.rand_routes_on_reset = self.config.get("rand_routes_on_reset", True)
-
-        # self.action_spaces = [spaces.Box(low=0, high=high, shape=(1,), dtype=kind)
-        #                       for tls in self.kernel.tls_hub]
-        self.observation_spaces = None
+    @property
+    def action_space(self):
+        first = self.kernel.tls_hub.index2id[0]
+        return self.kernel.tls_hub[first].action_space
         
-        self.action_space = self.action_spaces[0]
-        self.observation_space = [self.observation_spaces[0]]
-
-        assert all(act_space == self.action_space
-                   for act_space in self.action_spaces.values()), \
-            "Action spaces for all agents must be identical."
-
-        assert all(obs_space == self.observation_space
-                   for obs_space in self.env.observation_spaces.values()), \
-            "Observation spaces for all agents must be identical."
-
-        self.reset()
-
     @property
-    def action_space(self) -> spaces.Dict:
-        """Property for the action space for this environment. The space is a spaces.Dict
-           object where each item's key is a trafficlight ID used in SUMO and the value is
-           a spaces.Box object for binary values.
+    def observation_space(self):
+        first = self.kernel.tls_hub.index2id[0]
+        return self.kernel.tls_hub[first].observation_space
 
-        Returns
-        -------
-        spaces.Dict
-            Action space.
-        """
-        return spaces.MultiBinary(len(self.kernel.tls_hub))
+    def action_spaces(self, tls_id):
+        return self.kernel.tls_hub[tls_id].action_space
 
-    @property
-    def observation_space(self, kind: np.dtype=np.float64) -> spaces.Dict:
-        """Property for the observation space for this environemnt. The space is a 
-           spaces.Dict object where each item's key is a trafficlight ID used in SUMO and 
-           the value is another spaces.Dict object containing the 7 features of interest.
-
-        Returns
-        -------
-        spaces.Dict
-            Observation space.
-        """
-        # Get the maximum value of the numpy data type.
-        try: 
-            high = np.iinfo(kind).max # Handles numpy integer data types.
-        except ValueError: 
-            high = np.finfo(kind).max # Handles numpy float data types.
-        return spaces.Dict({
-            tls.id: spaces.Dict({
-                "num_vehicles":  spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
-                "avg_speed":     spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
-                "num_occupancy": spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
-                "wait_time":     spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
-                "travel_time":   spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
-                "num_halt":      spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
-                "curr_state":    spaces.Box(low=0, high=high, shape=(1,), dtype=kind),
-            })
-            for tls in self.kernel.tls_hub
-        })
+    def observation_spaces(self, tls_id):
+        return self.kernel.tls_hub[tls_id].observation_space
 
     def reset(self):
-        # Start the simulation and get details surrounding the world.
         super().reset()
         return self._observe()
 
-    def step(self, action_dict: OrderedDict) -> Tuple[Dict, Dict, Dict, Dict]:
+    def step(self, action_dict: Dict[Any, int]) -> Tuple[Dict, Dict, Dict, Dict]:
         self._do_action(action_dict)
         self.kernel.step()
 
-        obs = {
-            tls.id: tls.get_observation()
-            for tls in self.kernel.tls_hub
-        }
+        obs = self._observe()
         reward = {
             tls.id: self._get_reward(obs[tls.id])
             for tls in self.kernel.tls_hub
         }
-        done = self.kernel.done()
+        done = {"__all__": self.kernel.done()}
         info = {}
 
         return obs, reward, done, info
@@ -114,7 +62,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
     def _do_action(self, actions: List[int]) -> List[int]:
         taken_action = actions.copy()
         for tls in self.kernel.tls_hub:
-            action = actions[tls.index]
+            action = actions[tls.id]
             can_change = self.action_timer.can_change(tls.index)
             if action == 1 and can_change:
                 tls.next_phase()
@@ -124,14 +72,16 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
                 taken_action[tls.index] = 0
         return List[int]
 
-    def _get_reward(self, obs: OrderedDict) -> float:
-        return -obs["num_halt"] - obs["wait_time"] - obs["travel_time"]
+    def _get_reward(self, obs: List[np.float64]) -> float:
+        # print(f"_get_reward:\n{obs}\n\n")
+        return -obs[NUM_HALT] - obs[WAIT_TIME] - obs[TRAVEL_TIME]
 
-    def _observe(self) -> OrderedDict:
-        return OrderedDict({
-            tls.id: tls.get_observation()
-            for tls in self.kernel.tls_hub
-        })
+    def _observe(self) -> Dict[Any, np.ndarray]:
+        return {tls.id: tls.get_observation() for tls in self.kernel.tls_hub}
+        # return OrderedDict({
+        #     tls.id: tls.get_observation()
+        #     for tls in self.kernel.tls_hub
+        # })
 
 
     ## ================================================================================ ##

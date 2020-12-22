@@ -6,6 +6,7 @@ import warnings
 import xml.etree.ElementTree as ET
 
 from collections import OrderedDict
+from gym import spaces
 from typing import Any, Dict, List, Set, Tuple, Union
 
 from ..utils.core import get_node_id
@@ -59,40 +60,6 @@ class TrafficLight:
         except traci.exceptions.FatalTraCIError:
             pass
 
-    def get_observation(self) -> OrderedDict:
-        """Returns an observation of the traffic light, with each of the features of 
-           interest.
-
-        Returns
-        -------
-        np.ndarray
-            Array containing the values of each of the features.
-        """
-        num_vehs = 0
-        avg_speed = 0
-        num_occupancy = 0
-        wait_time = 0
-        travel_time = 0
-        num_halt = 0
-
-        for lane in traci.trafficlight.getControlledLanes(self.id):
-            num_vehs += traci.lane.getLastStepVehicleNumber(lane)
-            avg_speed += traci.lane.getLastStepMeanSpeed(lane)
-            num_occupancy += traci.lane.getLastStepOccupancy(lane)
-            wait_time += traci.lane.getWaitingTime(lane)
-            travel_time += traci.lane.getTraveltime(lane)
-            num_halt += traci.lane.getLastStepHaltingNumber(lane)
-
-        return OrderedDict({
-            "num_vehicles":  num_vehs,
-            "avg_speed":     avg_speed,
-            "num_occupancy": num_occupancy,
-            "wait_time":     wait_time,
-            "travel_time":   travel_time,
-            "num_halt":      num_halt,
-            "curr_state":    self.state,
-        })
-
     def get_program(
         self,
         road_netfile: str, 
@@ -126,6 +93,63 @@ class TrafficLight:
 
             return states if (sort_phases == False) else sorted(states)
 
+    def get_observation(self) -> np.ndarray:
+        """Returns an observation of the traffic light, with each of the features of 
+           interest.
+
+        Returns
+        -------
+        np.ndarray
+            Array containing the values of each of the features.
+        """
+        num_vehs = 0
+        avg_speed = 0
+        num_occupancy = 0
+        wait_time = 0
+        travel_time = 0
+        num_halt = 0
+
+        for lane in traci.trafficlight.getControlledLanes(self.id):
+            num_vehs += traci.lane.getLastStepVehicleNumber(lane)
+            avg_speed += traci.lane.getLastStepMeanSpeed(lane)
+            num_occupancy += traci.lane.getLastStepOccupancy(lane)
+            wait_time += traci.lane.getWaitingTime(lane)
+            travel_time += traci.lane.getTraveltime(lane)
+            num_halt += traci.lane.getLastStepHaltingNumber(lane)
+
+        return np.array([num_vehs, avg_speed, num_occupancy, wait_time, 
+                         travel_time, num_halt, self.state])
+
+        # return OrderedDict({
+        #     "num_vehicles":  num_vehs,
+        #     "avg_speed":     avg_speed,
+        #     "num_occupancy": num_occupancy,
+        #     "wait_time":     wait_time,
+        #     "travel_time":   travel_time,
+        #     "num_halt":      num_halt,
+        #     "curr_state":    self.state,
+        # })
+
+    @property
+    def action_space(self) -> spaces.Box:
+        return spaces.Box(low=0, high=1, shape=(1,), dtype=int)
+
+    @property
+    def observation_space(self) -> spaces.Box:
+        dtype = np.float64
+        high = np.finfo(dtype).max
+        return spaces.Box(low=0, high=high, shape=(N_FEATURES,), dtype=dtype)
+
+        # return spaces.Dict({
+        #     "num_vehicles":  spaces.Box(low=0, high=high, shape=(1,), dtype=dtype),
+        #     "avg_speed":     spaces.Box(low=0, high=high, shape=(1,), dtype=dtype),
+        #     "num_occupancy": spaces.Box(low=0, high=high, shape=(1,), dtype=dtype),
+        #     "wait_time":     spaces.Box(low=0, high=high, shape=(1,), dtype=dtype),
+        #     "travel_time":   spaces.Box(low=0, high=high, shape=(1,), dtype=dtype),
+        #     "num_halt":      spaces.Box(low=0, high=high, shape=(1,), dtype=dtype),
+        #     "curr_state":    spaces.Box(low=0, high=high, shape=(1,), dtype=dtype),
+        # })
+
 
 class TrafficLightHub:
     """A simple data structure that stores all of the trafficlights in a given SUMO
@@ -140,9 +164,11 @@ class TrafficLightHub:
     ):
         self.road_netfile = road_netfile
         self.ids = sorted([tls_id for tls_id in self.get_traffic_light_ids()])
+        self.index2id = {index:  tls_id for index, tls_id in enumerate(self.ids)}
+        self.id2index = {tls_id: index  for index, tls_id in enumerate(self.ids)}
         self.hub = OrderedDict({
             tls_id: TrafficLight(index, tls_id, self.road_netfile, sort_phases)
-            for index, tls_id in enumerate(self.ids)
+            for index, tls_id in self.index2id.items()
         })
 
     def get_traffic_light_ids(self) -> List[str]:

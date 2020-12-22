@@ -33,37 +33,36 @@ def generate_random_routes(
     assert generator.lower() in VALID_DISTRIBUTIONS
 
     if isinstance(n_vehicles, tuple):
-        assert len(n_vehicles) == 2, \
-            "`n_vehicles` must be of len 2 if provided a tuple."
+        assert len(n_vehicles) == 2, "`n_vehicles` must be of len 2 if provided a tuple."
         a, b = n_vehicles
-        assert a < b, \
-            "`n_vehicles` must be a valid and sorted range."
+        assert a < b, "`n_vehicles` must be a valid and sorted range."
         n_vehicles = randint(a, b)
 
     if isinstance(end_time, tuple):
-        assert len(end_time) == 2, \
-            "`end_time` must be of len 2 if provided a tuple."
+        assert len(end_time) == 2, "`end_time` must be of len 2 if provided a tuple."
         a, b = end_time
-        assert a < b, \
-            "`end_time` must be a valid and sorted range."
+        assert a < b, "`end_time` must be a valid and sorted range."
         end_time = randint(a, b)
     
     begin_time = 0
     routes = []
     for i in range(n_routefiles):
-        routefile = "traffic.rou.xml" if (n_routefiles == 1) \
+        routefile = "traffic.rou.xml" \
+                    if (n_routefiles == 1) \
                     else f"traffic_{i}.rou.xml"
         if path is not None:
             routefile = join(path, routefile)
-        opts = rrs.set_options(netfile=net_name, 
-                               routefile=routefile, 
-                               begin=begin_time,
-                               end=end_time, 
-                               length=True, 
-                               period=end_time/n_vehicles,
-                               generator=generator.lower(), 
-                               seed=seed,
-                               dir=path)
+        opts = rrs.set_options(
+            netfile=net_name, 
+            routefile=routefile, 
+            begin=begin_time,
+            end=end_time, 
+            length=True, 
+            period=end_time/n_vehicles,
+            generator=generator.lower(), 
+            seed=seed,
+            dir=path
+        )
         routes.append(routefile)
         res = rrs.main(opts)
 

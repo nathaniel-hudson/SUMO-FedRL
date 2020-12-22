@@ -16,6 +16,9 @@ import ray.rllib.agents.ppo as ppo
 
 from ray import tune
 from ray.rllib.agents.ppo import PPOTrainer
+from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy
+from ray.tune.registry import register_env
+
 from fluri.sumo.utils.random_routes import generate_random_routes
 
 """
@@ -106,11 +109,13 @@ def ray_train_fn(config, reporter, n_training_steps: int=10): #int(2e6)):
 
 
 def singleagent_ray_train() -> None:
+    """Single-agent reinforcement learning with Ray's RlLib.
+    """
     ray.init()
     agent = PPOTrainer(env=SinglePolicySumoEnv, config={
         "lr": 0.01,
         "num_gpus": 0,#int(os.environ.get("RLLIB_NUM_GPUS", 0)),
-        "num_workers": 0,
+        "num_workers": 0, ## NOTE: For some reason, this *needs* to be 0.
         "framework": "torch",
         "env_config": {
             "gui": False,
@@ -138,30 +143,44 @@ def singleagent_ray_train() -> None:
 
 
 def multiagent_ray_train() -> None:
+    """Multi-agent reinforcement learning with Ray's RlLib.
+    """
+    register_env("MARL_Sumo", lambda _: MultiPolicySumoEnv({
+        "gui": False,
+        "net-file": join("configs", "two_inter", "two_inter.net.xml")
+    }))
+
+    dummy_env = MultiPolicySumoEnv(config={
+        "gui": False,
+        "net-file": join("configs", "two_inter", "two_inter.net.xml")
+    })
+    obs_space = dummy_env.observation_space
+    act_space = dummy_env.action_space
+
     ray.init()
-    agent = PPOTrainer(env=MultiPolicySumoEnv, config={
+    trainer = PPOTrainer(env="MARL_Sumo", config={
         "multiagent": {
             "policies": {
-                "tls": (None, obs_space, act_space, {"gamma": 0.95})
+                "0": (PPOTorchPolicy, obs_space, act_space, {"gamma": 0.95})
             },
-            "policy_mapping_fn": lambda _: "tls"
+            "policy_mapping_fn": lambda _: "0",
         },
-        "lr": 0.01,
-        "num_gpus": int(os.environ.get("RLLIB_NUM_GPUS", 0)),
+        "lr": 0.001,
+        "num_gpus": 0,
         "num_workers": 0,
         "framework": "torch",
-        "env_config": {
-            "gui": False,
-            "net-file": join("configs", "two_inter", "two_inter.net.xml")
-        }
+        # "env_config": {
+        #     "gui": False,
+        #     "net-file": join("configs", "two_inter", "two_inter.net.xml")
+        # }
     })
     train_data = {}
     status = "{:2d} reward {:6.2f}/{:6.2f}/{:6.2f} len {:4.2f} saved {}"
     out_file =join("out", "models", "simple-ray")
 
     for n in range(2):
-        result = agent.train()
-        state = agent.save(out_file)
+        result = trainer.train()
+        state = trainer.save(out_file)
         append_dict(train_data, result)
         print(status.format(
             n + 1, result["episode_reward_min"], result["episode_reward_mean"],
@@ -169,23 +188,27 @@ def multiagent_ray_train() -> None:
             out_file.split(os.sep)[-1]
         ))
 
-    state = agent.save(join("out", "models", "simple-ray"))
-    agent.stop()
+    state = trainer.save(join("out", "models", "simple-ray"))
+    trainer.stop()
 
     ray.shutdown()
+
+# <|==================================================================================|> #
+# <|==================================================================================|> #
 
 if __name__ == "__main__":
     SINGLEAGENT = 1
     MULTIAGENT  = 2
-    kind = input("Designate training kind: [1] single-agent or [2] multi-agent: ")
-    while kind != "1" and kind != "2":
-        kind = input("Try again... Enter [1] single-agent or [2] multi-agent: ")
+
+    # kind = input("Designate training kind: [1] single-agent or [2] multi-agent: ")
+    # while kind != "1" and kind != "2":
+    #     kind = input("Try again... Enter [1] single-agent or [2] multi-agent: ")
+    # kind = int(kind)
     
-    kind = int(kind)
-    if kind == SINGLEAGENT:
+    if False: #kind == SINGLEAGENT:
         print("single...")
         singleagent_ray_train()
-    elif kind == MULTIAGENT:
+    elif True: #kind == MULTIAGENT:
         print("multi...")
         multiagent_ray_train()
     else:

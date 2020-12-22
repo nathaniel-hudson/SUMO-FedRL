@@ -41,11 +41,21 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         spaces.MultiDiscrete
             The action space.
         """
-        return spaces.Box(low=0, high=1, shape=(len(self.kernel.tls_hub),), dtype=int)
+        # return spaces.Box(low=0, high=1, shape=(len(self.kernel.tls_hub),), dtype=int)
+        return spaces.Dict({
+            tls.id: spaces.Box(low=0, high=1, shape=(1,), dtype=int)
+            for tls in self.kernel.tls_hub
+        })
 
     @property
-    def observation_space(self, kind: np.dtype=np.float64) -> spaces.Box:
+    def observation_space(self, dtype: np.dtype=np.float64) -> spaces.Box:
         """Initializes an instance of the observation space as a property of the class.
+
+        Parameters
+        ----------
+        dtype : type, optional
+            Some numpy data type you wish to use to represent the space values, by default 
+            np.float64.
 
         Returns
         -------
@@ -54,19 +64,20 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         """
         # Get the maximum value of the numpy data (int or float) type.
         try:
-            high = np.iinfo(kind).max
+            high = np.iinfo(dtype).max
         except ValueError:
-            high = np.finfo(kind).max
+            high = np.finfo(dtype).max
         n = len(self.kernel.tls_hub)
-        return spaces.Dict({
-            "num_vehicles":  spaces.Box(low=0, high=high, shape=(n,), dtype=kind),
-            "avg_speed":     spaces.Box(low=0, high=high, shape=(n,), dtype=kind),
-            "num_occupancy": spaces.Box(low=0, high=high, shape=(n,), dtype=kind),
-            "wait_time":     spaces.Box(low=0, high=high, shape=(n,), dtype=kind),
-            "travel_time":   spaces.Box(low=0, high=high, shape=(n,), dtype=kind),
-            "num_halt":      spaces.Box(low=0, high=high, shape=(n,), dtype=kind),
-            "curr_state":    spaces.Box(low=0, high=high, shape=(n,), dtype=kind),
-        })
+        return spaces.Box(low=0, high=high, shape=(n, N_FEATURES), dtype=dtype)
+        # return spaces.Dict({
+        #     "num_vehicles":  spaces.Box(low=0, high=high, shape=(n,), dtype=dtype),
+        #     "avg_speed":     spaces.Box(low=0, high=high, shape=(n,), dtype=dtype),
+        #     "num_occupancy": spaces.Box(low=0, high=high, shape=(n,), dtype=dtype),
+        #     "wait_time":     spaces.Box(low=0, high=high, shape=(n,), dtype=dtype),
+        #     "travel_time":   spaces.Box(low=0, high=high, shape=(n,), dtype=dtype),
+        #     "num_halt":      spaces.Box(low=0, high=high, shape=(n,), dtype=dtype),
+        #     "curr_state":    spaces.Box(low=0, high=high, shape=(n,), dtype=dtype),
+        # })
 
     def reset(self):
         # Start the simulation and get details surrounding the world.
@@ -116,7 +127,8 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         """
         taken_action = actions.copy()
         for tls in self.kernel.tls_hub:
-            act = actions[tls.index]
+            # act = actions[tls.index]
+            act = actions[tls.id]
             can_change = self.action_timer.can_change(tls.index)
 
             # If this condition is true, then the RYG state of the current traffic light
@@ -136,7 +148,7 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
 
         return taken_action
 
-    def _get_reward(self, obs: OrderedDict) -> float:
+    def _get_reward(self, obs: np.ndarray) -> float:
         """For now, this is a simple function that returns -1 when the simulation is not
            done. Otherwise, the function returns 0. The goal's for the agent to prioritize
            ending the simulation quick.
@@ -146,17 +158,21 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         float
             The reward for this step.
         """
-        num_halt = np.array(obs["num_halt"])
-        wait_time = np.array(obs["wait_time"])
-        travel_time = np.array(obs["travel_time"])
+        # num_halt = np.array(obs["num_halt"])
+        # wait_time = np.array(obs["wait_time"])
+        # travel_time = np.array(obs["travel_time"])
+        # return sum(-1*num_halt) + sum(-1*wait_time) + sum(-1*travel_time)
+        num_halt = obs[:, NUM_HALT]
+        wait_time = obs[:, WAIT_TIME]
+        travel_time = obs[:, TRAVEL_TIME]
         return sum(-1*num_halt) + sum(-1*wait_time) + sum(-1*travel_time)
-        # return sum(-obs["num_halt"][i] - obs["wait_time"][i] - obs["travel_time"][i]
-        #             for i in range(len(obs["num_halt"])))
 
-    def _observe(self) -> OrderedDict:
-        obs = defaultdict(list)
-        for tls in self.kernel.tls_hub:
-            tls_obs = tls.get_observation()
-            for feature, value in tls_obs.items():
-                obs[feature].append(value)
-        return dict(obs)
+    def _observe(self) -> np.ndarray:
+        # obs = defaultdict(list)
+        # for tls in self.kernel.tls_hub:
+        #     tls_obs = tls.get_observation()
+        #     for feature, value in tls_obs.items():
+        #         obs[feature].append(value)
+        # return dict(obs)
+        obs = np.array([tls.get_observation() for tls in self.kernel.tls_hub])
+        return obs

@@ -105,7 +105,7 @@ class SumoKernel():
         if return_dict:
             return observations
         else:
-            return np.ndarray(observations)
+            return np.array(observations)
 
 
     def update(self) -> None:

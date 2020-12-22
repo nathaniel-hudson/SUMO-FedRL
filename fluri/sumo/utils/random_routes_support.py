@@ -63,7 +63,7 @@ def __print(*msg: str) -> None:
 
 
 def set_options(
-    args=None, 
+    rrs_args=None, 
     netfile=None, 
     routefile=None, 
     begin=None, 
@@ -166,7 +166,10 @@ def set_options(
                          help="Whether to produce trip output that is already checked for connectivity")
     optParser.add_option("-v", "--verbose", action="store_true",
                          default=False, help="tell me what you are doing")
-    (options, args) = optParser.parse_args(args=args)
+    
+    # print(f"TESTING: {optParser}\n\n")
+    
+    (options, rrs_args) = optParser.parse_args(args=rrs_args)
 
     if netfile:
         options.netfile = netfile
@@ -226,7 +229,7 @@ def set_options(
     return options
 
 
-def get_options(args=None, dir=""):
+def get_options(rrs_args=None, dir=""):
     optParser = optparse.OptionParser()
     optParser.add_option("-n", "--net-file", dest="netfile",
                          help="define the net file (mandatory)")
@@ -302,15 +305,17 @@ def get_options(args=None, dir=""):
     optParser.add_option("--maxtries", type="int",
                          default=100, help="number of attemps for finding a trip which meets the distance constraints")
     optParser.add_option("--binomial", type="int", metavar="N",
-                         help="If this is set, the number of departures per seconds will be drawn from a binomial " +
-                         "distribution with n=N and p=PERIOD/N where PERIOD is the argument given to " +
-                         "option --period. Tnumber of attemps for finding a trip which meets the distance constraints")
-    optParser.add_option(
-        "-c", "--vclass", "--edge-permission", default="passenger",
-        help="only from and to edges which permit the given vehicle class")
-    optParser.add_option(
-        "--vehicle-class", help="The vehicle class assigned to the generated trips (adds a standard vType definition " +
-        "to the output file).")
+                         help="If this is set, the number of departures per seconds will "
+                              "be drawn from a binomial distribution with n=N and "
+                              "p=PERIOD/N where PERIOD is the argument given to option "
+                              "--period. Tnumber of attemps for finding a trip which "
+                              "meets the distance constraints")
+    optParser.add_option("-c", "--vclass", "--edge-permission", default="passenger",
+                         help="only from and to edges which permit the given vehicle "
+                              "class")
+    optParser.add_option("--vehicle-class", help="The vehicle class assigned to the "
+                            "generated trips (adds a standard vType definition "
+                            "to the output file).")
     optParser.add_option("--remove-loops", dest="remove_loops", action="store_true",
                          default=False, help="Remove loops at route start and end")
     optParser.add_option("--junction-taz", dest="junctionTaz", action="store_true",
@@ -319,7 +324,7 @@ def get_options(args=None, dir=""):
                          help="Whether to produce trip output that is already checked for connectivity")
     optParser.add_option("-v", "--verbose", action="store_true",
                          default=False, help="tell me what you are doing")
-    (options, args) = optParser.parse_args(args=args)
+    (options, rrs_args) = optParser.parse_args(args=rrs_args)
     if not options.netfile:
         optParser.print_help()
         sys.exit(1)
@@ -350,8 +355,9 @@ def get_options(args=None, dir=""):
         else:
             options.vtypeID = options.vehicle_class
 
-        if 'type=' in options.tripattrs:
-            __print("Error: trip-attribute 'type' cannot be used together with option --vehicle-class", file=sys.stderr)
+        if "type=" in options.tripattrs:
+            __print("Error: trip-attribute 'type' cannot be used together with option "
+                    "--vehicle-class", file=sys.stderr)
             sys.exit(1)
 
     return options

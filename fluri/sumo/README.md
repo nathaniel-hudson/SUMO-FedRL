@@ -26,3 +26,6 @@ $a^t=[0, 3, 1, 2, \cdots, 0]$, we also consider a mask vector at time-step $t$,
 $m^t=[-3, -2, 0, 0, \cdots, -2]$. A value $m_i^t \in m^t$ represents the number of needed
 steps in the simulation in order for the agent to change the action (i.e., a negative
 value means the traffic light is in its transition task).
+
+## Miscellaneous Notes.
+* Interestingly, `num_workers` in the Trainer config for an `RlLib` algorithm must be `num_workers=0`, otherwise an issue is caused by `OptParser` from the route generation script.
