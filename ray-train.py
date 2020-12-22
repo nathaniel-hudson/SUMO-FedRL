@@ -62,11 +62,11 @@ def stable_baselines_train(total_timesteps: int=int(2e6)) -> None:
 # ..................................... RAY RlLIB ...................................... #
 # ====================================================================================== #
 
-def singleagent_ray_train() -> None:
+def singleagent_ray_train(n_rounds: int=10) -> None:
     """Single-agent reinforcement learning with Ray's RlLib.
     """
     ray.init()
-    agent = PPOTrainer(env=SinglePolicySumoEnv, config={
+    trainer = PPOTrainer(env=SinglePolicySumoEnv, config={
         "lr": 0.01,
         "num_gpus": 0,
         "num_workers": 0, ## NOTE: For some reason, this *needs* to be 0.
@@ -80,22 +80,21 @@ def singleagent_ray_train() -> None:
     status = "{:2d} reward {:6.2f}/{:6.2f}/{:6.2f} len {:4.2f} saved {}"
     out_file =join("out", "models", "simple-ray")
 
-    for n in range(2):
-        result = agent.train()
-        state = agent.save(out_file)
+    for n in range(n_rounds):
+        result = trainer.train()
+        state = trainer.save(out_file)
         print(status.format(
             n + 1, result["episode_reward_min"], result["episode_reward_mean"],
             result["episode_reward_max"], result["episode_len_mean"], 
             out_file.split(os.sep)[-1]
         ))
 
-    state = agent.save(join("out", "models", "simple-ray"))
-    agent.stop()
-
+    state = trainer.save(join("out", "models", "SARL-ray"))
+    trainer.stop()
     ray.shutdown()
 
 
-def multiagent_ray_train() -> None:
+def multiagent_ray_train(n_rounds: int=10) -> None:
     """Multi-agent reinforcement learning with Ray's RlLib.
     """
     register_env("MARL_Sumo", lambda _: MultiPolicySumoEnv({
@@ -131,7 +130,7 @@ def multiagent_ray_train() -> None:
     status = "{:2d} reward {:6.2f}/{:6.2f}/{:6.2f} len {:4.2f} saved {}"
     out_file =join("out", "models", "simple-ray")
 
-    for n in range(2):
+    for n in range(n_rounds):
         result = trainer.train()
         state = trainer.save(out_file)
         print(status.format(
@@ -140,9 +139,8 @@ def multiagent_ray_train() -> None:
             out_file.split(os.sep)[-1]
         ))
 
-    state = trainer.save(join("out", "models", "simple-ray"))
+    state = trainer.save(join("out", "models", "MARL-ray"))
     trainer.stop()
-
     ray.shutdown()
 
 # <|==================================================================================|> #
@@ -152,16 +150,15 @@ if __name__ == "__main__":
     SINGLEAGENT = 1
     MULTIAGENT  = 2
 
-    # kind = input("Designate training kind: [1] single-agent or [2] multi-agent: ")
-    # while kind != "1" and kind != "2":
-    #     kind = input("Try again... Enter [1] single-agent or [2] multi-agent: ")
-    # kind = int(kind)
+    kind = input("Designate training kind: [1] single-agent or [2] multi-agent: ")
+    while kind != "1" and kind != "2":
+        kind = input("Try again... Enter [1] single-agent or [2] multi-agent: ")
+    kind = int(kind)
+    n_rounds = int(input("Enter the number of rounds for training: "))
     
-    if False: #kind == SINGLEAGENT:
-        print("single...")
-        singleagent_ray_train()
-    elif True: #kind == MULTIAGENT:
-        print("multi...")
-        multiagent_ray_train()
+    if kind == SINGLEAGENT:
+        singleagent_ray_train(n_rounds=n_rounds)
+    elif kind == MULTIAGENT:
+        multiagent_ray_train(n_rounds=n_rounds)
     else:
         raise ArgumentError("Illegal argument provided to argparser.")
