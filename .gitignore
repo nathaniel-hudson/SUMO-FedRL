@@ -1,5 +1,4 @@
-
-.vscode/settings.json
 out/*
 *.json
 *.pyc
+.vscode/settings.json

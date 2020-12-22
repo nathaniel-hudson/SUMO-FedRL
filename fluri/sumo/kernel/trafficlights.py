@@ -120,16 +120,6 @@ class TrafficLight:
         return np.array([num_vehs, avg_speed, num_occupancy, wait_time, 
                          travel_time, num_halt, self.state])
 
-        # return OrderedDict({
-        #     "num_vehicles":  num_vehs,
-        #     "avg_speed":     avg_speed,
-        #     "num_occupancy": num_occupancy,
-        #     "wait_time":     wait_time,
-        #     "travel_time":   travel_time,
-        #     "num_halt":      num_halt,
-        #     "curr_state":    self.state,
-        # })
-
     @property
     def action_space(self) -> spaces.Box:
         return spaces.Box(low=0, high=1, shape=(1,), dtype=int)
@@ -139,16 +129,6 @@ class TrafficLight:
         dtype = np.float64
         high = np.finfo(dtype).max
         return spaces.Box(low=0, high=high, shape=(N_FEATURES,), dtype=dtype)
-
-        # return spaces.Dict({
-        #     "num_vehicles":  spaces.Box(low=0, high=high, shape=(1,), dtype=dtype),
-        #     "avg_speed":     spaces.Box(low=0, high=high, shape=(1,), dtype=dtype),
-        #     "num_occupancy": spaces.Box(low=0, high=high, shape=(1,), dtype=dtype),
-        #     "wait_time":     spaces.Box(low=0, high=high, shape=(1,), dtype=dtype),
-        #     "travel_time":   spaces.Box(low=0, high=high, shape=(1,), dtype=dtype),
-        #     "num_halt":      spaces.Box(low=0, high=high, shape=(1,), dtype=dtype),
-        #     "curr_state":    spaces.Box(low=0, high=high, shape=(1,), dtype=dtype),
-        # })
 
 
 class TrafficLightHub:

@@ -31,6 +31,7 @@ class SumoEnv(ABC):
         if self.rand_routes_on_reset:
             self.rand_routes()
         self.kernel.start()
+        return self._observe()
 
     def rand_routes(self) -> None:
         net_name = self.config["net-file"]
@@ -42,14 +43,6 @@ class SumoEnv(ABC):
     ## ================================================================= ##
     ## ABSTRACT METHODS THAT NEED TO BE IMPLEMENTED BY CHILDREN CLASSES. ##
     ## ----------------------------------------------------------------- ##
-    # @abstractmethod
-    # def action_space(self):
-    #     pass
-
-    # @abstractmethod
-    # def observation_space(self):
-    #     pass
-
     @abstractmethod
     def step(self, actions):
         pass
@@ -60,4 +53,8 @@ class SumoEnv(ABC):
 
     @abstractmethod
     def _get_reward(self):
+        pass
+
+    @abstractmethod
+    def _observe(self):
         pass

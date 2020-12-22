@@ -41,10 +41,6 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
     def observation_spaces(self, tls_id):
         return self.kernel.tls_hub[tls_id].observation_space
 
-    def reset(self):
-        super().reset()
-        return self._observe()
-
     def step(self, action_dict: Dict[Any, int]) -> Tuple[Dict, Dict, Dict, Dict]:
         self._do_action(action_dict)
         self.kernel.step()
@@ -59,7 +55,19 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
 
         return obs, reward, done, info
 
-    def _do_action(self, actions: List[int]) -> List[int]:
+    def _do_action(self, actions: Dict[Any, int]) -> List[int]:
+        """Perform the provided action for each trafficlight.
+
+        Parameters
+        ----------
+        actions : Dict[Any, int]
+            The action that each trafficlight will take
+
+        Returns
+        -------
+        List[int]
+            Returns the action taken --- influenced by which moves are legal or not.
+        """
         taken_action = actions.copy()
         for tls in self.kernel.tls_hub:
             action = actions[tls.id]
@@ -72,23 +80,28 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
                 taken_action[tls.index] = 0
         return List[int]
 
-    def _get_reward(self, obs: List[np.float64]) -> float:
-        # print(f"_get_reward:\n{obs}\n\n")
+    def _get_reward(self, obs: np.ndarray) -> float:
+        """Negative reward function based on the number of halting vehicles, waiting time,
+           and travel time.
+
+        Parameters
+        ----------
+        obs : np.ndarray
+            Numpy array (containing float64 values) representing the observation.
+
+        Returns
+        -------
+        float
+            The reward for this step
+        """
         return -obs[NUM_HALT] - obs[WAIT_TIME] - obs[TRAVEL_TIME]
 
     def _observe(self) -> Dict[Any, np.ndarray]:
+        """Get the observations across all the trafficlights, indexed by trafficlight id.
+
+        Returns
+        -------
+        Dict[Any, np.ndarray]
+            Observations from each trafficlight.
+        """
         return {tls.id: tls.get_observation() for tls in self.kernel.tls_hub}
-        # return OrderedDict({
-        #     tls.id: tls.get_observation()
-        #     for tls in self.kernel.tls_hub
-        # })
-
-
-    ## ================================================================================ ##
-
-
-    def rand_routes(self) -> None:
-        net_name = self.config["net-file"]
-        rand_args = self.config.get("rand_route_args", dict())
-        rand_args["n_routefiles"] = 1 # NOTE: Simplifies the process.
-        generate_random_routes(net_name=net_name, path=self.path, **rand_args)

@@ -33,30 +33,12 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from os.path import join
 
-WORLD_SHAPE = (25, 25)
 
-
-# ============================================================== #
-# ...................... STABLEBASELINES *********************** #
-# ============================================================== #
-
-data = None
-def init_data() -> None:
-    global data
-    data = {
-        "action": [],
-        "step": [],
-        "policy": []
-    }
-
-def add_record(action, step, policy) -> None:
-    global data
-    data["action"].append(action[0])
-    data["step"].append(step)
-    data["policy"].append(policy)
+# ====================================================================================== #
+# .................................. STABLEBASELINES ................................... #
+# ====================================================================================== #
 
 def train(config, total_timesteps: int=int(2e6)):
-    init_data()
     sim = SumoKernel(config=config)
     env = SinglePolicySumoEnv(sim)
 
@@ -76,37 +58,9 @@ def stable_baselines_train(total_timesteps: int=int(2e6)) -> None:
     }
     train(config, total_timesteps)
 
-# ============================================================== #
-# ......................... RAY RlLIB .......................... #
-# ============================================================== #
-
-import pandas as pd
-
-def append_dict(dict1, dict2):
-    for key in dict2:
-        if key not in dict1:
-            dict1[key] = [dict2[key]]
-        elif isinstance(dict1[key], list):
-            dict1[key].append(dict2[key])
-        else:
-            dict1[key] = [dict1[key], dict2[key]]
-
-def ray_train_fn(config, reporter, n_training_steps: int=10): #int(2e6)):
-    # Train for 100 iterations with high LR
-    agent = PPOTrainer(env="SumoEnv", config=config)
-    train_data = {}
-    for _ in range(n_training_steps):
-        result = agent.train()
-        append_dict(train_data, result)
-        # result["phase"] = 1
-        reporter(**result)
-        # phase1_time = result["timesteps_total"]
-    state = agent.save(join("out", "models", "simple-ray"))
-    agent.stop()
-    
-    train_data_df = pd.DataFrame.from_dict(train_data)
-    train_data_df.to_csv(join("out", "train_data", "simple-ray.csv"))
-
+# ====================================================================================== #
+# ..................................... RAY RlLIB ...................................... #
+# ====================================================================================== #
 
 def singleagent_ray_train() -> None:
     """Single-agent reinforcement learning with Ray's RlLib.
@@ -114,7 +68,7 @@ def singleagent_ray_train() -> None:
     ray.init()
     agent = PPOTrainer(env=SinglePolicySumoEnv, config={
         "lr": 0.01,
-        "num_gpus": 0,#int(os.environ.get("RLLIB_NUM_GPUS", 0)),
+        "num_gpus": 0,
         "num_workers": 0, ## NOTE: For some reason, this *needs* to be 0.
         "framework": "torch",
         "env_config": {
@@ -129,7 +83,6 @@ def singleagent_ray_train() -> None:
     for n in range(2):
         result = agent.train()
         state = agent.save(out_file)
-        append_dict(train_data, result)
         print(status.format(
             n + 1, result["episode_reward_min"], result["episode_reward_mean"],
             result["episode_reward_max"], result["episode_len_mean"], 
@@ -158,7 +111,7 @@ def multiagent_ray_train() -> None:
     act_space = dummy_env.action_space
 
     ray.init()
-    trainer = PPOTrainer(env="MARL_Sumo", config={
+    trainer = PPOTrainer(env=MultiPolicySumoEnv, config={
         "multiagent": {
             "policies": {
                 "0": (PPOTorchPolicy, obs_space, act_space, {"gamma": 0.95})
@@ -167,12 +120,12 @@ def multiagent_ray_train() -> None:
         },
         "lr": 0.001,
         "num_gpus": 0,
-        "num_workers": 0,
+        "num_workers": 0, ## NOTE: For some reason, this *needs* to be 0.
         "framework": "torch",
-        # "env_config": {
-        #     "gui": False,
-        #     "net-file": join("configs", "two_inter", "two_inter.net.xml")
-        # }
+        "env_config": {
+            "gui": False,
+            "net-file": join("configs", "two_inter", "two_inter.net.xml")
+        }
     })
     train_data = {}
     status = "{:2d} reward {:6.2f}/{:6.2f}/{:6.2f} len {:4.2f} saved {}"
@@ -181,7 +134,6 @@ def multiagent_ray_train() -> None:
     for n in range(2):
         result = trainer.train()
         state = trainer.save(out_file)
-        append_dict(train_data, result)
         print(status.format(
             n + 1, result["episode_reward_min"], result["episode_reward_mean"],
             result["episode_reward_max"], result["episode_len_mean"], 
