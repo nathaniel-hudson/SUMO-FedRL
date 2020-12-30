@@ -4,6 +4,9 @@ The RL tool we will incorporate is `stablebaselines`.
 
 Refer to this recent and similar SumoRL tool that has an example for MARL using RlLib:
 https://github.com/LucasAlegre/sumo-rl/blob/master/experiments/a3c_4x4grid.py
+
+Ray RlLib agent training example.
+https://github.com/ray-project/ray/blob/master/rllib/examples/custom_train_fn.py
 """
 from argparse import ArgumentError
 from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
@@ -21,12 +24,8 @@ from ray.tune.registry import register_env
 
 from fluri.sumo.utils.random_routes import generate_random_routes
 
-"""
-Ray RlLib agent training example.
-https://github.com/ray-project/ray/blob/master/rllib/examples/custom_train_fn.py
-"""
 
-
+from collections import defaultdict
 from fluri.sumo.single_agent_env import SinglePolicySumoEnv
 from fluri.sumo.kernel.kernel import SumoKernel
 from stable_baselines3 import PPO
@@ -64,6 +63,11 @@ def stable_baselines_train(total_timesteps: int=int(2e6)) -> None:
 
 def singleagent_ray_train(n_rounds: int=10) -> None:
     """Single-agent reinforcement learning with Ray's RlLib.
+
+    Parameters
+    ----------
+    n_rounds : int, optional
+        Number of training rounds, by default 10.
     """
     ray.init()
     trainer = PPOTrainer(env=SinglePolicySumoEnv, config={
@@ -73,12 +77,15 @@ def singleagent_ray_train(n_rounds: int=10) -> None:
         "framework": "torch",
         "env_config": {
             "gui": False,
-            "net-file": join("configs", "two_inter", "two_inter.net.xml")
+            "net-file": join("configs", "two_inter", "two_inter.net.xml"),
+            "rand_routes_on_reset": False, ## NOTE: Checking if constant routefile works.
         }
     })
     train_data = {}
     status = "{:2d} reward {:6.2f}/{:6.2f}/{:6.2f} len {:4.2f} saved {}"
     out_file =join("out", "models", "simple-ray")
+
+    data = defaultdict(list)
 
     for n in range(n_rounds):
         result = trainer.train()
@@ -93,15 +100,17 @@ def singleagent_ray_train(n_rounds: int=10) -> None:
     trainer.stop()
     ray.shutdown()
 
-
+## TODO: We need to look into exactly HOW to get random route generation to not screw up
+##       Ray's RlLib training process. Not sure why they're interfering, but no issue
+##       rises when we do not constantly construct random route files.
 def multiagent_ray_train(n_rounds: int=10) -> None:
     """Multi-agent reinforcement learning with Ray's RlLib.
-    """
-    register_env("MARL_Sumo", lambda _: MultiPolicySumoEnv({
-        "gui": False,
-        "net-file": join("configs", "two_inter", "two_inter.net.xml")
-    }))
 
+    Parameters
+    ----------
+    n_rounds : int, optional
+        Number of training rounds, by default 10.
+    """
     dummy_env = MultiPolicySumoEnv(config={
         "gui": False,
         "net-file": join("configs", "two_inter", "two_inter.net.xml")
@@ -143,8 +152,7 @@ def multiagent_ray_train(n_rounds: int=10) -> None:
     trainer.stop()
     ray.shutdown()
 
-# <|==================================================================================|> #
-# <|==================================================================================|> #
+# ====================================================================================== #
 
 if __name__ == "__main__":
     SINGLEAGENT = 1

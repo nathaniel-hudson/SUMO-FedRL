@@ -302,7 +302,7 @@ class TrafficLightHub:
                     trafficlights.append(j.attrib["id"])
             return trafficlights
 
-    def update_current_states(self) -> None:
+    def update(self) -> None:
         """Update the current states by interfacing with SUMO directly using SumoKernel.
         """
         for tls in self.hub.values():

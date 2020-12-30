@@ -37,8 +37,9 @@ class SumoKernel():
             "additional-files": config.get("additional-files", None),
             "tripinfo-output": config.get("tripinfo-output", None),
         }
-        self.world = World(self.config["net-file"])
         self.tls_hub = TrafficLightHub(self.config["net-file"])
+        # NOTE: Commented out `self.world` b/c it's not used currently.
+        # self.world = World(self.config["net-file"]) 
 
     def get_command_args(self, verbose=VERBOSE_DEFAULT) -> List[str]:
         """This generates a list of strings that are used by the TraCI API to start a
@@ -68,10 +69,20 @@ class SumoKernel():
         return command_args
 
     def update(self, ignore_world: bool=False, ignore_tls: bool=False) -> None:
+        """Updates the world and trafficlight hub objects. For the time being, this is
+           NOT being used.
+
+        Parameters
+        ----------
+        ignore_world : bool, optional
+            Whether to update the world matrix (True) or not (False), by default False.
+        ignore_tls : bool, optional
+            Whether to update the trafficlights (True) or not (False), by default False.
+        """
         if not ignore_world:
             self.world.update()
         if not ignore_tls:
-            self.tls_hub.update_current_states()
+            self.tls_hub.update()
 
 
     # <|==============================================================================|> #
@@ -80,8 +91,12 @@ class SumoKernel():
 
 
     def is_loaded(self) -> bool:
-        """Returns a boolean based on whether a connection has been loaded (True), or not 
-        (False).
+        """Checks whether a simulation is loaded or not.
+
+        Returns
+        -------
+        bool
+            Returns True if a connection is loaded, False otherwise.
         """
         try:
             traci.getConnection("")
@@ -91,19 +106,28 @@ class SumoKernel():
 
 
     def close(self) -> None:
-        """TODO"""
+        """Closes the SUMO simulation through TraCI if one is up and running."""
         if self.is_loaded():
             traci.close()
 
 
     def done(self) -> bool:
-        """TODO"""
+        """Returns whether or not the simulation handled by this Kernel instance is 
+           finished or not. This is decided if there are still some number of expected 
+           vehicles that have yet to complete their routes.
+
+        Returns
+        -------
+        bool
+            Returns True if the simulation is done, False otherwise.
+        """
         return not traci.simulation.getMinExpectedNumber() > 0
 
 
     def start(self) -> None:
         """Starts or resets the simulation based on whether or not it has been started
-           or not."""
+           or not.
+        """
         if self.is_loaded():
             traci.load(self.get_command_args()[1:])
         else:
@@ -111,5 +135,5 @@ class SumoKernel():
 
 
     def step(self) -> None:
-        """TODO"""
+        """Iterates the simulation to the next simulation step."""
         traci.simulationStep()

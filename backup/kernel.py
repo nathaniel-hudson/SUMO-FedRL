@@ -110,7 +110,7 @@ class SumoKernel():
 
     def update(self) -> None:
         self.world.update()
-        self.tls_hub.update_current_states()
+        self.tls_hub.update()
 
 
     # <|==============================================================================|> #
