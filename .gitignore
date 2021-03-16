@@ -2,3 +2,4 @@ out/*
 *.json
 *.pyc
 .vscode/settings.json
+.vscode/settings.json

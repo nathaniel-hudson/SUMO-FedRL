@@ -20,14 +20,16 @@ NEXT_STATES = {
     "r": set(["G", "g", "r"])
 }
 
+
 class TrafficLight:
     """This class represents an indidivual `trafficlight` (tls) in SUMO. The purpose is to
        simplify the necessary code for the needs of the RL environments in FLURI.
     """
+
     def __init__(
-        self, 
+        self,
         index: int,
-        tls_id: int, 
+        tls_id: int,
         netfile: str,
         sort_phases: bool=SORT_DEFAULT,
         force_all_red: bool=False
@@ -35,7 +37,7 @@ class TrafficLight:
         # The `index` data member is for the consistently simple indexing for actions
         # that are represented via lists. This is important for the `stable-baselines`
         # implementation that does not support Dict spaces.
-        self.index: int = index 
+        self.index: int = index
         self.id: int = tls_id
         self.program: List[str] = self.get_program(netfile, sort_phases, force_all_red)
         self.num_phases: int = len(self.program)
@@ -62,24 +64,22 @@ class TrafficLight:
 
     def get_program(
         self,
-        road_netfile: str, 
+        road_netfile: str,
         sort_phases: bool=SORT_DEFAULT,
         force_all_red: bool=False
     ) -> List[str]:
         """Get the possible traffic light phases for the specific traffic light via the
-            given `tls_id`.
+           given `tls_id`.
 
-        Parameters
-        ----------
-        tls_id : str
-            The traffic light id.
-        sort_phases : bool, optional
-            Sorts the possible phases if True, by default SORT_DEFAULT
+        Args:
+            road_netfile (str): The traffic light id.
+            sort_phases (bool, optional): Sorts the possible phases if True. Defaults to
+                SORT_DEFAULT.
+            force_all_red (bool, optional): Requires there's a state of all red lights if
+                True. Defaults to False.
 
-        Returns
-        -------
-        List[str]
-            A list of all the possible phases the given traffic light can take.
+        Returns:
+            List[str]: A list of all the possible phases the given traffic light can take.
         """
         with open(road_netfile, "r") as f:
             tree = ET.parse(f)
@@ -94,13 +94,11 @@ class TrafficLight:
             return states if (sort_phases == False) else sorted(states)
 
     def get_observation(self) -> np.ndarray:
-        """Returns an observation of the traffic light, with each of the features of 
+        """Returns an observation of the traffic light, with each of the features of
            interest.
 
-        Returns
-        -------
-        np.ndarray
-            Array containing the values of each of the features.
+        Returns:
+            np.ndarray: Array containing the values of each of the features.
         """
         num_vehs = 0
         avg_speed = 0
@@ -109,15 +107,23 @@ class TrafficLight:
         travel_time = 0
         num_halt = 0
 
-        for lane in traci.trafficlight.getControlledLanes(self.id):
-            num_vehs += traci.lane.getLastStepVehicleNumber(lane)
-            avg_speed += traci.lane.getLastStepMeanSpeed(lane)
-            num_occupancy += traci.lane.getLastStepOccupancy(lane)
-            wait_time += traci.lane.getWaitingTime(lane)
-            travel_time += traci.lane.getTraveltime(lane)
-            num_halt += traci.lane.getLastStepHaltingNumber(lane)
+        # NOTE: For some reason, this eliminates the problem of having a "whitespace"
+        #       error being thrown with TraCI... Not sure why.
+        # lights = traci.trafficlight.getIDList()
+        # print(f"")
+        # print(f">> trafficlights.get_observation(): {self.id} (id list = {lights})")
 
-        return np.array([num_vehs, avg_speed, num_occupancy, wait_time, 
+        lanes = traci.trafficlight.getControlledLanes(self.id)
+        for l in lanes:
+            num_vehs += traci.lane.getLastStepVehicleNumber(l)
+            # TODO: Unfair avg.
+            avg_speed += traci.lane.getLastStepMeanSpeed(l) / len(l)
+            num_occupancy += traci.lane.getLastStepOccupancy(l)
+            wait_time += traci.lane.getWaitingTime(l)
+            travel_time += traci.lane.getTraveltime(l)
+            num_halt += traci.lane.getLastStepHaltingNumber(l)
+
+        return np.array([num_vehs, avg_speed, num_occupancy, wait_time,
                          travel_time, num_halt, self.state])
 
     @property
@@ -137,15 +143,18 @@ class TrafficLightHub:
        trafficlight objects (for simplicity). Additionally, this class supports indexing
        and iteration.
     """
+
     def __init__(
-        self, 
-        road_netfile: str, 
-        sort_phases: bool=SORT_DEFAULT, 
+        self,
+        road_netfile: str,
+        sort_phases: bool=SORT_DEFAULT,
     ):
         self.road_netfile = road_netfile
         self.ids = sorted([tls_id for tls_id in self.get_traffic_light_ids()])
-        self.index2id = {index:  tls_id for index, tls_id in enumerate(self.ids)}
-        self.id2index = {tls_id: index  for index, tls_id in enumerate(self.ids)}
+        self.index2id = {index:  tls_id for index,
+                         tls_id in enumerate(self.ids)}
+        self.id2index = {tls_id: index for index,
+                         tls_id in enumerate(self.ids)}
         self.hub = OrderedDict({
             tls_id: TrafficLight(index, tls_id, self.road_netfile, sort_phases)
             for index, tls_id in self.index2id.items()
@@ -182,4 +191,3 @@ class TrafficLightHub:
 
     def __len__(self) -> int:
         return len(self.ids)
-

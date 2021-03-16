@@ -1,8 +1,6 @@
 import gym
 import numpy as np
-import traci
 
-from collections import OrderedDict, defaultdict
 from gym import spaces
 from typing import Any, Dict, List, Tuple
 
@@ -120,10 +118,11 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         float
             The reward for this step.
         """
+        num_veh = obs[:, NUM_VEHICLES]
         num_halt = obs[:, NUM_HALT]
         wait_time = obs[:, WAIT_TIME]
         travel_time = obs[:, TRAVEL_TIME]
-        return sum(-1*num_halt) + sum(-1*wait_time) + sum(-1*travel_time)
+        return sum(-1*num_veh) + sum(-1*num_halt) + sum(-1*wait_time) + sum(-1*travel_time)
 
     def _observe(self) -> np.ndarray:
         """Get a the observations across all the trafficlights (represented by a single

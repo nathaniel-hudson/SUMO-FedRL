@@ -29,7 +29,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
     def action_space(self):
         first = self.kernel.tls_hub.index2id[0]
         return self.kernel.tls_hub[first].action_space
-        
+
     @property
     def observation_space(self):
         first = self.kernel.tls_hub.index2id[0]
@@ -58,15 +58,12 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
     def _do_action(self, actions: Dict[Any, int]) -> List[int]:
         """Perform the provided action for each trafficlight.
 
-        Parameters
-        ----------
-        actions : Dict[Any, int]
-            The action that each trafficlight will take
+        Args:
+            actions (Dict[Any, int]): The action that each trafficlight will take
 
-        Returns
-        -------
-        List[int]
-            Returns the action taken --- influenced by which moves are legal or not.
+        Returns:
+            List[int]: Returns the action taken -- influenced by which moves are legal or
+                not.
         """
         taken_action = actions.copy()
         for tls in self.kernel.tls_hub:

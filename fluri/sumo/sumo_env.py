@@ -5,16 +5,18 @@ import os
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Tuple
 
-from .const import *
-from .kernel.kernel import SumoKernel
-from .timer import ActionTimer
-from .utils.random_routes import generate_random_routes
+from fluri.sumo.const import *
+from fluri.sumo.kernel.kernel import SumoKernel
+from fluri.sumo.timer import ActionTimer
+from fluri.sumo.utils.random_routes import generate_random_routes
+
 
 class SumoEnv(ABC):
 
     def __init__(self, config: Dict[str, Any]):
         self.config = config
-        self.path = os.path.split(self.config["net-file"])[0] # "foo/bar/car" => "foo/bar"
+        # "foo/bar/car" => "foo/bar"
+        self.path = os.path.split(self.config["net-file"])[0]
 
         # Check if the user provided a route-file to be used for simulations and if the
         # user wants random routes to be generated for EACH trial (rand_routes_on_reset).
@@ -23,8 +25,10 @@ class SumoEnv(ABC):
         # forces the `reset()` function to generate at least ONE random route file before
         # being updated to False. This will never change back to True (hence the privacy).
         if self.config.get("route-files", None) is None:
-            self.config["route-files"] = os.path.join(self.path, "traffic.rou.xml")
-            self.rand_routes_on_reset = self.config.get("rand_routes_on_reset", True)
+            self.config["route-files"] = os.path.join(
+                self.path, "traffic.rou.xml")
+            self.rand_routes_on_reset = self.config.get(
+                "rand_routes_on_reset", True)
             self.__first_rand_routes_flag = True
         else:
             self.rand_routes_on_reset = False
@@ -54,9 +58,13 @@ class SumoEnv(ABC):
         """
         net_name = self.config["net-file"]
         rand_args = self.config.get("rand_route_args", dict())
-        rand_args["n_routefiles"] = 1 # NOTE: Simplifies process, so leave this for now.
+        # NOTE: Simplifies process, so leave this for now.
+        rand_args["n_routefiles"] = 1
         generate_random_routes(net_name=net_name, path=self.path, **rand_args)
+        # TODO: Implement dynamic seed.
 
+    def close(self) -> None:
+        self.kernel.close()
 
     ## ================================================================================ ##
     ## .........ABSTRACT METHODS THAT NEED TO BE IMPLEMENTED BY CHILDREN CLASSES....... ##
