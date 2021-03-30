@@ -118,10 +118,14 @@ class TrafficLight:
             num_vehs += traci.lane.getLastStepVehicleNumber(l)
             # TODO: Unfair avg.
             avg_speed += traci.lane.getLastStepMeanSpeed(l) / len(l)
-            num_occupancy += traci.lane.getLastStepOccupancy(l)
             wait_time += traci.lane.getWaitingTime(l)
-            travel_time += traci.lane.getTraveltime(l)
             num_halt += traci.lane.getLastStepHaltingNumber(l)
+
+            # NOTE: Incompatible with the real-world testbed.
+            # num_occupancy += traci.lane.getLastStepOccupancy(l)
+
+            # NOTE: Difficult to track in real-world testbed.
+            # travel_time += traci.lane.getTraveltime(l)
 
         return np.array([num_vehs, avg_speed, num_occupancy, wait_time,
                          travel_time, num_halt, self.state])
