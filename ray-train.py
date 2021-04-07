@@ -13,17 +13,19 @@ import fluri.trainer.ray.fed_agent as fedrl
 import fluri.trainer.ray.multi_agent as marl
 import fluri.trainer.ray.single_agent as sarl
 
+from os.path import join
+
 
 if __name__ == "__main__":
     SINGLEAGENT = 1
     MULTIAGENT = 2
     FEDAGENT = 3
 
-    kind = input(
-        "Try again... Enter [1] single-agent, [2] multi-agent, or [3] fed-agent: ")
-    while kind != "1" and kind != "2" and kind != "3":
-        kind = input(
-            "Try again... Enter [1] single-agent, [2] multi-agent, or [3] fed-agent: ")
+    prompt = "Enter [1] single-agent, [2] multi-agent, or [3] fed-agent: "
+    kind = input(prompt)
+    while kind != str(SINGLEAGENT) and kind != str(MULTIAGENT) and kind != str(FEDAGENT):
+        kind = input("Try again...", prompt)
+    
     kind = int(kind)
     n_rounds = int(input("Enter the number of rounds for training: "))
 
@@ -35,7 +37,7 @@ if __name__ == "__main__":
     elif kind == MULTIAGENT:
         results = marl.train(n_rounds)
         results_df = pd.DataFrame.from_dict(results)
-        results_df.to_csv("marl_data.csv")
+        results_df.to_csv(join("", "", "marl_data.csv"))
 
     elif kind == FEDAGENT:
         fed_step = int(input("Enter how many rounds before FedAvg: "))

@@ -5,20 +5,17 @@ import seaborn as sns
 from collections import defaultdict
 from fluri.sumo.single_agent_env import SinglePolicySumoEnv
 from os.path import join
-from typing import Tuple
 
 sns.set_style("ticks")
+
 
 def main(n_episodes: int=1, use_gui: bool=False) -> None:
     """A simple example for how to setup a single-policy simulation with FLURI using 
        random actions.
 
-    Parameters
-    ----------
-    n_episodes : int, optional
-        The number of episodes to run through, by default 1.
-    use_gui : bool, optional
-        Show the GUI with SUMO if True, by default False.
+    Args:
+        n_episodes (int, optional): The number of episodes to run through. Defaults to 1.
+        use_gui (bool, optional):  Show the GUI with SUMO if True. Defaults to False.
     """
     # STEP 1: Initialize the environment for the Single-Policy RL case.
     env = SinglePolicySumoEnv(config={
@@ -52,6 +49,8 @@ def main(n_episodes: int=1, use_gui: bool=False) -> None:
     # STEP 3: Plot the results.
     eval_data = pd.DataFrame.from_dict(eval_data)
     sns.lineplot(x="step", y="cum_reward", style="episode", data=eval_data)
+    plt.grid(linestyle="--")
+    plt.legend(fancybox=False, edgecolor="black")
     plt.show()
 
 
