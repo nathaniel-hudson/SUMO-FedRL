@@ -14,5 +14,4 @@ A limitation of the considered state space (that is not obvious from this brief 
 
 A limitation of their action space is that it does not allow alternate decisions being made --- only changes to a predefined sequence of actions.
 
-> **Reward Function:** Authors consider the reward function $R^k$ defined as the additive inverse of the average speed-lag and number of halting vehicles, namely, $R^k = \sum_{m=1}^{M} (-w_1 \cdot H_m^k - w_2 \cdot \Delta V_m^k)$. 
-
+> **Reward Function:** Authors consider the reward function $R^k$ defined as the additive inverse of the average speed-lag and number of halting vehicles, namely, $R^k = \sum_{m=1}^{M} (-w_1 \cdot H_m^k - w_2 \cdot \Delta V_m^k)$.
