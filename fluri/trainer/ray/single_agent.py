@@ -19,11 +19,11 @@ def train(n_rounds: int=10) -> None:
     """
     ray.init()
     trainer = PPOTrainer(env=SinglePolicySumoEnv, config={
-        "lr": 0.01,
-        "num_gpus": 0,
+        "lr": 0.001,
+        # "num_gpus": 0,
         "num_workers": 0,  # NOTE: For some reason, this *needs* to be 0.
         "framework": "torch",
-        "log_level": "ERROR",
+        # "log_level": "ERROR",
         "env_config": DEFAULT_ENV_CONFIG,
     })
     status = "[Ep. #{}] Mean reward: {:6.2f} -- Mean length: {:4.2f} -- Saved {} ({})."
@@ -48,7 +48,7 @@ def train(n_rounds: int=10) -> None:
             ctime()
         ))
 
-    state = trainer.save(join("out", "models", OUT_DIR))
+    trainer.save(join("out", "models", OUT_DIR))
     trainer.stop()
     ray.shutdown()
     trainer.workers.local_worker().env.close()

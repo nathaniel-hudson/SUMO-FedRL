@@ -107,12 +107,6 @@ class TrafficLight:
         travel_time = 0
         num_halt = 0
 
-        # NOTE: For some reason, this eliminates the problem of having a "whitespace"
-        #       error being thrown with TraCI... Not sure why.
-        # lights = traci.trafficlight.getIDList()
-        # print(f"")
-        # print(f">> trafficlights.get_observation(): {self.id} (id list = {lights})")
-
         lanes = traci.trafficlight.getControlledLanes(self.id)
         for l in lanes:
             num_vehs += traci.lane.getLastStepVehicleNumber(l)
@@ -127,8 +121,10 @@ class TrafficLight:
             # NOTE: Difficult to track in real-world testbed.
             # travel_time += traci.lane.getTraveltime(l)
 
-        return np.array([num_vehs, avg_speed, num_occupancy, wait_time,
-                         travel_time, num_halt, self.state])
+        # return np.array([num_vehs, avg_speed, num_occupancy, wait_time,
+        #                  travel_time, num_halt, self.state])
+
+        return np.array([num_vehs, avg_speed, wait_time, num_halt, self.state])
 
     @property
     def action_space(self) -> spaces.Box:

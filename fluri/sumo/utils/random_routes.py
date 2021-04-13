@@ -35,17 +35,19 @@ def generate_random_routes(
     assert generator.lower() in VALID_DISTRIBUTIONS
 
     if isinstance(n_vehicles, tuple):
-        assert len(
-            n_vehicles) == 2, "`n_vehicles` must be of len 2 if provided a tuple."
+        assert len(n_vehicles) == 2, \
+            "`n_vehicles` must be of len 2 if provided a tuple."
         a, b = n_vehicles
-        assert a < b, "`n_vehicles` must be a valid and sorted range."
+        assert a < b, \
+            "`n_vehicles` must be a valid and sorted range."
         n_vehicles = randint(a, b)
 
     if isinstance(end_time, tuple):
-        assert len(
-            end_time) == 2, "`end_time` must be of len 2 if provided a tuple."
+        assert len(end_time) == 2, \
+            "`end_time` must be of len 2 if provided a tuple."
         a, b = end_time
-        assert a < b, "`end_time` must be a valid and sorted range."
+        assert a < b, \
+            "`end_time` must be a valid and sorted range."
         end_time = randint(a, b)
 
     begin_time = 0

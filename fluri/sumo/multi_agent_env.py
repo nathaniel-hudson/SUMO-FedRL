@@ -1,4 +1,5 @@
 import gym
+from gym.spaces.space import Space
 import numpy as np
 import os
 import traci
@@ -14,24 +15,37 @@ from .sumo_env import SumoEnv
 from .utils.random_routes import generate_random_routes
 
 
-class TLAgent(gym.Env):
-
-    def __init__(self):
-        pass
-
-
 class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
 
     def __init__(self, config):
         super().__init__(config)
 
     @property
+    def multi_action_space(self) -> spaces.Space:
+        space = {}
+        for index, idx in self.kernel.tls_hub.index2id.items():
+            space[idx] = self.kernel.tls_hub[idx].action_space
+        return spaces.Dict(space)
+
+    @property
     def action_space(self):
+        """This is the action space defined for a *single* traffic light. It is
+           defined this way to support RlLib more easily.
+
+        Returns:
+            Space: Action space for a single traffic light.
+        """
         first = self.kernel.tls_hub.index2id[0]
         return self.kernel.tls_hub[first].action_space
 
     @property
     def observation_space(self):
+        """This is the observation space defined for a *single* traffic light. It is
+           defined this way to support RlLib more easily.
+
+        Returns:
+            Space: Observation space for a single traffic light.
+        """
         first = self.kernel.tls_hub.index2id[0]
         return self.kernel.tls_hub[first].observation_space
 
