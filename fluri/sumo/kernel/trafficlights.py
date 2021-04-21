@@ -112,7 +112,7 @@ class TrafficLight:
             num_vehs += traci.lane.getLastStepVehicleNumber(l)
             # TODO: Unfair avg.
             avg_speed += traci.lane.getLastStepMeanSpeed(l) / len(l)
-            wait_time += traci.lane.getWaitingTime(l)
+            wait_time += traci.lane.getWaitingTime(l) ## NOTE: This should be averaged across all vehicles...
             num_halt += traci.lane.getLastStepHaltingNumber(l)
 
             # NOTE: Incompatible with the real-world testbed.
