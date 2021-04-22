@@ -13,6 +13,7 @@ from ..utils.core import get_node_id
 from ..const import *
 
 SORT_DEFAULT = True
+RANK_DEFAULT = False
 NEXT_STATES = {
     "G": set(["G", "g", "y"]),
     "g": set(["G", "g", "y"]),
@@ -93,7 +94,7 @@ class TrafficLight:
 
             return states if (sort_phases == False) else sorted(states)
 
-    def get_observation(self) -> np.ndarray:
+    def __depr_get_observation(self) -> np.ndarray:
         """Returns an observation of the traffic light, with each of the features of
            interest.
 
@@ -102,9 +103,7 @@ class TrafficLight:
         """
         num_vehs = 0
         avg_speed = 0
-        num_occupancy = 0
         wait_time = 0
-        travel_time = 0
         num_halt = 0
 
         lanes = traci.trafficlight.getControlledLanes(self.id)
@@ -115,26 +114,43 @@ class TrafficLight:
             wait_time += traci.lane.getWaitingTime(l) ## NOTE: This should be averaged across all vehicles...
             num_halt += traci.lane.getLastStepHaltingNumber(l)
 
-            # NOTE: Incompatible with the real-world testbed.
-            # num_occupancy += traci.lane.getLastStepOccupancy(l)
-
-            # NOTE: Difficult to track in real-world testbed.
-            # travel_time += traci.lane.getTraveltime(l)
-
-        # return np.array([num_vehs, avg_speed, num_occupancy, wait_time,
-        #                  travel_time, num_halt, self.state])
-
         return np.array([num_vehs, avg_speed, wait_time, num_halt, self.state])
+
+
+    def get_observation(self, ranked: bool=False) -> np.ndarray:
+        congestion = 0
+        halting_vehs = 0
+        speed = 0
+
+        lanes = traci.trafficlight.getControlledLanes(self.id)
+        for l in lanes:
+            vehs = traci.lane.getLastStepVehicleIDs(l)
+            lane_length = traci.lane.getLength(l)
+            vehs_length = sum(traci.vehicle.getLength(v) for v in vehs)
+            
+            congestion += (vehs_length/lane_length) / len(lanes)
+            halting_vehs += traci.lane.getLastStepHaltingNumber(l) / len(lanes)
+            speed += traci.lane.getLastStepMeanSpeed(l) / len(lanes)
+
+        state = [congestion, halting_vehs, speed, self.state]
+        if ranked:
+            state.extend([None, None])  # Local and global ranks (to be filled later).
+        return np.array(state)
+
 
     @property
     def action_space(self) -> spaces.Box:
         return spaces.Box(low=0, high=1, shape=(1,), dtype=int)
 
     @property
-    def observation_space(self) -> spaces.Box:
+    def observation_space(self, ranked: bool=False) -> spaces.Box:
         dtype = np.float64
         high = np.finfo(dtype).max
-        return spaces.Box(low=0, high=high, shape=(N_FEATURES,), dtype=dtype)
+        if ranked:
+            return spaces.Box(low=0, high=high, shape=(N_RANKED_FEATURES,), dtype=dtype)
+        else:
+            return spaces.Box(low=0, high=high, shape=(N_UNRANKED_FEATURES,), dtype=dtype)
+        # return spaces.Box(low=0, high=high, shape=(N_FEATURES,), dtype=dtype)
 
 
 class TrafficLightHub:
@@ -148,6 +164,7 @@ class TrafficLightHub:
         self,
         road_netfile: str,
         sort_phases: bool=SORT_DEFAULT,
+        ranked: bool=RANK_DEFAULT
     ):
         self.road_netfile = road_netfile
         self.ids = sorted([tls_id for tls_id in self.get_traffic_light_ids()])
@@ -159,6 +176,8 @@ class TrafficLightHub:
             tls_id: TrafficLight(index, tls_id, self.road_netfile, sort_phases)
             for index, tls_id in self.index2id.items()
         })
+        self.ranked = ranked
+        self.tls_graph = self.get_tls_graph()
 
     def get_traffic_light_ids(self) -> List[str]:
         """Get a list of all the traffic light IDs in the provided *.net.xml file.
@@ -177,6 +196,25 @@ class TrafficLightHub:
                     trafficlights.append(j.attrib["id"])
             return trafficlights
 
+
+    def get_tls_graph(self) -> Dict[str, List[str]]:
+        graph = {}
+        
+        for tls_id in self.ids:
+            neighbors = set()
+            lanes = traci.trafficlight.getControlledLanes(tls_id)
+            for other_id in self.ids:
+                if tls_id == other_id:
+                    continue
+                other_lanes = traci.trafficlight.getControlledLanes(other_id)
+                for lane in other_lanes:
+                    if lane in lanes:
+                        neighbors.add(other_id)
+            graph[tls_id] = list(neighbors)
+        
+        return graph
+
+
     def update(self) -> None:
         """Update the current states by interfacing with SUMO directly using SumoKernel.
         """
@@ -184,7 +222,7 @@ class TrafficLightHub:
             tls.update()
 
     def __iter__(self) -> iter:
-        return self.hub.values().__iter__()
+        return iter(self.hub.values())
 
     def __getitem__(self, tls_id: str) -> TrafficLight:
         return self.hub[tls_id]

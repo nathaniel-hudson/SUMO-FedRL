@@ -124,7 +124,7 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         travel_time = obs[:, TRAVEL_TIME]
         return sum(-1*num_veh) + sum(-1*num_halt) + sum(-1*wait_time) + sum(-1*travel_time)
 
-    def _observe(self) -> np.ndarray:
+    def _observe(self, ranked: bool=False) -> np.ndarray:
         """Get a the observations across all the trafficlights (represented by a single
            numpy array).
 
@@ -134,4 +134,6 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
             Trafficlight observations.
         """
         obs = np.array([tls.get_observation() for tls in self.kernel.tls_hub])
+        if ranked:
+            pass
         return obs

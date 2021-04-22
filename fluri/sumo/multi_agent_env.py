@@ -105,9 +105,11 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         float
             The reward for this step
         """
-        return -obs[NUM_HALT] - obs[WAIT_TIME] - obs[TRAVEL_TIME]
+        ## Deprecated.
+        # return -obs[NUM_HALT] - obs[WAIT_TIME] - obs[TRAVEL_TIME]
+        return -obs[NUM_HALT]
 
-    def _observe(self) -> Dict[Any, np.ndarray]:
+    def _observe(self, ranked: bool=False) -> Dict[Any, np.ndarray]:
         """Get the observations across all the trafficlights, indexed by trafficlight id.
 
         Returns
@@ -115,4 +117,24 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         Dict[Any, np.ndarray]
             Observations from each trafficlight.
         """
-        return {tls.id: tls.get_observation() for tls in self.kernel.tls_hub}
+        obs = {tls.id: tls.get_observation() for tls in self.kernel.tls_hub}
+        if ranked:
+            self._get_ranks(obs, self.kernel.tls_hub.tls_graph)
+        return obs
+
+    def _get_ranks(self, obs, graph):
+        pairs = [(tls_id, tls_state[CONGESTION]) 
+                 for tls_id, tls_state in obs.items()]
+        pairs = sorted(pairs, key=lambda x: x[1], reverse=True)
+
+        # Calculate the global ranks for each tls in the road network.
+        for global_rank, (tls_id, cong) in enumerate(pairs):
+            obs[tls_id][GLOBAL_RANK] = 1 - (global_rank / len(graph))
+
+        # Calculate local ranks based on global ranks from above.
+        for tls in graph:
+            local_rank = 0
+            for neighbor in graph[tls]:
+                if obs[neighbor][GLOBAL_RANK] > obs[tls][GLOBAL_RANK]:
+                    local_rank += 1
+            obs[tls][LOCAL_RANK] = 1 - (local_rank / len(graph[tls]))
