@@ -21,7 +21,7 @@ from typing import Dict, Tuple
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("-k", "--kind", default="marl", 
+    parser.add_argument("-k", "--kind", default="marl",
                         choices=["marl", "sarl", "fedrl"], type=str)
     args = parser.parse_args()
     return args
@@ -41,7 +41,7 @@ def get_policies() -> Tuple[Space, Space]:
 
 
 def load_agent(
-    checkpoint: str, 
+    checkpoint: str,
     env_config: Dict=None,
     kind: str="marl"
 ) -> PPOTrainer:
@@ -63,7 +63,7 @@ def load_agent(
         })
         agent.restore(checkpoint)
         return agent
-    
+
     elif kind.lower() == "sarl":
         policies = get_policies()
         agent = PPOTrainer(env=SinglePolicySumoEnv, config={
@@ -78,7 +78,8 @@ def load_agent(
         return agent
 
     elif kind.lower() == "fedrl":
-        raise NotImplemented("Support for federated agent is not yet supported.")
+        raise NotImplemented(
+            "Support for federated agent is not yet supported.")
 
     else:
         raise ValueError("Invalid value for parameter 'kind'.")
@@ -95,12 +96,15 @@ def marl_step(env, obs, agent) -> None:
 def rand_step() -> None:
     pass
 
+
 def sarl_step(env, obs, agent) -> None:
     action = agent.compute_action(obs)
     next_obs, reward, done, info = env.step(action)
     return (next_obs, reward, done, info)
 
+
 def eval_step() -> None:
+    # TODO
     pass
 
 
@@ -113,7 +117,8 @@ def eval(n_episodes: int=1, kind: str="marl") -> None:
             "net-file": join("configs", "two_inter", "two_inter.net.xml"),
             "rand_routes_on_reset": True,
         })
-        agent = load_agent(join("out", "models", "MARL-ray", "checkpoint_100", "checkpoint-100"))
+        agent = load_agent(join("out", "models", "MARL-ray",
+                                "checkpoint_100", "checkpoint-100"))
 
     elif kind == "sarl":
         env = SinglePolicySumoEnv({
@@ -121,7 +126,8 @@ def eval(n_episodes: int=1, kind: str="marl") -> None:
             "net-file": join("configs", "two_inter", "two_inter.net.xml"),
             "rand_routes_on_reset": True
         })
-        agent = load_agent(join("out", "models", "SARL-ray", "checkpoint_100", "checkpoint-100"), kind=kind)
+        agent = load_agent(join("out", "models", "SARL-ray",
+                                "checkpoint_100", "checkpoint-100"), kind=kind)
 
     # STEP 2: Run through the simulation.
     eval_data = defaultdict(list)
@@ -130,7 +136,7 @@ def eval(n_episodes: int=1, kind: str="marl") -> None:
         obs = env.reset()
         done, step = False, 0
         while not done:
-            
+
             if kind == "marl":
                 obs, reward, done, _ = marl_step(env, obs, agent)
                 for tls_id in reward:
@@ -138,7 +144,8 @@ def eval(n_episodes: int=1, kind: str="marl") -> None:
                     eval_data["kind"].append(kind)
                     eval_data["tls_id"].append(tls_id)
                     eval_data["episode"].append(ep)
-                    eval_data["cum_reward"].append(tls_reward + last_reward[ep-1, tls_id])
+                    eval_data["cum_reward"].append(
+                        tls_reward + last_reward[ep-1, tls_id])
                     eval_data["reward"].append(tls_reward)
                     eval_data["step"].append(step)
                     last_reward[ep, tls_id] = eval_data["cum_reward"][-1]
@@ -153,10 +160,10 @@ def eval(n_episodes: int=1, kind: str="marl") -> None:
                 last_reward[ep] = eval_data["cum_reward"][-1]
 
             elif kind == "fedrl":
-                raise NotImplemented("Support for federated agent is not yet supported.")
+                raise NotImplemented("Federated agent is not yet supported.")
 
             step += 1
-    
+
     env.close()
     ray.shutdown()
     return pd.DataFrame.from_dict(eval_data)

@@ -9,8 +9,10 @@ from .sumo_env import SumoEnv
 
 GUI_DEFAULT = True
 
+
 class SinglePolicySumoEnv(SumoEnv, gym.Env):
-    """Custom Gym environment designed for simple RL experiments using SUMO/TraCI."""    
+    """Custom Gym environment designed for simple RL experiments using SUMO/TraCI."""
+
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
 
@@ -38,7 +40,7 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
             The observation space.
         """
         dtype = np.float64
-        high  = np.finfo(dtype).max
+        high = np.finfo(dtype).max
         n_tls = len(self.kernel.tls_hub)
         return spaces.Box(low=0, high=high, shape=(n_tls, N_FEATURES), dtype=dtype)
 
@@ -95,7 +97,7 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
                 tls.next_phase()
                 self.action_timer.restart(tls.index)
                 taken_action[tls.index] = 1
-            # Otherwise, keep the state the same, update the taken action, and then 
+            # Otherwise, keep the state the same, update the taken action, and then
             # decrease the remaining time by 1.
             else:
                 self.action_timer.decr(tls.index)
@@ -118,11 +120,15 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         float
             The reward for this step.
         """
-        num_veh = obs[:, NUM_VEHICLES]
-        num_halt = obs[:, NUM_HALT]
-        wait_time = obs[:, WAIT_TIME]
-        travel_time = obs[:, TRAVEL_TIME]
-        return sum(-1*num_veh) + sum(-1*num_halt) + sum(-1*wait_time) + sum(-1*travel_time)
+        # TODO: This needs to be adjusted to be more fair in comparison to MARL approaches.
+        # num_veh = obs[:, NUM_VEHICLES]
+        # num_halt = obs[:, NUM_HALT]
+        # wait_time = obs[:, WAIT_TIME]
+        # travel_time = obs[:, TRAVEL_TIME]
+        # return sum(-1*num_veh) + sum(-1*num_halt) + sum(-1*wait_time) + sum(-1*travel_time)
+
+        # NOTE: This should address the mentioned problem above.
+        return -1 * np.mean(obs[:, NUM_HALT])
 
     def _observe(self, ranked: bool=False) -> np.ndarray:
         """Get a the observations across all the trafficlights (represented by a single

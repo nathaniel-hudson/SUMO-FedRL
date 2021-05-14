@@ -105,7 +105,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         float
             The reward for this step
         """
-        ## Deprecated.
+        # Deprecated.
         # return -obs[NUM_HALT] - obs[WAIT_TIME] - obs[TRAVEL_TIME]
         return -obs[NUM_HALT]
 
@@ -122,8 +122,14 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
             self._get_ranks(obs, self.kernel.tls_hub.tls_graph)
         return obs
 
-    def _get_ranks(self, obs, graph):
-        pairs = [(tls_id, tls_state[CONGESTION]) 
+    def _get_ranks(self, obs: Dict, graph: Dict) -> None:
+        """Appends global and local ranks to the observations.
+
+        Args:
+            obs (Dict): Observation provided by a trafficlight.
+            graph (Dict): Adjacency list of the trafficlight topology.
+        """
+        pairs = [(tls_id, tls_state[CONGESTION])
                  for tls_id, tls_state in obs.items()]
         pairs = sorted(pairs, key=lambda x: x[1], reverse=True)
 

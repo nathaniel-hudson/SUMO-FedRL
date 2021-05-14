@@ -7,7 +7,7 @@ from ray.rllib.agents.ppo import PPOTrainer
 from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy
 from time import ctime
 from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
-from fluri.federated.fedavg import federated_avg
+from fluri.strategies.fedavg import federated_avg
 from fluri.trainer.const import *
 
 OUT_DIR = "FedRL-ray"

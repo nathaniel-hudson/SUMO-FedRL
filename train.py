@@ -39,7 +39,7 @@ if __name__ == "__main__":
     kind = input(prompt)
     while kind != str(SINGLEAGENT) and kind != str(MULTIAGENT) and kind != str(FEDAGENT):
         kind = input("Try again...", prompt)
-    
+
     kind = int(kind)
     n_rounds = int(input("Enter the number of rounds for training: "))
 
@@ -59,6 +59,6 @@ if __name__ == "__main__":
         results_df = pd.DataFrame.from_dict(results)
         filename = "fedrl_data.csv"
 
-        
+
     path = join("out", "models", date_dir(), filename)
     save_df(results_df, path)
