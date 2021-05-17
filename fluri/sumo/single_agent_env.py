@@ -42,7 +42,9 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         dtype = np.float64
         high = np.finfo(dtype).max
         n_tls = len(self.kernel.tls_hub)
-        return spaces.Box(low=0, high=high, shape=(n_tls, N_FEATURES), dtype=dtype)
+        n_features = N_RANKED_FEATURES if self.ranked else N_UNRANKED_FEATURES
+        return spaces.Box(low=0, high=high, shape=(n_tls, n_features), dtype=dtype)
+
 
     def step(self, action: List[int]) -> Tuple[np.ndarray, float, bool, dict]:
         """Performs a single step in the environment, as per the Open AI Gym framework.
@@ -139,7 +141,7 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         np.ndarray
             Trafficlight observations.
         """
-        obs = np.array([tls.get_observation() for tls in self.kernel.tls_hub])
+        obs = np.array([tls.get_observation(self.ranked) for tls in self.kernel.tls_hub])
         if ranked:
             pass
         return obs

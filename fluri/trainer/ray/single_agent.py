@@ -6,12 +6,18 @@ from os.path import join
 from ray.rllib.agents.ppo import PPOTrainer
 from time import ctime
 from fluri.sumo.single_agent_env import SinglePolicySumoEnv
+from fluri.sumo.kernel.trafficlights import RANK_DEFAULT
 from fluri.trainer.const import *
+from fluri.trainer.util import *
 
 OUT_DIR = "SARL-ray"
 
 
-def train(n_rounds: int=10) -> None:
+def train(
+    n_rounds: int=10, 
+    ranked: bool=RANK_DEFAULT,
+    **kwargs
+) -> None:
     """Single-agent reinforcement learning with Ray's RlLib.
 
     Args:
@@ -20,11 +26,10 @@ def train(n_rounds: int=10) -> None:
     ray.init()
     trainer = PPOTrainer(env=SinglePolicySumoEnv, config={
         "lr": 0.001,
-        # "num_gpus": 0,
         "num_workers": 0,  # NOTE: For some reason, this *needs* to be 0.
         "framework": "torch",
-        # "log_level": "ERROR",
-        "env_config": DEFAULT_ENV_CONFIG,
+        "env_config": get_env_config(ranked=ranked),
+        "num_gpus": kwargs.get("num_gpus", 0)
     })
     status = "[Ep. #{}] Mean reward: {:6.2f} -- Mean length: {:4.2f} -- Saved {} ({})."
     out_file = join("out", "models", "simple-ray")

@@ -5,7 +5,8 @@ from .const import MIN_DELAY
 '''
 TODO
 We might need to adjust the ActionTimer class such that it considers
-the direct traffic light states when deciding the delay value.
+the direct traffic light states when deciding the delay value (i.e., traffic light
+states might have varying delays).
 '''
 
 

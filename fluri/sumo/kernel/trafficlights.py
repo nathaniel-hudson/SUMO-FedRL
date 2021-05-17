@@ -33,7 +33,8 @@ class TrafficLight:
         tls_id: int,
         netfile: str,
         sort_phases: bool=SORT_DEFAULT,
-        force_all_red: bool=False
+        force_all_red: bool=False,
+        ranked: bool=True
     ):
         # The `index` data member is for the consistently simple indexing for actions
         # that are represented via lists. This is important for the `stable-baselines`
@@ -44,6 +45,7 @@ class TrafficLight:
         self.num_phases: int = len(self.program)
         self.state: int = random.randrange(self.num_phases)
         self.phase: str = self.program[self.state]
+        self.ranked = ranked
 
     def update(self) -> None:
         """Update the current state by interacting with `traci`."""
@@ -117,7 +119,7 @@ class TrafficLight:
 
         return np.array([num_vehs, avg_speed, wait_time, num_halt, self.state])
 
-    def get_observation(self, ranked: bool=False) -> np.ndarray:
+    def get_observation(self) -> np.ndarray:
         congestion = 0
         halting_vehs = 0
         speed = 0
@@ -133,24 +135,23 @@ class TrafficLight:
             speed += traci.lane.getLastStepMeanSpeed(l) / len(lanes)
 
         state = [congestion, halting_vehs, speed, self.state]
-        if ranked:
+        if self.ranked:
             # Local and global ranks (to be filled later).
             state.extend([None, None])
         return np.array(state)
+
 
     @property
     def action_space(self) -> spaces.Box:
         return spaces.Box(low=0, high=1, shape=(1,), dtype=int)
 
+
     @property
-    def observation_space(self, ranked: bool=False) -> spaces.Box:
+    def observation_space(self) -> spaces.Box:
         dtype = np.float64
         high = np.finfo(dtype).max
-        if ranked:
-            return spaces.Box(low=0, high=high, shape=(N_RANKED_FEATURES,), dtype=dtype)
-        else:
-            return spaces.Box(low=0, high=high, shape=(N_UNRANKED_FEATURES,), dtype=dtype)
-        # return spaces.Box(low=0, high=high, shape=(N_FEATURES,), dtype=dtype)
+        n_features = N_RANKED_FEATURES if self.ranked else N_UNRANKED_FEATURES
+        return spaces.Box(low=0, high=high, shape=(n_features,), dtype=dtype)
 
 
 class TrafficLightHub:
@@ -173,7 +174,8 @@ class TrafficLightHub:
         self.id2index = {tls_id: index for index,
                          tls_id in enumerate(self.ids)}
         self.hub = OrderedDict({
-            tls_id: TrafficLight(index, tls_id, self.road_netfile, sort_phases)
+            tls_id: TrafficLight(index, tls_id, self.road_netfile, sort_phases, 
+                                 ranked=ranked)
             for index, tls_id in self.index2id.items()
         })
         self.ranked = ranked
