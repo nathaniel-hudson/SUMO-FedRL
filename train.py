@@ -9,6 +9,7 @@ Ray RlLib agent training example.
 https://github.com/ray-project/ray/blob/master/rllib/examples/custom_train_fn.py
 """
 import argparse
+import json
 import os
 import pandas as pd
 import fluri.trainer.ray.fed_agent as fedrl
@@ -25,6 +26,7 @@ FEDAGENT = 3
 
 def get_args() -> argparse.ArgumentParser:
     args = argparse.ArgumentParser()
+    args.add_argument("-f", "--netfile", default="two_inter", choices=["complex_inter", "example", "two_inter"], type=str)
     args.add_argument("-k", "--kind", default="marl", choices=["fedrl", "marl", "sarl"], 
                       type=str)
     args.add_argument("-n", "--num_rounds", default=50, type=int)
@@ -33,23 +35,63 @@ def get_args() -> argparse.ArgumentParser:
     return args.parse_args()
 
 
+def get_data_idx(kind: str, ranked: bool) -> int:
+    default_json = {
+        "fedrl": {"ranked": 0, "unranked": 0},
+        "marl":  {"ranked": 0, "unranked": 0},
+        "sarl":  {"ranked": 0, "unranked": 0},
+    }
+
+    ranked = "ranked" if ranked else "unranked"
+    path = join("out", "data", "counter.json")
+    if not os.path.exists(path):
+        with open(path, "w") as f:
+            json.dump(default_json, f)
+
+    with open(path, "r") as f:
+        data_json = json.load(f)
+
+    idx = data_json[kind][ranked]
+    data_json[kind][ranked] += 1
+    with open(path, "w") as f:
+        json.dump(data_json, f)
+
+    return idx
+
+
 def main(args: argparse.ArgumentParser) -> None:
-    kind, num_rounds, ranked, fed_step = \
-        args.kind, args.num_rounds, args.ranked, args.fed_step
+    netfile, kind, num_rounds, ranked, fed_step = \
+        args.netfile, args.kind, args.num_rounds, args.ranked, args.fed_step
     del args
 
+    ranked_str = "ranked" if ranked else "unranked"
+    idx = get_data_idx(kind, ranked)
+    name = f"{ranked_str}_{idx}"
     if kind == "fedrl":
-        results = fedrl.train(num_rounds, fed_step=fed_step, ranked=ranked)
-        filename = f"fedrl_ranked={ranked}.csv"
+        results = fedrl.train(
+            num_rounds, 
+            fed_step=fed_step, 
+            ranked=ranked, 
+            model_name=name
+        )
     elif kind == "marl":
-        results = marl.train(num_rounds, ranked=ranked)
-        filename = f"marl_ranked={ranked}.csv"
+        results = marl.train(
+            num_rounds, 
+            ranked=ranked, 
+            model_name=name
+        )
     elif kind == "sarl":
-        results = sarl.train(num_rounds, ranked=ranked)
-        filename = f"sarl_ranked={ranked}.csv"
+        results = sarl.train(
+            num_rounds, 
+            ranked=ranked, 
+            model_name=name
+        )
+    else:
+        raise ValueError("Invalid value for argument `kind`.")
 
     df = pd.DataFrame.from_dict(results)
-    path = join("out", "models", date_dir(), filename)
+    df["trained_on"] = None
+    path = join("out", "data", kind, f"{kind}_{name}.csv")
     save_df(df, path)
 
 

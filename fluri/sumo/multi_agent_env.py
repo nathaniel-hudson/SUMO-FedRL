@@ -23,7 +23,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
     @property
     def multi_action_space(self) -> spaces.Space:
         space = {}
-        for index, idx in self.kernel.tls_hub.index2id.items():
+        for _, idx in self.kernel.tls_hub.index2id.items():
             space[idx] = self.kernel.tls_hub[idx].action_space
         return spaces.Dict(space)
 
@@ -82,8 +82,8 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
             actions (Dict[Any, int]): The action that each trafficlight will take
 
         Returns:
-            List[int]: Returns the action taken -- influenced by which moves are legal or
-                not.
+            Dict[Any, int]: Returns the action taken -- influenced by which moves are 
+                legal or not.
         """
         taken_action = actions.copy()
         for tls in self.kernel.tls_hub:
@@ -95,7 +95,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
             else:
                 self.action_timer.decr(tls.index)
                 taken_action[tls.index] = 0
-        return List[int]
+        return taken_action
 
 
     def _get_reward(self, obs: np.ndarray) -> float:
@@ -117,7 +117,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         return -obs[NUM_HALT]
 
 
-    def _observe(self, ranked: bool=False) -> Dict[Any, np.ndarray]:
+    def _observe(self) -> Dict[Any, np.ndarray]:
         """Get the observations across all the trafficlights, indexed by trafficlight id.
 
         Returns
@@ -126,21 +126,21 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
             Observations from each trafficlight.
         """
         obs = {tls.id: tls.get_observation() for tls in self.kernel.tls_hub}
-        if self.ranked: ## NOTE: Should be `self.ranked`, I'm pretty sure.
-            self._get_ranks(obs, self.kernel.tls_hub.tls_graph)
+        if self.ranked:
+            self._get_ranks(obs)
         return obs
 
 
-    def _get_ranks(self, obs: Dict, graph: Dict) -> None:
+    def _get_ranks(self, obs: Dict) -> None:
         """Appends global and local ranks to the observations.
 
         Args:
             obs (Dict): Observation provided by a trafficlight.
-            graph (Dict): Adjacency list of the trafficlight topology.
         """
         pairs = [(tls_id, tls_state[CONGESTION])
                  for tls_id, tls_state in obs.items()]
         pairs = sorted(pairs, key=lambda x: x[1], reverse=True)
+        graph = self.kernel.tls_hub.tls_graph  # Adjacency list representation.
 
         # Calculate the global ranks for each tls in the road network.
         for global_rank, (tls_id, cong) in enumerate(pairs):

@@ -9,13 +9,29 @@ from time import ctime
 from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
 from fluri.strategies.fedavg import federated_avg
 from fluri.sumo.kernel.trafficlights import RANK_DEFAULT
+from fluri.trainer.ray.base import BaseTrainer
 from fluri.trainer.const import *
 from fluri.trainer.util import *
 
-OUT_DIR = "FedRL-ray"
+OUT_DIR = "fedrl"
+
+class FedTrainer(BaseTrainer):
+
+    def __init__(self) -> None:
+        self
+
+    def on_setup():
+        # TODO
+        pass
 
 
-def train(n_rounds: int=10, fed_step: int=10, ranked: bool=RANK_DEFAULT) -> None:
+def train(
+    n_rounds: int=10, 
+    fed_step: int=10, 
+    ranked: bool=RANK_DEFAULT,
+    model_name: str=None,
+    **kwargs    
+) -> None:
     """Multi-agent reinforcement learning with Ray's RlLib.
 
     Args:
@@ -43,24 +59,28 @@ def train(n_rounds: int=10, fed_step: int=10, ranked: bool=RANK_DEFAULT) -> None
         "env_config": get_env_config(ranked=ranked),
     })
     status = "[Ep. #{}] Mean reward: {:6.2f} -- Mean length: {:4.2f} -- Saved {} ({})."
-    out_file = join("out", "models", "simple-ray")
+    
+    if model_name is None:
+        out_file = join("out", "models", OUT_DIR)
+    else:
+        out_file = join("out", "models", OUT_DIR, model_name)
+    
     training_data = defaultdict(list)
-
-    for round in range(n_rounds):
+    for r in range(n_rounds):
         # Perform en episode/round of training.
         result = trainer.train()
 
         # Determine if federated aggregation should be done in this round.
         if fed_step is None:
             time_to_aggregate = False
-        elif round != 0 and round % fed_step == 0:
+        elif r != 0 and r % fed_step == 0:
             time_to_aggregate = True
         else:
             time_to_aggregate = False
 
         # Store the data into the `training_data` dictionary for plotting and such.
         for policy in policies:
-            training_data["round"].append(round)
+            training_data["round"].append(r)
             training_data["trainer"].append("MARL")
             training_data["policy"].append(policy)
             training_data["fed_round"].append(time_to_aggregate)
@@ -84,14 +104,14 @@ def train(n_rounds: int=10, fed_step: int=10, ranked: bool=RANK_DEFAULT) -> None
         # Print the status of training.
         trainer.save(out_file)
         print(status.format(
-            round+1,
+            r+1,
             result["episode_reward_mean"],
             result["episode_len_mean"],
             out_file.split(os.sep)[-1],
             ctime()
         ))
 
-    trainer.save(join("out", "models", OUT_DIR))
+    trainer.save(out_file)
     trainer.stop()
     ray.shutdown()
     trainer.workers.local_worker().env.close()

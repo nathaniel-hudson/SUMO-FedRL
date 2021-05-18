@@ -10,12 +10,13 @@ from fluri.sumo.kernel.trafficlights import RANK_DEFAULT
 from fluri.trainer.const import *
 from fluri.trainer.util import *
 
-OUT_DIR = "SARL-ray"
+OUT_DIR = "sarl"
 
 
 def train(
     n_rounds: int=10, 
     ranked: bool=RANK_DEFAULT,
+    model_name: str=None,
     **kwargs
 ) -> None:
     """Single-agent reinforcement learning with Ray's RlLib.
@@ -32,9 +33,13 @@ def train(
         "num_gpus": kwargs.get("num_gpus", 0)
     })
     status = "[Ep. #{}] Mean reward: {:6.2f} -- Mean length: {:4.2f} -- Saved {} ({})."
-    out_file = join("out", "models", "simple-ray")
+    
+    if model_name is None:
+        out_file = join("out", "models", OUT_DIR)
+    else:
+        out_file = join("out", "models", OUT_DIR, model_name)
+    
     training_data = defaultdict(list)
-
     for round in range(n_rounds):
         result = trainer.train()
         trainer.save(out_file)
@@ -53,7 +58,7 @@ def train(
             ctime()
         ))
 
-    trainer.save(join("out", "models", OUT_DIR))
+    trainer.save(out_file)
     trainer.stop()
     ray.shutdown()
     trainer.workers.local_worker().env.close()

@@ -137,7 +137,7 @@ class TrafficLight:
         state = [congestion, halting_vehs, speed, self.state]
         if self.ranked:
             # Local and global ranks (to be filled later).
-            state.extend([None, None])
+            state.extend([0, 0])
         return np.array(state)
 
 
@@ -160,7 +160,6 @@ class TrafficLightHub:
        trafficlight objects (for simplicity). Additionally, this class supports indexing
        and iteration.
     """
-
     def __init__(
         self,
         road_netfile: str,
@@ -225,7 +224,7 @@ class TrafficLightHub:
                 for e in edges:
                     for other_tls_id in other_tls_id_set:
                         cond = e.attrib.get("from", None) == tls_id and \
-                            e.attrib.get("to", None) == other_tls_id
+                               e.attrib.get("to", None) == other_tls_id
                         if cond:
                             neighbors.add(other_tls_id)
                 graph[tls_id] = list(neighbors)

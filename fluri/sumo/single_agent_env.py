@@ -141,7 +141,7 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         np.ndarray
             Trafficlight observations.
         """
-        obs = np.array([tls.get_observation(self.ranked) for tls in self.kernel.tls_hub])
+        obs = np.array([tls.get_observation() for tls in self.kernel.tls_hub])
         if ranked:
             pass
         return obs
