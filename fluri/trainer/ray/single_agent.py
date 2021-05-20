@@ -14,7 +14,7 @@ OUT_DIR = "sarl"
 
 
 def train(
-    n_rounds: int=10, 
+    n_rounds: int=10,
     ranked: bool=RANK_DEFAULT,
     model_name: str=None,
     **kwargs
@@ -33,12 +33,12 @@ def train(
         "num_gpus": kwargs.get("num_gpus", 0)
     })
     status = "[Ep. #{}] Mean reward: {:6.2f} -- Mean length: {:4.2f} -- Saved {} ({})."
-    
+
     if model_name is None:
         out_file = join("out", "models", OUT_DIR)
     else:
         out_file = join("out", "models", OUT_DIR, model_name)
-    
+
     training_data = defaultdict(list)
     for round in range(n_rounds):
         result = trainer.train()

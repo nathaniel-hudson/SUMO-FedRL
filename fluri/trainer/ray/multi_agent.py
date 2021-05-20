@@ -8,15 +8,42 @@ from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy
 from time import ctime
 from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
 from fluri.sumo.kernel.trafficlights import RANK_DEFAULT
+from fluri.trainer.ray.base import BaseTrainer
 from fluri.trainer.const import *
 from fluri.trainer.util import *
 
 OUT_DIR = "marl"
 
 
+class MultiTrainer(BaseTrainer):
+
+    def __init__(self):
+        self.env = MultiPolicySumoEnv
+
+    def on_setup(self):
+        self.ray_trainer = self.Trainer(env=self.env, config={
+            "multiagent": {
+                "policies": self.policies,
+                "policy_mapping_fn": lambda agent_id: agent_id
+            },
+            "lr": self.lr,
+            "num_gpus": self.num_gpus,
+            "num_workers": self.num_workers,
+            "framework": "torch",
+            "log_level": "ERROR",
+            "env_config": get_env_config(ranked=self.ranked)
+        })
+
+    def on_training_step(self):
+        pass
+
+    def on_tear_down(self):
+        pass
+
+
 def train(
-    n_rounds: int=10, 
-    ranked: bool=RANK_DEFAULT, 
+    n_rounds: int=10,
+    ranked: bool=RANK_DEFAULT,
     model_name: str=None,
     **kwargs
 ) -> None:
@@ -47,12 +74,12 @@ def train(
         "env_config": get_env_config(ranked=ranked),
     })
     status = "[Ep. #{}] Mean reward: {:6.2f} -- Mean length: {:4.2f} -- Saved {} ({})."
-    
+
     if model_name is None:
         out_file = join("out", "models", OUT_DIR)
     else:
         out_file = join("out", "models", OUT_DIR, model_name)
-    
+
     training_data = defaultdict(list)
     for round in range(n_rounds):
         # Perform en episode/round of training, then decide if it is time to aggregate.
