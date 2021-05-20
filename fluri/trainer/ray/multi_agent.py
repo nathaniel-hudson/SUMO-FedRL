@@ -11,28 +11,48 @@ from fluri.sumo.kernel.trafficlights import RANK_DEFAULT
 from fluri.trainer.ray.base import BaseTrainer
 from fluri.trainer.const import *
 from fluri.trainer.util import *
+from typing import Any, Dict
 
 OUT_DIR = "marl"
 
 
-class MultiTrainer(BaseTrainer):
+class MultiPolicyTrainer(BaseTrainer):
 
-    def __init__(self):
-        self.env = MultiPolicySumoEnv
+    def __init__(self, **kwargs):
+        super().__init__(
+            env=MultiPolicySumoEnv, 
+            multi_policy_flag=True,
+            **kwargs
+        )
 
-    def on_setup(self):
-        self.ray_trainer = self.Trainer(env=self.env, config={
+    def init_config(self) -> Dict[str, Any]:
+        return {
+            "env_config": self.env_config_fn(ranked=self.ranked),
+            "framework": "torch",
+            "log_level": self.log_level,
+            "lr": self.lr,
             "multiagent": {
                 "policies": self.policies,
                 "policy_mapping_fn": lambda agent_id: agent_id
             },
-            "lr": self.lr,
             "num_gpus": self.num_gpus,
             "num_workers": self.num_workers,
-            "framework": "torch",
-            "log_level": "ERROR",
-            "env_config": get_env_config(ranked=self.ranked)
-        })
+        }
+
+    def on_data_recording_step(self) -> None:
+        for policy in self.policies:
+            self.training_data["round"].append(self._round)
+            self.training_data["trainer"].append("MARL")
+            self.training_data["policy"].append(policy)
+            for key, value in self._result.items():
+                if isinstance(value, dict):
+                    if policy in value:
+                        self.training_data[key].append(value[policy])
+                    else:
+                        self.training_data[key].append(value)
+                else:
+                    self.training_data[key].append(value)
+
 
     def on_training_step(self):
         pass

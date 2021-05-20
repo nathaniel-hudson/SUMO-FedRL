@@ -1,3 +1,4 @@
+
 import os
 import ray
 
@@ -9,16 +10,16 @@ from time import ctime
 from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
 from fluri.strategies.fedavg import federated_avg
 from fluri.sumo.kernel.trafficlights import RANK_DEFAULT
-from fluri.trainer.ray.base import BaseTrainer
+from fluri.trainer.ray.multi_agent import MultiPolicyTrainer
 from fluri.trainer.const import *
 from fluri.trainer.util import *
 
 OUT_DIR = "fedrl"
 
-class FedTrainer(BaseTrainer):
+class FedPolicyTrainer(MultiPolicyTrainer):
 
     def __init__(self) -> None:
-        self
+        pass
 
     def on_setup():
         # TODO

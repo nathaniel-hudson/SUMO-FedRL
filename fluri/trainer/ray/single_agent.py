@@ -7,11 +7,35 @@ from ray.rllib.agents.ppo import PPOTrainer
 from time import ctime
 from fluri.sumo.single_agent_env import SinglePolicySumoEnv
 from fluri.sumo.kernel.trafficlights import RANK_DEFAULT
+from fluri.trainer.ray.base import BaseTrainer
 from fluri.trainer.const import *
 from fluri.trainer.util import *
+from typing import Any, Dict
 
 OUT_DIR = "sarl"
 
+class SinglePolicyTrainer(BaseTrainer):
+
+    def __init__(self, **kwargs):
+        super().__init__(
+            env=SinglePolicySumoEnv,
+            **kwargs
+        )
+
+    def init_config(self) -> Dict[str, Any]:
+        return {
+            "env_config": self.env_config_fn(ranked=self.ranked),
+            "framwork": "torch",
+            "log_level": self.log_level,
+            "lr": self.learning_rate,
+            "num_workers": self.num_workers,
+        }
+
+    def on_data_recording_step(self) -> None:
+        self.training_data["round"].append(self._round)
+        self.training_data["trainer"].append("SARL")
+        for key, value in self._result.items():
+            self.training_data[key].append(value)
 
 def train(
     n_rounds: int=10,
