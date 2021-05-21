@@ -79,5 +79,5 @@ class FedPolicyTrainer(BaseTrainer):
         for key in policy_keys:
             weights = np.array([policy.get_weights()[key] for policy in policies])
             new_weights[key] = sum(1/len(policies) * weights[k] 
-                                for k in range(len(policies)))
+                                   for k in range(len(policies)))
         return new_weights
