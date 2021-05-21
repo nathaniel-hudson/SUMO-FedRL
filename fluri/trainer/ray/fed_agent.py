@@ -1,119 +1,84 @@
+import numpy as np
 
-import os
-import ray
-
-from collections import defaultdict
-from os.path import join
-from ray.rllib.agents.ppo import PPOTrainer
-from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy
-from time import ctime
 from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
-from fluri.strategies.fedavg import federated_avg
-from fluri.sumo.kernel.trafficlights import RANK_DEFAULT
-from fluri.trainer.ray.multi_agent import MultiPolicyTrainer
+from typing import Any, Dict, List, NewType
+from fluri.trainer.ray.base import BaseTrainer
 from fluri.trainer.const import *
 from fluri.trainer.util import *
 
-OUT_DIR = "fedrl"
-
-class FedPolicyTrainer(MultiPolicyTrainer):
-
-    def __init__(self) -> None:
-        pass
-
-    def on_setup():
-        # TODO
-        pass
+Weights = NewType("Weights", Dict[Any, np.array])
+Policy = NewType("Policy", Dict[Any, np.array])
 
 
-def train(
-    n_rounds: int=10, 
-    fed_step: int=10, 
-    ranked: bool=RANK_DEFAULT,
-    model_name: str=None,
-    **kwargs    
-) -> None:
-    """Multi-agent reinforcement learning with Ray's RlLib.
+class FedPolicyTrainer(BaseTrainer):
 
-    Args:
-        n_rounds (int): Number of training rounds. Defaults to 10.
-    """
-    dummy_env = MultiPolicySumoEnv(config=get_env_config(ranked=ranked))
-    obs_space = dummy_env.observation_space
-    act_space = dummy_env.action_space
-    policies = {
-        agent_id: (PPOTorchPolicy, obs_space, act_space, {"gamma": 0.95})
-        for agent_id in dummy_env._observe()
-    }
+    def __init__(self, fed_step: int, **kwargs) -> None:
+        super().__init__(
+            env=MultiPolicySumoEnv, 
+            sub_dir="FedRL",
+            multi_policy_flag=True,
+            **kwargs
+        )
+        self.trainer_name = "FedRL"
+        self.fed_step = fed_step
+        self.idx = self.get_key_count()
+        self.incr_key_count()
+        self.multi_agent_policy_config = {}
 
-    ray.init()
-    trainer = PPOTrainer(env=MultiPolicySumoEnv, config={
-        "multiagent": {
-            "policies": policies,
-            "policy_mapping_fn": lambda agent_id: agent_id,
-        },
-        "lr": 0.001,
-        "num_gpus": 0,
-        "num_workers": 0,  # NOTE: For some reason, this *needs* to be 0.
-        "framework": "torch",
-        "log_level": "ERROR",
-        "env_config": get_env_config(ranked=ranked),
-    })
-    status = "[Ep. #{}] Mean reward: {:6.2f} -- Mean length: {:4.2f} -- Saved {} ({})."
-    
-    if model_name is None:
-        out_file = join("out", "models", OUT_DIR)
-    else:
-        out_file = join("out", "models", OUT_DIR, model_name)
-    
-    training_data = defaultdict(list)
-    for r in range(n_rounds):
-        # Perform en episode/round of training.
-        result = trainer.train()
 
-        # Determine if federated aggregation should be done in this round.
-        if fed_step is None:
-            time_to_aggregate = False
-        elif r != 0 and r % fed_step == 0:
-            time_to_aggregate = True
+    def init_config(self) -> Dict[str, Any]:
+        return {
+            "env_config": self.env_config_fn(),
+            "framework": "torch",
+            "log_level": self.log_level,
+            "lr": self.learning_rate,
+            "multiagent": {
+                "policies": self.policies,
+                "policy_mapping_fn": lambda agent_id: agent_id
+            },
+            "num_gpus": self.num_gpus,
+            "num_workers": self.num_workers,
+        }
+
+
+    def on_data_recording_step(self) -> None:
+        if self.fed_step is None:
+            aggregate_this_round = False
+        elif self._round != 0 and self._round % self.fed_step == 0:
+            aggregate_this_round = True
         else:
-            time_to_aggregate = False
+            aggregate_this_round = False
 
-        # Store the data into the `training_data` dictionary for plotting and such.
-        for policy in policies:
-            training_data["round"].append(r)
-            training_data["trainer"].append("MARL")
-            training_data["policy"].append(policy)
-            training_data["fed_round"].append(time_to_aggregate)
-            for key, value in result.items():
+        for policy in self.policies:
+            self.training_data["round"].append(self._round)
+            self.training_data["trainer"].append("MARL")
+            self.training_data["policy"].append(policy)
+            self.training_data["fed_round"].append(aggregate_this_round)
+            for key, value in self._result.items():
                 if isinstance(value, dict):
                     if policy in value:
-                        training_data[key].append(value[policy])
+                        self.training_data[key].append(value[policy])
                     else:
-                        training_data[key].append(value)
+                        self.training_data[key].append(value)
                 else:
-                    training_data[key].append(value)
+                    self.training_data[key].append(value)
 
-        # Incorporate federated learning if it is time to aggregate.
-        if time_to_aggregate:
-            policy_arr = [trainer.get_policy(policy_id)
-                          for policy_id in policies]
-            new_weights = federated_avg(policy_arr)
-            for policy_id in policies:
-                trainer.get_policy(policy_id).set_weights(new_weights)
+        # Aggregate the weights via the Federated Averaging algorithm.
+        if aggregate_this_round:
+            policy_arr = [self.ray_trainer.get_policy(policy_id)
+                          for policy_id in self.policies]
+            new_weights = FedPolicyTrainer.fedavg(policy_arr)
+            for policy_id in self.policies:
+                self.ray_trainer.get_policy(policy_id).set_weights(new_weights)
 
-        # Print the status of training.
-        trainer.save(out_file)
-        print(status.format(
-            r+1,
-            result["episode_reward_mean"],
-            result["episode_len_mean"],
-            out_file.split(os.sep)[-1],
-            ctime()
-        ))
 
-    trainer.save(out_file)
-    trainer.stop()
-    ray.shutdown()
-    trainer.workers.local_worker().env.close()
-    return training_data
+    @classmethod
+    def fedavg(cls, policies: List[Policy], C: float=1.0) -> Weights:
+        weights = np.array([policy.get_weights() for policy in policies])
+        policy_keys = policies[0].get_weights().keys()
+        new_weights = {}
+        for key in policy_keys:
+            weights = np.array([policy.get_weights()[key] for policy in policies])
+            new_weights[key] = sum(1/len(policies) * weights[k] 
+                                for k in range(len(policies)))
+        return new_weights

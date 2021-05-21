@@ -108,7 +108,17 @@ def save_df(df: pd.DataFrame, path: str) -> None:
 
 
 if __name__ == "__main__":
-    main(get_args())
+    # trainer = sarl.SinglePolicyTrainer(ranked=False)
+    # trainer.train(1)
+
+    # trainer = marl.MultiPolicyTrainer()
+    # trainer.train(1)
+
+    trainer = fedrl.FedPolicyTrainer(fed_step=1)
+    trainer.train(2)
+
+    # main(get_args())
+    # ------------------------------------------------ #
 
     # prompt = "Enter [1] single-agent, [2] multi-agent, or [3] fed-agent: "
     # kind = input(prompt)

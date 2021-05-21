@@ -1,4 +1,4 @@
-import json
+import fluri.trainer.ray.defaults as defaults
 import os
 import ray
 
@@ -7,14 +7,17 @@ from collections import defaultdict
 from pandas import DataFrame
 from ray.rllib.agents import (a3c, dqn, ppo)
 from time import ctime
-from typing import Any, Callable, Dict, List
+from typing import Any, Dict, List
 
+from fluri.trainer.ray.counter import Counter
+from fluri.trainer.ray.defaults import *
 from fluri.sumo.sumo_env import SumoEnv
 
 
 class BaseTrainer(ABC):
 
-    env_config_fn: Callable
+    counter: Counter
+    idx: int
     num_gpus: int
     env: SumoEnv
     learning_rate: float
@@ -29,6 +32,7 @@ class BaseTrainer(ABC):
 
     def __init__(
         self,
+        checkpoint_freq: int=1,
         env: SumoEnv=None,
         gamma: float=0.95,
         learning_rate: float=0.001,
@@ -37,10 +41,14 @@ class BaseTrainer(ABC):
         multi_policy_flag: bool=False,
         num_gpus: int=0,
         num_workers: int=0,
-        out_dir: List[str]=["out"],
+        root_dir: List[str]=["out"],
+        sub_dir: str=None,
         policy: str="ppo",
+        **kwargs
     ) -> None:
         assert 0 <= gamma <= 1
+        self.checkpoint_freq = checkpoint_freq
+        self.counter = Counter()
         self.env = env
         self.gamma = gamma
         self.learning_rate = learning_rate
@@ -49,15 +57,16 @@ class BaseTrainer(ABC):
         self.multi_policy_flag = multi_policy_flag
         self.num_gpus = num_gpus
         self.num_workers = num_workers
-        self.out_data_dir = os.path.join(out_dir + ["data"])
-        self.out_model_dir = os.path.join(out_dir + ["models"])
+        self.out_data_dir = os.path.join(*(root_dir + ["data"]))
+        self.out_model_dir = os.path.join(*(root_dir + ["models"]))
+        if sub_dir is not None:
+            self.out_data_dir = os.path.join(self.out_data_dir, sub_dir)
+            self.out_model_dir = os.path.join(self.out_model_dir, sub_dir)
 
         if not os.path.isdir(self.out_data_dir):
             os.makedirs(os.path.join(self.out_data_dir))
-            self.init_dir_counter_file(self.out_data_dir)
         if not os.path.isdir(self.out_model_dir):
             os.makedirs(os.path.join(self.out_model_dir))
-            self.init_dir_counter_file(self.out_model_dir)
 
         if policy == "a3c":
             self.trainer_type = a3c.A3CTrainer
@@ -70,8 +79,20 @@ class BaseTrainer(ABC):
             self.policy_type = ppo.PPOTorchPolicy
         else:
             raise NotImplemented(f"Do not support policies for `{policy}`.")
+        
+        self.trainer_name = None
+        self.idx = None
+        self.multi_agent_policy_config = None
 
-    def train(self, num_rounds: int, **kwargs) -> DataFrame:
+
+        self.gui = kwargs.get("gui", defaults.GUI)
+        self.net_file = kwargs.get("net_file", defaults.NET_FILE)
+        self.ranked = kwargs.get("ranked", defaults.RANKED)
+        self.rand_routes_on_reset = kwargs.get("rand_routes_on_reset",
+                                                defaults.RAND_ROUTES_ON_RESET)
+
+
+    def train(self, num_rounds: int, save_on_end: bool=True, **kwargs) -> DataFrame:
         if self.multi_policy_flag:
             self.on_multi_policy_setup()
         self.on_setup()
@@ -81,35 +102,38 @@ class BaseTrainer(ABC):
             self.on_data_recording_step()
             self.on_logging_step()
             if r % self.checkpoint_freq == 0:
-                self.ray_trainer.save(out_file) # TODO
+                self.ray_trainer.save(self.model_path)
         dataframe = self.on_tear_down()
+        if save_on_end:
+            path = os.path.join(self.out_data_dir, f"{self.get_filename()}.csv")
+            dataframe.to_csv(path)
         return dataframe
 
-    def on_multi_policy_setup(self, config_args) -> None:
-        dummy_env = self.env(config=self.env_config_fn(config_args))
+
+    def on_multi_policy_setup(self) -> None:
+        dummy_env = self.env(config=self.env_config_fn())
         obs_space = dummy_env.observation_space
         act_space = dummy_env.action_space
         self.policies = {
-            agent_id: (self.policy_type, obs_space, act_space)
+            agent_id: (self.policy_type, obs_space, act_space, 
+                       self.multi_agent_policy_config)
             for agent_id in dummy_env._observe()
         }
+
 
     def on_setup(self) -> None:
         ray.init()
         self.ray_trainer = self.trainer_type(env=self.env, config=self.init_config())
-        if self.model_name is None:
-            out_file = os.path.join("out", "models", OUT_DIR)
-        else:
-            out_file = os.path.join("out", "models", OUT_DIR, self.model_name)
+        self.model_path = os.path.join(self.out_model_dir, self.get_filename())
         self.training_data = defaultdict(list)
 
 
     def on_tear_down(self) -> DataFrame:
-        self.ray_trainer.save(...) # TODO
+        self.ray_trainer.save(self.model_path)
         self.ray_trainer.stop()
         ray.shutdown()
-        self.ray_trainer.local_worker.env.close()
-        return DataFrame.from_dict(self.data)
+        self.ray_trainer.workers.local_worker().env.close()
+        return DataFrame.from_dict(self.training_data)
 
 
     def on_logging_step(self) -> None:
@@ -118,41 +142,42 @@ class BaseTrainer(ABC):
             self._round+1,
             self._result["episode_reward_mean"],
             self._result["episode_len_mean"],
-            self._out_file.split(os.sep)[-1],
+            self.model_path.split(os.sep)[-1],
             ctime()
         ))
 
-    @staticmethod
-    def init_dir_counter_file(self, _dir: str):
-        counter_json = {
-            "fedrl": {"ranked": 0, "unranked": 0},
-            "marl":  {"ranked": 0, "unranked": 0},
-            "sarl":  {"ranked": 0, "unranked": 0},
-        }
-        path = os.path.join(_dir, "counter.json")
-        if not os.path.exists(path):
-            with open(path, "w") as f:
-                json.dump(counter_json, f)
+    def get_key(self) -> str:
+        if self.trainer_name is None:
+            raise ValueError("`trainer_name` cannot be None.")
+        ranked = "ranked" if self.ranked else "unranked"
+        key = f"{self.trainer_name}_{ranked}"
+        return key
 
-    def get_count(self, _dir: str, kind: str, ranked: bool) -> int:
-        path = os.path.join(_dir, "counter.json")
-        with open(path, "r") as f:
-            data_json = json.load(f)
+    def get_key_count(self) -> int:
+        return self.counter.get(self.get_key())
 
-        ranked = "ranked" if ranked else "unranked"
-        idx = data_json[kind][ranked]
-        data_json[kind][ranked] += 1
-        with open(path, "w") as f:
-            json.dump(data_json, f)
+    def incr_key_count(self) -> None:
+        self.counter.increment(self.get_key())
 
-        return idx
+    def get_filename(self) -> str:
+        if self.trainer_name is None:
+            raise ValueError("`trainer_name` cannot be None.")
+        ranked = "ranked" if self.ranked else "unranked"
+        return f"{ranked}_{self.idx}"
 
 
     @abstractmethod
     def init_config(self) -> Dict[str, Any]:
         pass
 
-
     @abstractmethod
     def on_data_recording_step(self) -> None:
         pass
+
+    def env_config_fn(self) -> Dict:
+        return {
+            "gui": self.gui,
+            "net-file": self.net_file,
+            "rand_routes_on_reset": self.rand_routes_on_reset,
+            "ranked": self.ranked,
+        }
