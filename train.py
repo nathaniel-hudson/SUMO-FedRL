@@ -23,6 +23,6 @@ if __name__ == "__main__":
 
     for net_file in net_files:
         for ranked in [True, False]:
-            FedPolicyTrainer(net_file=net_file, ranked=ranked).train(n_episodes)
+            FedPolicyTrainer(fed_step=5, net_file=net_file, ranked=ranked).train(n_episodes)
             MultiPolicyTrainer(net_file=net_file, ranked=ranked).train(n_episodes)
             SinglePolicyTrainer(net_file=net_file, ranked=ranked).train(n_episodes)
