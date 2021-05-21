@@ -57,11 +57,22 @@ class BaseTrainer(ABC):
         self.multi_policy_flag = multi_policy_flag
         self.num_gpus = num_gpus
         self.num_workers = num_workers
+
         self.out_data_dir = os.path.join(*(root_dir + ["data"]))
         self.out_model_dir = os.path.join(*(root_dir + ["models"]))
         if sub_dir is not None:
             self.out_data_dir = os.path.join(self.out_data_dir, sub_dir)
             self.out_model_dir = os.path.join(self.out_model_dir, sub_dir)
+        
+        self.gui = kwargs.get("gui", defaults.GUI)
+        self.net_file = kwargs.get("net_file", defaults.NET_FILE)
+        self.ranked = kwargs.get("ranked", defaults.RANKED)
+        self.rand_routes_on_reset = kwargs.get("rand_routes_on_reset",
+                                                defaults.RAND_ROUTES_ON_RESET)
+
+        self.net_dir = self.net_file.split(os.sep)[-1].split(".")[0]
+        self.out_data_dir = os.path.join(self.out_data_dir, self.net_dir)
+        self.out_model_dir = os.path.join(self.out_model_dir, self.net_dir)
 
         if not os.path.isdir(self.out_data_dir):
             os.makedirs(os.path.join(self.out_data_dir))
@@ -83,13 +94,6 @@ class BaseTrainer(ABC):
         self.trainer_name = None
         self.idx = None
         self.multi_agent_policy_config = None
-
-
-        self.gui = kwargs.get("gui", defaults.GUI)
-        self.net_file = kwargs.get("net_file", defaults.NET_FILE)
-        self.ranked = kwargs.get("ranked", defaults.RANKED)
-        self.rand_routes_on_reset = kwargs.get("rand_routes_on_reset",
-                                                defaults.RAND_ROUTES_ON_RESET)
 
 
     def train(self, num_rounds: int, save_on_end: bool=True, **kwargs) -> DataFrame:
@@ -150,7 +154,7 @@ class BaseTrainer(ABC):
         if self.trainer_name is None:
             raise ValueError("`trainer_name` cannot be None.")
         ranked = "ranked" if self.ranked else "unranked"
-        key = f"{self.trainer_name}_{ranked}"
+        key = f"{self.trainer_name}_{self.net_dir}_{ranked}"
         return key
 
     def get_key_count(self) -> int:

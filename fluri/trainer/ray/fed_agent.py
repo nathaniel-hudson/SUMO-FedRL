@@ -3,7 +3,6 @@ import numpy as np
 from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
 from typing import Any, Dict, List, NewType
 from fluri.trainer.ray.base import BaseTrainer
-from fluri.trainer.const import *
 from fluri.trainer.util import *
 
 Weights = NewType("Weights", Dict[Any, np.array])

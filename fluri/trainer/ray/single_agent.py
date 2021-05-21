@@ -1,6 +1,5 @@
 from fluri.sumo.single_agent_env import SinglePolicySumoEnv
 from fluri.trainer.ray.base import BaseTrainer
-from fluri.trainer.const import *
 from fluri.trainer.util import *
 from typing import Any, Dict
 
