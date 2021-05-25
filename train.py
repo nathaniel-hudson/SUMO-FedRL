@@ -16,8 +16,8 @@ from os.path import join
 if __name__ == "__main__":
     n_episodes = 100
     net_files = [
-        join("configs", "complex_inter", "complex_inter.net.xml"),
-        join("configs", "example", "traffic.net.xml"),
+        # join("configs", "complex_inter", "complex_inter.net.xml"),
+        join("configs", "example", "traffic.net.xml"), # TODO: Change this filename for better folder dirs.
         join("configs", "two_inter", "two_inter.net.xml")
     ]
 

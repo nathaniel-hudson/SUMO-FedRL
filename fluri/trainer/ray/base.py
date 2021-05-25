@@ -169,6 +169,13 @@ class BaseTrainer(ABC):
         ranked = "ranked" if self.ranked else "unranked"
         return f"{ranked}_{self.idx}"
 
+    def env_config_fn(self) -> Dict:
+        return {
+            "gui": self.gui,
+            "net-file": self.net_file,
+            "rand_routes_on_reset": self.rand_routes_on_reset,
+            "ranked": self.ranked,
+        }
 
     @abstractmethod
     def init_config(self) -> Dict[str, Any]:
@@ -177,11 +184,3 @@ class BaseTrainer(ABC):
     @abstractmethod
     def on_data_recording_step(self) -> None:
         pass
-
-    def env_config_fn(self) -> Dict:
-        return {
-            "gui": self.gui,
-            "net-file": self.net_file,
-            "rand_routes_on_reset": self.rand_routes_on_reset,
-            "ranked": self.ranked,
-        }

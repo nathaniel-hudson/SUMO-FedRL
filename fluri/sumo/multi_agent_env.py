@@ -144,7 +144,10 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
 
         # Calculate the global ranks for each tls in the road network.
         for global_rank, (tls_id, cong) in enumerate(pairs):
-            obs[tls_id][GLOBAL_RANK] = 1 - (global_rank / len(graph))
+            try:
+                obs[tls_id][GLOBAL_RANK] = 1 - (global_rank / len(graph))
+            except ZeroDivisionError:
+                obs[tls_id][GLOBAL_RANK] = 1
 
         # Calculate local ranks based on global ranks from above.
         for tls in graph:
@@ -152,4 +155,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
             for neighbor in graph[tls]:
                 if obs[neighbor][GLOBAL_RANK] > obs[tls][GLOBAL_RANK]:
                     local_rank += 1
-            obs[tls][LOCAL_RANK] = 1 - (local_rank / len(graph[tls]))
+            try:
+                obs[tls][LOCAL_RANK] = 1 - (local_rank / len(graph[tls]))
+            except ZeroDivisionError:
+                obs[tls_id][LOCAL_RANK] = 1
