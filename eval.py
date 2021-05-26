@@ -133,8 +133,8 @@ def eval(
                 obs, reward, done, _ = sarl_step(env, obs, agent)
                 eval_data["kind"].append(kind)
                 eval_data["episode"].append(ep)
-                eval_data["cum_reward"].append(r + last_reward[ep-1])
-                eval_data["reward"].append(r)
+                eval_data["cum_reward"].append(reward + last_reward[ep-1])
+                eval_data["reward"].append(reward)
                 eval_data["step"].append(step)
                 last_reward[ep] = eval_data["cum_reward"][-1]
             else:
