@@ -117,26 +117,32 @@ def eval(
     for ep in range(1, n_episodes+1):
         obs = env.reset()
         done, step = False, 0
+        last_reward = defaultdict(float)
         while not done:
             if (kind == "marl") or (kind == "fedrl"):
                 obs, reward, done, _ = marl_step(env, obs, agent)
                 for tls_id, r in reward.items():
+                    eval_data["ranked"].append(ranked)
+                    eval_data["agent_type"].append(agent_type)
                     eval_data["kind"].append(kind)
                     eval_data["tls_id"].append(tls_id)
                     eval_data["episode"].append(ep)
-                    eval_data["cum_reward"].append(
-                        r + last_reward[ep-1, tls_id])
+                    eval_data["cum_reward"].append(r + last_reward[tls_id])
                     eval_data["reward"].append(r)
                     eval_data["step"].append(step)
-                    last_reward[ep, tls_id] = eval_data["cum_reward"][-1]
+                    # last_reward[ep, tls_id] = eval_data["cum_reward"][-1]
+                    last_reward[tls_id] = eval_data["cum_reward"][-1]
             elif kind == "sarl":
                 obs, reward, done, _ = sarl_step(env, obs, agent)
+                eval_data["ranked"].append(ranked)
+                eval_data["agent_type"].append(agent_type)
                 eval_data["kind"].append(kind)
                 eval_data["episode"].append(ep)
-                eval_data["cum_reward"].append(reward + last_reward[ep-1])
+                eval_data["cum_reward"].append(reward + last_reward["-"])
                 eval_data["reward"].append(reward)
                 eval_data["step"].append(step)
-                last_reward[ep] = eval_data["cum_reward"][-1]
+                # last_reward[ep] = eval_data["cum_reward"][-1]
+                last_reward["-"] = eval_data["cum_reward"][-1]
             else:
                 raise ValueError("Invalid value for parameter `kind`.")
             step += 1
@@ -181,7 +187,7 @@ if __name__ == "__main__":
                 nettype = netfile.split(os.sep)[1]
                 checkpoint = load_last_checkpoint(nettype=nettype, kind=kind,
                                                   ranked=ranked)
-                df = eval(netfile, checkpoint, kind, ranked, n_episodes=1)
+                df = eval(netfile, checkpoint, kind, ranked, n_episodes=10)
                 dataframes.append(df)
 
     print(">> EVAL DONE!")
