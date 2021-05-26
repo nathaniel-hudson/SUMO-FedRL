@@ -14,15 +14,19 @@ from os.path import join
 
 
 if __name__ == "__main__":
-    n_episodes = 100
+    n_episodes = 4  # 100
+    fed_step = 2  # 5
     net_files = [
-        # join("configs", "complex_inter", "complex_inter.net.xml"),
-        join("configs", "example", "traffic.net.xml"), # TODO: Change this filename for better folder dirs.
+        join("configs", "complex_inter", "complex_inter.net.xml"),
+        join("configs", "single_inter", "single_inter.net.xml"),
         join("configs", "two_inter", "two_inter.net.xml")
     ]
 
     for net_file in net_files:
         for ranked in [True, False]:
-            FedPolicyTrainer(fed_step=5, net_file=net_file, ranked=ranked).train(n_episodes)
-            MultiPolicyTrainer(net_file=net_file, ranked=ranked).train(n_episodes)
-            SinglePolicyTrainer(net_file=net_file, ranked=ranked).train(n_episodes)
+            FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked).\
+                train(n_episodes)
+            MultiPolicyTrainer(net_file=net_file, ranked=ranked).\
+                train(n_episodes)
+            SinglePolicyTrainer(net_file=net_file, ranked=ranked).\
+                train(n_episodes)
