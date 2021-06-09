@@ -65,7 +65,8 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         obs = self._observe()
         reward = self._get_reward(obs)
         done = self.kernel.done()
-        info = {"taken_action": taken_action}
+        info = {"taken_action": taken_action, 
+                "cum_reward": reward}#.values())}
 
         return obs, reward, done, info
 
@@ -130,7 +131,10 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         # return sum(-1*num_veh) + sum(-1*num_halt) + sum(-1*wait_time) + sum(-1*travel_time)
 
         # NOTE: This should address the mentioned problem above.
-        return -1 * np.mean(obs[:, NUM_HALT])
+        # return -np.mean(obs[:, NUM_HALT])
+        # return -sum(obs[:, NUM_HALT]) - sum(obs[:, CONGESTION])
+        return -np.mean(obs[:, NUM_HALT]) - np.mean(obs[:, CONGESTION]) 
+        # TODO: Maybe use `num_vehicles`?
 
     def _observe(self, ranked: bool=False) -> np.ndarray:
         """Get a the observations across all the trafficlights (represented by a single

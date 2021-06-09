@@ -61,7 +61,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
 
 
     def step(self, action_dict: Dict[Any, int]) -> Tuple[Dict, Dict, Dict, Dict]:
-        self._do_action(action_dict)
+        taken_action = self._do_action(action_dict)
         self.kernel.step()
 
         obs = self._observe()
@@ -70,6 +70,8 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
             for tls in self.kernel.tls_hub
         }
         done = {"__all__": self.kernel.done()}
+        # info = {"taken_action": taken_action, 
+        #         "cum_reward": sum(reward.values())}
         info = {}
 
         return obs, reward, done, info
@@ -114,7 +116,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         """
         # Deprecated.
         # return -obs[NUM_HALT] - obs[WAIT_TIME] - obs[TRAVEL_TIME]
-        return -obs[NUM_HALT]
+        return -obs[NUM_HALT] - obs[CONGESTION]
 
 
     def _observe(self) -> Dict[Any, np.ndarray]:

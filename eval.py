@@ -120,8 +120,9 @@ def eval(
         last_reward = defaultdict(float)
         while not done:
             if (kind == "marl") or (kind == "fedrl"):
-                obs, reward, done, _ = marl_step(env, obs, agent)
+                obs, reward, done, info = marl_step(env, obs, agent)
                 for tls_id, r in reward.items():
+                    eval_data["netfile"].append(netfile)
                     eval_data["ranked"].append(ranked)
                     eval_data["agent_type"].append(agent_type)
                     eval_data["kind"].append(kind)
@@ -133,13 +134,14 @@ def eval(
                     # last_reward[ep, tls_id] = eval_data["cum_reward"][-1]
                     last_reward[tls_id] = eval_data["cum_reward"][-1]
             elif kind == "sarl":
-                obs, reward, done, _ = sarl_step(env, obs, agent)
+                obs, reward, done, info = sarl_step(env, obs, agent)
+                eval_data["netfile"].append(netfile)
                 eval_data["ranked"].append(ranked)
                 eval_data["agent_type"].append(agent_type)
                 eval_data["kind"].append(kind)
                 eval_data["episode"].append(ep)
                 eval_data["cum_reward"].append(reward + last_reward["-"])
-                eval_data["reward"].append(reward)
+                eval_data["reward"].append(info["cum_reward"])
                 eval_data["step"].append(step)
                 # last_reward[ep] = eval_data["cum_reward"][-1]
                 last_reward["-"] = eval_data["cum_reward"][-1]
