@@ -134,7 +134,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
 
 
     def _get_ranks(self, obs: Dict) -> None:
-        """Appends global and local ranks to the observations.
+        """Appends global and local ranks to the observations in an inplace fashion.
 
         Args:
             obs (Dict): Observation provided by a trafficlight.

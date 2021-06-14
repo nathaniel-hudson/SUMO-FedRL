@@ -113,6 +113,8 @@ def eval(
     eval_data = defaultdict(list)
     last_reward = defaultdict(float)
 
+    temp_delete_later = defaultdict(list)
+
     env = env_class(config["env_config"])
     for ep in range(1, n_episodes+1):
         obs = env.reset()
@@ -121,6 +123,18 @@ def eval(
         while not done:
             if (kind == "marl") or (kind == "fedrl"):
                 obs, reward, done, info = marl_step(env, obs, agent)
+                # print(f">> obs:\n{obs}\n")
+                for tls_id, state in obs.items():
+                    temp_delete_later["tls_id"].append(tls_id)
+                    temp_delete_later["congestion"].append(state[0])
+                    temp_delete_later["num_halt"].append(state[1])
+                    temp_delete_later["avg_speed"].append(state[2])
+                    temp_delete_later["curr_state"].append(state[3])
+                    if ranked:
+                        temp_delete_later["local_rank"].append(state[4])
+                        temp_delete_later["global_rank"].append(state[5])
+                    temp_delete_later["step"].append(step)
+
                 for tls_id, r in reward.items():
                     eval_data["netfile"].append(netfile)
                     eval_data["ranked"].append(ranked)
@@ -150,6 +164,10 @@ def eval(
             step += 1
     env.close()
     ray.shutdown()
+
+    pd.DataFrame.from_dict(temp_delete_later).to_csv("temp_delete_later.csv")
+    exit(0)
+
     return DataFrame.from_dict(eval_data)
 
 
@@ -191,6 +209,7 @@ if __name__ == "__main__":
                                                   ranked=ranked)
                 df = eval(netfile, checkpoint, kind, ranked, n_episodes=10)
                 dataframes.append(df)
+                exit(0)
 
     print(">> EVAL DONE!")
     final_df = pd.concat(dataframes)

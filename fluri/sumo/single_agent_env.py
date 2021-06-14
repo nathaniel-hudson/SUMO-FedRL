@@ -43,6 +43,8 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         high = np.finfo(dtype).max
         n_tls = len(self.kernel.tls_hub)
         n_features = N_RANKED_FEATURES if self.ranked else N_UNRANKED_FEATURES
+        # TODO: This is the issue. We need to be able to dynamically set the upper bound
+        #       so the trainer can learn reasonably.
         return spaces.Box(low=0, high=high, shape=(n_tls, n_features), dtype=dtype)
 
 
@@ -147,5 +149,11 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         """
         obs = np.array([tls.get_observation() for tls in self.kernel.tls_hub])
         if ranked:
-            pass
+            self._get_ranks(obs)
         return obs
+
+
+    def _get_ranks(self, obs: np.ndarray) -> None:
+        pairs = sorted([tls_state[CONGESTION] for tls_state in obs], reverse=True)
+        graph = self.kernel.tls_hub.tls_graph
+        # TODO: Implement this thing...

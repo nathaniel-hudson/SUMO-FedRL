@@ -11,15 +11,7 @@ from typing import Any, Dict, List, Set, Tuple, Union
 
 from fluri.sumo.utils.core import get_node_id
 from fluri.sumo.const import *
-
-SORT_DEFAULT = True
-RANK_DEFAULT = False
-NEXT_STATES = {
-    "G": set(["G", "g", "y"]),
-    "g": set(["G", "g", "y"]),
-    "y": set(["y", "r"]),
-    "r": set(["G", "g", "r"])
-}
+from fluri.sumo.kernel.const import *
 
 
 class TrafficLight:
@@ -131,7 +123,7 @@ class TrafficLight:
             vehs_length = sum(traci.vehicle.getLength(v) for v in vehs)
 
             congestion += (vehs_length/lane_length) / len(lanes)
-            halting_vehs += traci.lane.getLastStepHaltingNumber(l) / len(lanes)
+            halting_vehs += traci.lane.getLastStepHaltingNumber(l) #/ len(lanes)
             speed += traci.lane.getLastStepMeanSpeed(l) / len(lanes)
 
         state = [congestion, halting_vehs, speed, self.state]
@@ -152,6 +144,23 @@ class TrafficLight:
         high = np.finfo(dtype).max
         n_features = N_RANKED_FEATURES if self.ranked else N_UNRANKED_FEATURES
         return spaces.Box(low=0, high=high, shape=(n_features,), dtype=dtype)
+
+        ## TODO: We NEED to fix the bounding issues here. The `high` upper bound is too
+        ##       large for bounded features (i.e., congestion, rank).
+        # max_lane_len = 0
+        # spaces = [ # Add unranked features first/
+        #     spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=np.float64),
+        #     spaces.Box(low=0.0, high=max_lane_len, shape=(1,), dtype=np.float64),
+        #     spaces.Box(low=0.0, high=max_speed, shape=(1,), dtype=np.float64),
+        #     spaces.Discrete(max_num_states)
+
+        # ] 
+        # if self.ranked:
+        #     spaces.extend([
+        #         spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=np.float64),
+        #         spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=np.float64)
+        #     ])
+        # return spaces.Tuple(tuple(spaces))
 
 
 class TrafficLightHub:

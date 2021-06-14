@@ -1,7 +1,11 @@
 Required:
+    + gym
+    + numpy
+    + pandas
     + ray
     + ray[rllib]
     + traci
+    + typing
     + stablebaselines
 
 Recommended:
