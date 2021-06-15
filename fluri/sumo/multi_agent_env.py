@@ -115,8 +115,8 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
             The reward for this step
         """
         # Deprecated.
-        # return -obs[NUM_HALT] - obs[WAIT_TIME] - obs[TRAVEL_TIME]
-        return -obs[NUM_HALT] - obs[CONGESTION]
+        # return -obs[HALT_CONGESTION] - obs[WAIT_TIME] - obs[TRAVEL_TIME]
+        return -obs[HALT_CONGESTION] - obs[CONGESTION]
 
 
     def _observe(self) -> Dict[Any, np.ndarray]:

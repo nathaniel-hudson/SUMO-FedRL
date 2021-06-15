@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 
 from typing import Any, Dict, List, Tuple, Union
 
-from fluri.sumo.kernel.trafficlights import TrafficLightHub
+from fluri.sumo.kernel.trafficlight.hub import TrafficLightHub
 
 SORT_DEFAULT = True
 VERBOSE_DEFAULT = 0

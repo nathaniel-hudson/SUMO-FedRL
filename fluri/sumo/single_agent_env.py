@@ -127,15 +127,15 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         """
         # TODO: This needs to be adjusted to be more fair in comparison to MARL approaches.
         # num_veh = obs[:, NUM_VEHICLES]
-        # num_halt = obs[:, NUM_HALT]
+        # num_halt = obs[:, HALT_CONGESTION]
         # wait_time = obs[:, WAIT_TIME]
         # travel_time = obs[:, TRAVEL_TIME]
         # return sum(-1*num_veh) + sum(-1*num_halt) + sum(-1*wait_time) + sum(-1*travel_time)
 
         # NOTE: This should address the mentioned problem above.
-        # return -np.mean(obs[:, NUM_HALT])
-        # return -sum(obs[:, NUM_HALT]) - sum(obs[:, CONGESTION])
-        return -np.mean(obs[:, NUM_HALT]) - np.mean(obs[:, CONGESTION]) 
+        # return -np.mean(obs[:, HALT_CONGESTION])
+        # return -sum(obs[:, HALT_CONGESTION]) - sum(obs[:, CONGESTION])
+        return -np.mean(obs[:, HALT_CONGESTION]) - np.mean(obs[:, CONGESTION]) 
         # TODO: Maybe use `num_vehicles`?
 
     def _observe(self, ranked: bool=False) -> np.ndarray:

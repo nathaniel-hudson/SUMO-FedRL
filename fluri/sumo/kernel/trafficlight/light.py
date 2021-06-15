@@ -7,11 +7,13 @@ import xml.etree.ElementTree as ET
 
 from collections import OrderedDict
 from gym import spaces
+from scipy import stats
 from typing import Any, Dict, List, Set, Tuple, Union
 
 from fluri.sumo.utils.core import get_node_id
-from fluri.sumo.const import *
+from fluri.sumo.config import *
 from fluri.sumo.kernel.const import *
+from fluri.sumo.kernel.trafficlight.space import trafficlight_space
 
 
 class TrafficLight:
@@ -112,6 +114,25 @@ class TrafficLight:
         return np.array([num_vehs, avg_speed, wait_time, num_halt, self.state])
 
     def get_observation(self) -> np.ndarray:
+        n_features = N_RANKED_FEATURES if self.ranked else N_UNRANKED_FEATURES
+        obs = [0 for _ in range(n_features)]
+
+        lanes = traci.trafficlight.getControlledLinks(self.id)
+        
+        
+        for l in lanes:
+            obs[CONGESTION] = ...
+            obs[HALT_CONGESTION] = ...
+            obs[AVG_SPEED] = ...
+
+        # Extract descriptive statistics features for the current traffic light state.
+        curr_tls_state = traci.trafficlight.getRedYellowGreenState(self.id)
+        curr_tls_state_arr = [STATE_STR_TO_INT[phase] for phase in curr_tls_state]
+        obs[CURR_STATE_MODE] = stats.mode(curr_tls_state_arr)[0].item()
+        obs[CURR_STATE_STD] = np.std(curr_tls_state_arr)
+
+        return tuple(obs)
+        '''
         congestion = 0
         halting_vehs = 0
         speed = 0
@@ -132,6 +153,7 @@ class TrafficLight:
             # Local and global ranks (to be filled later).
             state.extend([0, 0])
         return np.array(state)
+        '''
 
     @property
     def action_space(self) -> spaces.Box:
@@ -139,10 +161,15 @@ class TrafficLight:
 
     @property
     def observation_space(self) -> spaces.Box:
-        dtype = np.float64
-        high = np.finfo(dtype).max
-        n_features = N_RANKED_FEATURES if self.ranked else N_UNRANKED_FEATURES
-        return spaces.Box(low=0, high=high, shape=(n_features,), dtype=dtype)
+        return trafficlight_space(self.ranked)
+
+        # dtype = np.float64
+        # high = np.finfo(dtype).max
+        # n_features = N_RANKED_FEATURES if self.ranked else N_UNRANKED_FEATURES
+        # return spaces.Box(low=0, high=high, shape=(n_features,), dtype=dtype)
+
+        ## TODO: Implement statistics-based traffic light state representation.
+
 
         # TODO: We NEED to fix the bounding issues here. The `high` upper bound is too
         # large for bounded features (i.e., congestion, rank).
@@ -164,97 +191,3 @@ class TrafficLight:
             ])
         return spaces.Tuple(tuple(space_list))
         '''
-
-
-class TrafficLightHub:
-    """A simple data structure that stores all of the trafficlights in a given SUMO
-       simulation. This class should be used for initializing and creating instances of
-       trafficlight objects (for simplicity). Additionally, this class supports indexing
-       and iteration.
-    """
-
-    def __init__(
-        self,
-        road_netfile: str,
-        sort_phases: bool=SORT_DEFAULT,
-        ranked: bool=RANK_DEFAULT
-    ):
-        self.road_netfile = road_netfile
-        self.ids = sorted([tls_id for tls_id in self.get_traffic_light_ids()])
-        self.index2id = {index:  tls_id for index,
-                         tls_id in enumerate(self.ids)}
-        self.id2index = {tls_id: index for index,
-                         tls_id in enumerate(self.ids)}
-        self.hub = OrderedDict({
-            tls_id: TrafficLight(index, tls_id, self.road_netfile, sort_phases,
-                                 ranked=ranked)
-            for index, tls_id in self.index2id.items()
-        })
-        self.ranked = ranked
-        self.tls_graph = self.get_tls_graph()
-
-    def get_traffic_light_ids(self) -> List[str]:
-        """Get a list of all the traffic light IDs in the provided *.net.xml file.
-
-        Returns
-        -------
-        List[str]
-            A list of all the traffic light IDs.
-        """
-        with open(self.road_netfile, "r") as f:
-            tree = ET.parse(f)
-            junctions = tree.findall("junction")
-            trafficlights = []
-            for j in junctions:
-                if j.attrib["type"] == "traffic_light":
-                    trafficlights.append(j.attrib["id"])
-            return trafficlights
-
-    def get_tls_graph(self) -> Dict[str, List[str]]:
-        graph = {}
-
-        # Uses TRACI and causes issues due to SUMO not being started before
-        # this is called.
-        # for tls_id in self.ids:
-        #     neighbors = set()
-        #     lanes = traci.trafficlight.getControlledLanes(tls_id)
-        #     for other_id in self.ids:
-        #         if tls_id == other_id:
-        #             continue
-        #         other_lanes = traci.trafficlight.getControlledLanes(other_id)
-        #         for lane in other_lanes:
-        #             if lane in lanes:
-        #                 neighbors.add(other_id)
-        #     graph[tls_id] = list(neighbors)
-
-        tls_id_set = set(self.ids)
-        with open(self.road_netfile, "r") as f:
-            tree = ET.parse(f)
-            edges = tree.findall("edge")
-            for tls_id in tls_id_set:
-                neighbors = set()
-                other_tls_id_set = tls_id_set - {tls_id}
-                for e in edges:
-                    for other_tls_id in other_tls_id_set:
-                        cond = e.attrib.get("from", None) == tls_id and \
-                            e.attrib.get("to", None) == other_tls_id
-                        if cond:
-                            neighbors.add(other_tls_id)
-                graph[tls_id] = list(neighbors)
-
-        return graph
-
-    def update(self) -> None:
-        """Update the current states by interfacing with SUMO directly using SumoKernel.
-        """
-        for tls in self.hub.values():
-            tls.update()
-
-    def __iter__(self) -> iter:
-        return iter(self.hub.values())
-
-    def __getitem__(self, tls_id: str) -> TrafficLight:
-        return self.hub[tls_id]
-
-    def __len__(self) -> int:
-        return len(self.ids)
