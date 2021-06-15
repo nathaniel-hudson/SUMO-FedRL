@@ -123,7 +123,8 @@ class TrafficLight:
             vehs_length = sum(traci.vehicle.getLength(v) for v in vehs)
 
             congestion += (vehs_length/lane_length) / len(lanes)
-            halting_vehs += traci.lane.getLastStepHaltingNumber(l) #/ len(lanes)
+            # / len(lanes)
+            halting_vehs += traci.lane.getLastStepHaltingNumber(l)
             speed += traci.lane.getLastStepMeanSpeed(l) / len(lanes)
 
         state = [congestion, halting_vehs, speed, self.state]
@@ -132,11 +133,9 @@ class TrafficLight:
             state.extend([0, 0])
         return np.array(state)
 
-
     @property
     def action_space(self) -> spaces.Box:
         return spaces.Box(low=0, high=1, shape=(1,), dtype=int)
-
 
     @property
     def observation_space(self) -> spaces.Box:
@@ -145,22 +144,26 @@ class TrafficLight:
         n_features = N_RANKED_FEATURES if self.ranked else N_UNRANKED_FEATURES
         return spaces.Box(low=0, high=high, shape=(n_features,), dtype=dtype)
 
-        ## TODO: We NEED to fix the bounding issues here. The `high` upper bound is too
-        ##       large for bounded features (i.e., congestion, rank).
-        # max_lane_len = 0
-        # spaces = [ # Add unranked features first/
-        #     spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=np.float64),
-        #     spaces.Box(low=0.0, high=max_lane_len, shape=(1,), dtype=np.float64),
-        #     spaces.Box(low=0.0, high=max_speed, shape=(1,), dtype=np.float64),
-        #     spaces.Discrete(max_num_states)
-
-        # ] 
-        # if self.ranked:
-        #     spaces.extend([
-        #         spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=np.float64),
-        #         spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=np.float64)
-        #     ])
-        # return spaces.Tuple(tuple(spaces))
+        # TODO: We NEED to fix the bounding issues here. The `high` upper bound is too
+        # large for bounded features (i.e., congestion, rank).
+        '''
+        dtype = np.float64
+        max_num_halt = 0  # TODO: Dynamically get this.
+        max_speed = 75  # TODO: Dynamically get this.
+        max_num_states = 5  # TODO: Dynamically get this.
+        space_list = [  # Add unranked features first/
+            spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=dtype),
+            spaces.Box(low=0.0, high=max_num_halt, shape=(1,), dtype=int),
+            spaces.Box(low=0.0, high=max_speed, shape=(1,), dtype=dtype),
+            spaces.Discrete(max_num_states)
+        ]
+        if self.ranked:
+            space_list.extend([
+                spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=dtype),
+                spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=dtype)
+            ])
+        return spaces.Tuple(tuple(space_list))
+        '''
 
 
 class TrafficLightHub:
@@ -169,6 +172,7 @@ class TrafficLightHub:
        trafficlight objects (for simplicity). Additionally, this class supports indexing
        and iteration.
     """
+
     def __init__(
         self,
         road_netfile: str,
@@ -182,7 +186,7 @@ class TrafficLightHub:
         self.id2index = {tls_id: index for index,
                          tls_id in enumerate(self.ids)}
         self.hub = OrderedDict({
-            tls_id: TrafficLight(index, tls_id, self.road_netfile, sort_phases, 
+            tls_id: TrafficLight(index, tls_id, self.road_netfile, sort_phases,
                                  ranked=ranked)
             for index, tls_id in self.index2id.items()
         })
@@ -233,7 +237,7 @@ class TrafficLightHub:
                 for e in edges:
                     for other_tls_id in other_tls_id_set:
                         cond = e.attrib.get("from", None) == tls_id and \
-                               e.attrib.get("to", None) == other_tls_id
+                            e.attrib.get("to", None) == other_tls_id
                         if cond:
                             neighbors.add(other_tls_id)
                 graph[tls_id] = list(neighbors)
