@@ -1,6 +1,6 @@
 import numpy as np
 
-from .const import MIN_DELAY
+from fluri.sumo.config import MIN_DELAY
 
 '''
 TODO

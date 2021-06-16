@@ -10,7 +10,7 @@ from gym import spaces
 from typing import Any, Dict, List, Set, Tuple, Union
 
 from fluri.sumo.utils.core import get_node_id
-from fluri.sumo.const import *
+from fluri.sumo.config import *
 from fluri.sumo.kernel.const import *
 from fluri.sumo.kernel.trafficlight.light import TrafficLight
 

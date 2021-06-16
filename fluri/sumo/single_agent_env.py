@@ -4,8 +4,8 @@ import numpy as np
 from gym import spaces
 from typing import Any, Dict, List, Tuple
 
-from .const import *
-from .sumo_env import SumoEnv
+from fluri.sumo.config import *
+from fluri.sumo.sumo_env import SumoEnv
 
 GUI_DEFAULT = True
 
@@ -47,7 +47,6 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         #       so the trainer can learn reasonably.
         return spaces.Box(low=0, high=high, shape=(n_tls, n_features), dtype=dtype)
 
-
     def step(self, action: List[int]) -> Tuple[np.ndarray, float, bool, dict]:
         """Performs a single step in the environment, as per the Open AI Gym framework.
 
@@ -67,8 +66,8 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         obs = self._observe()
         reward = self._get_reward(obs)
         done = self.kernel.done()
-        info = {"taken_action": taken_action, 
-                "cum_reward": reward}#.values())}
+        info = {"taken_action": taken_action,
+                "cum_reward": reward}  # .values())}
 
         return obs, reward, done, info
 
@@ -135,7 +134,7 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         # NOTE: This should address the mentioned problem above.
         # return -np.mean(obs[:, HALT_CONGESTION])
         # return -sum(obs[:, HALT_CONGESTION]) - sum(obs[:, CONGESTION])
-        return -np.mean(obs[:, HALT_CONGESTION]) - np.mean(obs[:, CONGESTION]) 
+        return -np.mean(obs[:, HALT_CONGESTION]) - np.mean(obs[:, CONGESTION])
         # TODO: Maybe use `num_vehicles`?
 
     def _observe(self, ranked: bool=False) -> np.ndarray:
@@ -152,8 +151,8 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
             self._get_ranks(obs)
         return obs
 
-
     def _get_ranks(self, obs: np.ndarray) -> None:
-        pairs = sorted([tls_state[CONGESTION] for tls_state in obs], reverse=True)
+        pairs = sorted([tls_state[CONGESTION]
+                        for tls_state in obs], reverse=True)
         graph = self.kernel.tls_hub.tls_graph
         # TODO: Implement this thing...

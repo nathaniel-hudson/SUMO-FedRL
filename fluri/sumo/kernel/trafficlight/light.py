@@ -90,77 +90,40 @@ class TrafficLight:
 
             return states if (sort_phases == False) else sorted(states)
 
-    def __depr_get_observation(self) -> np.ndarray:
-        """Returns an observation of the traffic light, with each of the features of
-           interest.
-
-        Returns:
-            np.ndarray: Array containing the values of each of the features.
-        """
-        num_vehs = 0
-        avg_speed = 0
-        wait_time = 0
-        num_halt = 0
-
-        lanes = traci.trafficlight.getControlledLanes(self.id)
-        for l in lanes:
-            num_vehs += traci.lane.getLastStepVehicleNumber(l)
-            # TODO: Unfair avg.
-            avg_speed += traci.lane.getLastStepMeanSpeed(l) / len(l)
-            # NOTE: This should be averaged across all vehicles...
-            wait_time += traci.lane.getWaitingTime(l)
-            num_halt += traci.lane.getLastStepHaltingNumber(l)
-
-        return np.array([num_vehs, avg_speed, wait_time, num_halt, self.state])
-
-    def get_observation(self) -> np.ndarray:
+    def get_observation(self) -> Tuple[Union[int, float]]:
+        # Initialize the observation list (obs).
         n_features = N_RANKED_FEATURES if self.ranked else N_UNRANKED_FEATURES
         obs = [0 for _ in range(n_features)]
 
-        lanes = traci.trafficlight.getControlledLinks(self.id)
-        
-        
-        for l in lanes:
-            obs[CONGESTION] = ...
-            obs[HALT_CONGESTION] = ...
-            obs[AVG_SPEED] = ...
+        # Extract the lane-specific features.
+        for l in traci.trafficlight.getControlledLinks(self.id):
+            lane_length = traci.lane.getLength(l)
+            vehicle_lengths = halted_vehicle_lengths = 0
+            for v in traci.lane.getLastStepVehicleIDs(l):
+                vehicle_lengths += traci.vehicle.getLength(v)
+                if traci.vehicle.getSpeed(v) < HALTING_SPEED:
+                    halted_vehicle_lengths += traci.vehicle.getLength(v)
+
+            obs[CONGESTION] += vehicle_lengths / lane_length
+            obs[HALT_CONGESTION] += halted_vehicle_lengths / lane_length
+            obs[AVG_SPEED] += (traci.lane.getLastStepMeanSpeed(l) /
+                               traci.lane.getMaxSpeed(l))
 
         # Extract descriptive statistics features for the current traffic light state.
         curr_tls_state = traci.trafficlight.getRedYellowGreenState(self.id)
-        curr_tls_state_arr = [STATE_STR_TO_INT[phase] for phase in curr_tls_state]
+        curr_tls_state_arr = [STATE_STR_TO_INT[phase]
+                              for phase in curr_tls_state]
         obs[CURR_STATE_MODE] = stats.mode(curr_tls_state_arr)[0].item()
         obs[CURR_STATE_STD] = np.std(curr_tls_state_arr)
 
         return tuple(obs)
-        '''
-        congestion = 0
-        halting_vehs = 0
-        speed = 0
-
-        lanes = traci.trafficlight.getControlledLanes(self.id)
-        for l in lanes:
-            vehs = traci.lane.getLastStepVehicleIDs(l)
-            lane_length = traci.lane.getLength(l)
-            vehs_length = sum(traci.vehicle.getLength(v) for v in vehs)
-
-            congestion += (vehs_length/lane_length) / len(lanes)
-            # / len(lanes)
-            halting_vehs += traci.lane.getLastStepHaltingNumber(l)
-            speed += traci.lane.getLastStepMeanSpeed(l) / len(lanes)
-
-        state = [congestion, halting_vehs, speed, self.state]
-        if self.ranked:
-            # Local and global ranks (to be filled later).
-            state.extend([0, 0])
-        return np.array(state)
-        '''
 
     @property
     def action_space(self) -> spaces.Box:
         return spaces.Box(low=0, high=1, shape=(1,), dtype=int)
 
     @property
-    def observation_space(self) -> spaces.Box:
+    def observation_space(self) -> spaces.Tuple:
         return trafficlight_space(self.ranked)
 
         # dtype = np.float64
@@ -168,8 +131,7 @@ class TrafficLight:
         # n_features = N_RANKED_FEATURES if self.ranked else N_UNRANKED_FEATURES
         # return spaces.Box(low=0, high=high, shape=(n_features,), dtype=dtype)
 
-        ## TODO: Implement statistics-based traffic light state representation.
-
+        # TODO: Implement statistics-based traffic light state representation.
 
         # TODO: We NEED to fix the bounding issues here. The `high` upper bound is too
         # large for bounded features (i.e., congestion, rank).

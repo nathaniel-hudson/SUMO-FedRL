@@ -5,7 +5,7 @@ import os
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Tuple
 
-from fluri.sumo.const import *
+from fluri.sumo.config import *
 from fluri.sumo.kernel.kernel import SumoKernel
 from fluri.sumo.timer import ActionTimer
 from fluri.sumo.utils.random_routes import generate_random_routes
@@ -15,7 +15,8 @@ class SumoEnv(ABC):
 
     def __init__(self, config: Dict[str, Any]):
         self.config = config
-        self.path = os.path.split(self.config["net-file"])[0] # "foo/bar" => "foo"
+        self.path = os.path.split(
+            self.config["net-file"])[0]  # "foo/bar" => "foo"
         self.ranked = config.get("ranked", DEFUALT_RANKED)
 
         # Check if the user provided a route-file to be used for simulations and if the

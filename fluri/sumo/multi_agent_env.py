@@ -9,10 +9,10 @@ from gym import spaces
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
 from typing import Any, Dict, List, Tuple
 
-from .const import *
-from .kernel.kernel import SumoKernel
-from .sumo_env import SumoEnv
-from .utils.random_routes import generate_random_routes
+from fluri.sumo.config import *
+from fluri.sumo.kernel.kernel import SumoKernel
+from fluri.sumo.sumo_env import SumoEnv
+from fluri.sumo.utils.random_routes import generate_random_routes
 
 
 class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
@@ -27,7 +27,6 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
             space[idx] = self.kernel.tls_hub[idx].action_space
         return spaces.Dict(space)
 
-
     @property
     def action_space(self):
         """This is the action space defined for a *single* traffic light. It is
@@ -38,7 +37,6 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         """
         first = self.kernel.tls_hub.index2id[0]
         return self.kernel.tls_hub[first].action_space
-
 
     @property
     def observation_space(self):
@@ -51,14 +49,11 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         first = self.kernel.tls_hub.index2id[0]
         return self.kernel.tls_hub[first].observation_space
 
-
     def action_spaces(self, tls_id):
         return self.kernel.tls_hub[tls_id].action_space
 
-
     def observation_spaces(self, tls_id):
         return self.kernel.tls_hub[tls_id].observation_space
-
 
     def step(self, action_dict: Dict[Any, int]) -> Tuple[Dict, Dict, Dict, Dict]:
         taken_action = self._do_action(action_dict)
@@ -70,12 +65,11 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
             for tls in self.kernel.tls_hub
         }
         done = {"__all__": self.kernel.done()}
-        # info = {"taken_action": taken_action, 
+        # info = {"taken_action": taken_action,
         #         "cum_reward": sum(reward.values())}
         info = {}
 
         return obs, reward, done, info
-
 
     def _do_action(self, actions: Dict[Any, int]) -> List[int]:
         """Perform the provided action for each trafficlight.
@@ -84,7 +78,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
             actions (Dict[Any, int]): The action that each trafficlight will take
 
         Returns:
-            Dict[Any, int]: Returns the action taken -- influenced by which moves are 
+            Dict[Any, int]: Returns the action taken -- influenced by which moves are
                 legal or not.
         """
         taken_action = actions.copy()
@@ -98,7 +92,6 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
                 self.action_timer.decr(tls.index)
                 taken_action[tls.index] = 0
         return taken_action
-
 
     def _get_reward(self, obs: np.ndarray) -> float:
         """Negative reward function based on the number of halting vehicles, waiting time,
@@ -118,7 +111,6 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         # return -obs[HALT_CONGESTION] - obs[WAIT_TIME] - obs[TRAVEL_TIME]
         return -obs[HALT_CONGESTION] - obs[CONGESTION]
 
-
     def _observe(self) -> Dict[Any, np.ndarray]:
         """Get the observations across all the trafficlights, indexed by trafficlight id.
 
@@ -131,7 +123,6 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         if self.ranked:
             self._get_ranks(obs)
         return obs
-
 
     def _get_ranks(self, obs: Dict) -> None:
         """Appends global and local ranks to the observations in an inplace fashion.

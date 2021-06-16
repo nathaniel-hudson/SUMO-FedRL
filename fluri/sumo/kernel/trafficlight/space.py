@@ -1,6 +1,6 @@
 import numpy as np
 
-from fluri.sumo.kernel.const import MAX_MPH_SPEED, NUM_TLS_STATES
+from fluri.sumo.config import MAX_MPH_SPEED, NUM_TLS_STATES
 from gym.spaces import *
 from typing import Any
 
