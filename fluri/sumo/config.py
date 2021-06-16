@@ -1,3 +1,5 @@
+from numpy import float32
+
 MIN_DELAY = 4
 DEFUALT_RANKED = True
 N_RANKED_FEATURES = 7
@@ -7,6 +9,8 @@ CONGESTION, HALT_CONGESTION, AVG_SPEED, CURR_STATE_MODE, CURR_STATE_STD, \
     LOCAL_RANK, GLOBAL_RANK = range(N_RANKED_FEATURES)
 
 HALTING_SPEED = 0.1
+
+SPACE_DTYPE = float32
 
 ## ................................................... ##
 ##            Traffic light state constants            ##

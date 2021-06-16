@@ -176,15 +176,13 @@ def load_last_checkpoint(nettype: str, kind: str, ranked: bool) -> str:
     assert kind in ["fedrl", "marl", "sarl"]
     assert isinstance(ranked, bool)
 
-    if kind == "fedrl":
-        kind = "FedRL"
-    elif kind == "marl":
-        kind = "MARL"
-    else:
-        kind = "SARL"
+    if kind == "fedrl":  kind = "FedRL"
+    elif kind == "marl": kind = "MARL"
+    else:                kind = "SARL"
+
     ranked = "ranked" if ranked else "unranked"
     dirs = glob.glob(join("out", "models", kind, nettype, f"{ranked}*"))
-    recent_dir = sorted(dirs)[-1]
+    recent_dir = sorted(dirs, key=lambda x: os.stat(x).st_mtime)[-1]
     dirs = glob.glob(join(recent_dir, "checkpoint*"))
     checkpoint_dir = sorted(dirs)[-1]
     checkpoint_set = set(glob.glob(join(checkpoint_dir, "*"))) - \

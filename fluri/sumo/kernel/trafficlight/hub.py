@@ -61,21 +61,6 @@ class TrafficLightHub:
 
     def get_tls_graph(self) -> Dict[str, List[str]]:
         graph = {}
-
-        # Uses TRACI and causes issues due to SUMO not being started before
-        # this is called.
-        # for tls_id in self.ids:
-        #     neighbors = set()
-        #     lanes = traci.trafficlight.getControlledLanes(tls_id)
-        #     for other_id in self.ids:
-        #         if tls_id == other_id:
-        #             continue
-        #         other_lanes = traci.trafficlight.getControlledLanes(other_id)
-        #         for lane in other_lanes:
-        #             if lane in lanes:
-        #                 neighbors.add(other_id)
-        #     graph[tls_id] = list(neighbors)
-
         tls_id_set = set(self.ids)
         with open(self.road_netfile, "r") as f:
             tree = ET.parse(f)
@@ -86,7 +71,7 @@ class TrafficLightHub:
                 for e in edges:
                     for other_tls_id in other_tls_id_set:
                         cond = e.attrib.get("from", None) == tls_id and \
-                            e.attrib.get("to", None) == other_tls_id
+                               e.attrib.get("to",   None) == other_tls_id
                         if cond:
                             neighbors.add(other_tls_id)
                 graph[tls_id] = list(neighbors)

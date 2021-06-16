@@ -14,7 +14,7 @@ from os.path import join
 
 
 if __name__ == "__main__":
-    n_episodes = 20 # 100
+    n_episodes = 2 # 100
     fed_step = 5
     net_files = [
         join("configs", "complex_inter", "complex_inter.net.xml"),
@@ -24,9 +24,12 @@ if __name__ == "__main__":
 
     for net_file in net_files:
         for ranked in [True, False]:
+            print(">> Training with `FedPolicyTrainer`!")
             FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked).\
                 train(n_episodes)
+            print(">> Training with `MultiPolicyTrainer`!")
             MultiPolicyTrainer(net_file=net_file, ranked=ranked).\
                 train(n_episodes)
+            print(">> Training with `SinglePolicyTrainer`!")
             SinglePolicyTrainer(net_file=net_file, ranked=ranked).\
                 train(n_episodes)

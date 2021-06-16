@@ -21,6 +21,14 @@ class TrafficLight:
        simplify the necessary code for the needs of the RL environments in FLURI.
     """
 
+    index: int
+    id: int
+    program: List[int]
+    num_phases: int
+    state: int
+    phase: str
+    ranked: bool
+
     def __init__(
         self,
         index: int,
@@ -33,12 +41,12 @@ class TrafficLight:
         # The `index` data member is for the consistently simple indexing for actions
         # that are represented via lists. This is important for the `stable-baselines`
         # implementation that does not support Dict spaces.
-        self.index: int = index
-        self.id: int = tls_id
-        self.program: List[str] = self.get_program(netfile, sort_phases, force_all_red)
-        self.num_phases: int = len(self.program)
-        self.state: int = random.randrange(self.num_phases)
-        self.phase: str = self.program[self.state]
+        self.index = index
+        self.id = tls_id
+        self.program = self.get_program(netfile, sort_phases, force_all_red)
+        self.num_phases = len(self.program)
+        self.state = random.randrange(self.num_phases)
+        self.phase = self.program[self.state]
         self.ranked = ranked
 
     def update(self) -> None:
@@ -90,33 +98,38 @@ class TrafficLight:
 
             return states if (sort_phases == False) else sorted(states)
 
-    def get_observation(self) -> Tuple[Union[int, float]]:
+    def get_observation(self) -> np.ndarray:
         # Initialize the observation list (obs).
         n_features = N_RANKED_FEATURES if self.ranked else N_UNRANKED_FEATURES
         obs = [0 for _ in range(n_features)]
 
+
         # Extract the lane-specific features.
-        for l in traci.trafficlight.getControlledLinks(self.id):
-            lane_length = traci.lane.getLength(l)
-            vehicle_lengths = halted_vehicle_lengths = 0
+        max_lane_speeds = mean_lane_speeds = 0
+        total_lane_length = vehicle_lengths = halted_vehicle_lengths = 0
+        for l in traci.trafficlight.getControlledLanes(self.id):
+            mean_lane_speeds += traci.lane.getLastStepMeanSpeed(l)
+            max_lane_speeds += traci.lane.getMaxSpeed(l)
+            total_lane_length += traci.lane.getLength(l)
             for v in traci.lane.getLastStepVehicleIDs(l):
                 vehicle_lengths += traci.vehicle.getLength(v)
                 if traci.vehicle.getSpeed(v) < HALTING_SPEED:
                     halted_vehicle_lengths += traci.vehicle.getLength(v)
 
-            obs[CONGESTION] += vehicle_lengths / lane_length
-            obs[HALT_CONGESTION] += halted_vehicle_lengths / lane_length
-            obs[AVG_SPEED] += (traci.lane.getLastStepMeanSpeed(l) /
-                               traci.lane.getMaxSpeed(l))
+        obs[CONGESTION] = vehicle_lengths / total_lane_length
+        obs[HALT_CONGESTION] = halted_vehicle_lengths / total_lane_length
+        obs[AVG_SPEED] = min(1.0, mean_lane_speeds / max_lane_speeds) 
+        # ^^ We need to "clip" average speed because drivers sometimes exceed the 
+        #    speed limit.
 
         # Extract descriptive statistics features for the current traffic light state.
         curr_tls_state = traci.trafficlight.getRedYellowGreenState(self.id)
         curr_tls_state_arr = [STATE_STR_TO_INT[phase]
                               for phase in curr_tls_state]
-        obs[CURR_STATE_MODE] = stats.mode(curr_tls_state_arr)[0].item()
-        obs[CURR_STATE_STD] = np.std(curr_tls_state_arr)
+        obs[CURR_STATE_MODE] = stats.mode(curr_tls_state_arr)[0].item() / NUM_TLS_STATES
+        obs[CURR_STATE_STD] = np.std(curr_tls_state_arr) / NUM_TLS_STATES
 
-        return tuple(obs)
+        return np.array(obs)
 
     @property
     def action_space(self) -> spaces.Box:

@@ -193,8 +193,8 @@ class BaseTrainer(ABC):
 
     @abstractmethod
     def init_config(self) -> Dict[str, Any]:
-        raise NotImplementedError(
-            "Must implement abstract function `init_config`.")
+        raise NotImplementedError("Must implement abstract function "
+                                  "`init_config`.")
 
     @abstractmethod
     def on_data_recording_step(self) -> None:
