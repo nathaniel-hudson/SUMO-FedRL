@@ -4,13 +4,14 @@ import pandas as pd
 import ray
 
 from collections import defaultdict
-from fluri.trainer.ray.base import BaseTrainer
+from fluri.trainer.base import BaseTrainer
+from fluri.sumo.config import *
 from fluri.sumo.sumo_env import SumoEnv
 from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
 from fluri.sumo.single_agent_env import SinglePolicySumoEnv
-from fluri.trainer.ray.fed_agent import FedPolicyTrainer
-from fluri.trainer.ray.multi_agent import MultiPolicyTrainer
-from fluri.trainer.ray.single_agent import SinglePolicyTrainer
+from fluri.trainer.fed_agent import FedPolicyTrainer
+from fluri.trainer.multi_agent import MultiPolicyTrainer
+from fluri.trainer.single_agent import SinglePolicyTrainer
 from os.path import join
 from pandas import DataFrame
 from typing import Dict, Tuple
@@ -126,14 +127,21 @@ def eval(
                 # print(f">> obs:\n{obs}\n")
                 for tls_id, state in obs.items():
                     temp_delete_later["tls_id"].append(tls_id)
-                    temp_delete_later["congestion"].append(state[0])
-                    temp_delete_later["num_halt"].append(state[1])
-                    temp_delete_later["avg_speed"].append(state[2])
-                    temp_delete_later["curr_state"].append(state[3])
+                    temp_delete_later["congestion"].append(state[CONGESTION])
+                    temp_delete_later["halt_congestion"].append(
+                        state[HALT_CONGESTION])
+                    temp_delete_later["avg_speed"].append(state[AVG_SPEED])
+                    temp_delete_later["curr_state_mode"].append(
+                        state[CURR_STATE_MODE])
+                    temp_delete_later["curr_state_std"].append(
+                        state[CURR_STATE_STD])
                     if ranked:
-                        temp_delete_later["local_rank"].append(state[4])
-                        temp_delete_later["global_rank"].append(state[5])
+                        temp_delete_later["local_rank"].append(
+                            state[LOCAL_RANK])
+                        temp_delete_later["global_rank"].append(
+                            state[GLOBAL_RANK])
                     temp_delete_later["step"].append(step)
+                    temp_delete_later["episode"].append(ep)
 
                 for tls_id, r in reward.items():
                     eval_data["netfile"].append(netfile)
@@ -176,9 +184,12 @@ def load_last_checkpoint(nettype: str, kind: str, ranked: bool) -> str:
     assert kind in ["fedrl", "marl", "sarl"]
     assert isinstance(ranked, bool)
 
-    if kind == "fedrl":  kind = "FedRL"
-    elif kind == "marl": kind = "MARL"
-    else:                kind = "SARL"
+    if kind == "fedrl":
+        kind = "FedRL"
+    elif kind == "marl":
+        kind = "MARL"
+    else:
+        kind = "SARL"
 
     ranked = "ranked" if ranked else "unranked"
     dirs = glob.glob(join("out", "models", kind, nettype, f"{ranked}*"))

@@ -7,14 +7,14 @@ https://github.com/LucasAlegre/sumo-rl/blob/master/experiments/a3c_4x4grid.py
 Ray RlLib agent training example.
 https://github.com/ray-project/ray/blob/master/rllib/examples/custom_train_fn.py
 """
-from fluri.trainer.ray.fed_agent import FedPolicyTrainer
-from fluri.trainer.ray.multi_agent import MultiPolicyTrainer
-from fluri.trainer.ray.single_agent import SinglePolicyTrainer
+from fluri.trainer.fed_agent import FedPolicyTrainer
+from fluri.trainer.multi_agent import MultiPolicyTrainer
+from fluri.trainer.single_agent import SinglePolicyTrainer
 from os.path import join
 
 
 if __name__ == "__main__":
-    n_episodes = 2 # 100
+    n_episodes = 2  # 100
     fed_step = 5
     net_files = [
         join("configs", "complex_inter", "complex_inter.net.xml"),

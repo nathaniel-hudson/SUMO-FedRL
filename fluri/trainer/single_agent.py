@@ -1,5 +1,5 @@
 from fluri.sumo.single_agent_env import SinglePolicySumoEnv
-from fluri.trainer.ray.base import BaseTrainer
+from fluri.trainer.base import BaseTrainer
 from fluri.trainer.util import *
 from typing import Any, Dict
 
@@ -16,7 +16,6 @@ class SinglePolicyTrainer(BaseTrainer):
         self.trainer_name = name
         self.idx = self.get_key_count()
         self.incr_key_count()
-
 
     def init_config(self) -> Dict[str, Any]:
         return {

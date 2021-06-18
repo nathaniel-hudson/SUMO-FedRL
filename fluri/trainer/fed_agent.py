@@ -2,7 +2,7 @@ import numpy as np
 
 from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
 from typing import Any, Dict, List, NewType
-from fluri.trainer.ray.base import BaseTrainer
+from fluri.trainer.base import BaseTrainer
 from fluri.trainer.util import *
 
 Weights = NewType("Weights", Dict[Any, np.array])
@@ -13,7 +13,7 @@ class FedPolicyTrainer(BaseTrainer):
 
     def __init__(self, fed_step: int, **kwargs) -> None:
         super().__init__(
-            env=MultiPolicySumoEnv, 
+            env=MultiPolicySumoEnv,
             sub_dir="FedRL",
             multi_policy_flag=True,
             **kwargs
@@ -23,7 +23,6 @@ class FedPolicyTrainer(BaseTrainer):
         self.idx = self.get_key_count()
         self.incr_key_count()
         self.multi_agent_policy_config = {}
-
 
     def init_config(self) -> Dict[str, Any]:
         return {
@@ -38,7 +37,6 @@ class FedPolicyTrainer(BaseTrainer):
             "num_gpus": self.num_gpus,
             "num_workers": self.num_workers,
         }
-
 
     def on_data_recording_step(self) -> None:
         if self.fed_step is None:
@@ -70,14 +68,14 @@ class FedPolicyTrainer(BaseTrainer):
             for policy_id in self.policies:
                 self.ray_trainer.get_policy(policy_id).set_weights(new_weights)
 
-
     @classmethod
     def fedavg(cls, policies: List[Policy], C: float=1.0) -> Weights:
         weights = np.array([policy.get_weights() for policy in policies])
         policy_keys = policies[0].get_weights().keys()
         new_weights = {}
         for key in policy_keys:
-            weights = np.array([policy.get_weights()[key] for policy in policies])
-            new_weights[key] = sum(1/len(policies) * weights[k] 
+            weights = np.array([policy.get_weights()[key]
+                                for policy in policies])
+            new_weights[key] = sum(1/len(policies) * weights[k]
                                    for k in range(len(policies)))
         return new_weights

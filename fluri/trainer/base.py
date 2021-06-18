@@ -1,4 +1,4 @@
-import fluri.trainer.ray.defaults as defaults
+import fluri.trainer.defaults as defaults
 import os
 import ray
 
@@ -9,8 +9,8 @@ from ray.rllib.agents import (a3c, dqn, ppo)
 from time import ctime
 from typing import Any, Dict, List
 
-from fluri.trainer.ray.counter import Counter
-from fluri.trainer.ray.defaults import *
+from fluri.trainer.counter import Counter
+from fluri.trainer.defaults import *
 from fluri.sumo.sumo_env import SumoEnv
 
 

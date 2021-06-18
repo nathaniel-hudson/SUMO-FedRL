@@ -1,5 +1,5 @@
 from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
-from fluri.trainer.ray.base import BaseTrainer
+from fluri.trainer.base import BaseTrainer
 from fluri.trainer.util import *
 from typing import Any, Dict
 
@@ -8,7 +8,7 @@ class MultiPolicyTrainer(BaseTrainer):
 
     def __init__(self, **kwargs):
         super().__init__(
-            env=MultiPolicySumoEnv, 
+            env=MultiPolicySumoEnv,
             sub_dir="MARL",
             multi_policy_flag=True,
             **kwargs

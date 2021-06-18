@@ -42,7 +42,7 @@ STATE_r_STR, STATE_y_STR, STATE_g_STR, STATE_G_STR, STATE_s_STR, \
 STATE_STRS = [STATE_r_STR, STATE_y_STR, STATE_g_STR, STATE_G_STR, STATE_s_STR,
               STATE_u_STR, STATE_o_STR, STATE_O_STR]
 
-STATE_INT_TO_STR = {int_id: str_id for (
-    int_id, str_id) in zip(STATES, STATE_STRS)}
-STATE_STR_TO_INT = {str_id: int_id for (
-    int_id, str_id) in zip(STATES, STATE_STRS)}
+STATE_INT_TO_STR = {int_id: str_id
+                    for (int_id, str_id) in zip(STATES, STATE_STRS)}
+STATE_STR_TO_INT = {str_id: int_id
+                    for (int_id, str_id) in zip(STATES, STATE_STRS)}

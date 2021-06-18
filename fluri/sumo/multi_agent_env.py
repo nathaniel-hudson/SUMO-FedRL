@@ -122,7 +122,10 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         obs = {tls.id: tls.get_observation() for tls in self.kernel.tls_hub}
         if self.ranked:
             self._get_ranks(obs)
-        
+
+        # ranks = [tls_obs[GLOBAL_RANK] for tls_obs in obs.values()]
+        # print(f"\n\nglobal_ranks = {ranks}\n\n")
+        # exit(0)
         # TODO: Fix this so that the tls observations are tuples and the tuples are edited
         #       via the `_get_ranks` function.
         # for key in obs:
@@ -142,20 +145,24 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         graph = self.kernel.tls_hub.tls_graph  # Adjacency list representation.
 
         # Calculate the global ranks for each tls in the road network.
-        # TODO: Fix issue here.
-        for global_rank, (tls_id, cong) in enumerate(pairs):
+        for global_rank, (tls_id, _) in enumerate(pairs):
             try:
-                obs[tls_id][GLOBAL_RANK] = 1 - (global_rank / len(graph))
+                obs[tls_id][GLOBAL_RANK] = 1 - (global_rank / (len(graph)-1))
             except ZeroDivisionError:
                 obs[tls_id][GLOBAL_RANK] = 1
 
         # Calculate local ranks based on global ranks from above.
-        for tls in graph:
+        for tls_id in graph:
             local_rank = 0
-            for neighbor in graph[tls]:
-                if obs[neighbor][GLOBAL_RANK] > obs[tls][GLOBAL_RANK]:
+            for neighbor in graph[tls_id]:
+                if obs[tls_id][GLOBAL_RANK] > obs[neighbor][GLOBAL_RANK]:
                     local_rank += 1
             try:
-                obs[tls][LOCAL_RANK] = 1 - (local_rank / len(graph[tls]))
+                obs[tls_id][LOCAL_RANK] = 1 - \
+                    (local_rank / (len(graph[tls_id])))
+                # ^^ We do *not* subtract the denominator by 1 (as we do with global
+                #    rank) because `len(graph[tls_id])` does not include `tls_id` as a
+                #    node in the sub-network when it should be included. This means that
+                #    +1 node cancels out the -1 node.
             except ZeroDivisionError:
                 obs[tls_id][LOCAL_RANK] = 1

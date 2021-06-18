@@ -1,7 +1,7 @@
 import argparse
-import fluri.trainer.ray.fed_agent as fedrl
-import fluri.trainer.ray.multi_agent as marl
-import fluri.trainer.ray.single_agent as sarl
+import fluri.trainer.fed_agent as fedrl
+import fluri.trainer.multi_agent as marl
+import fluri.trainer.single_agent as sarl
 import matplotlib.pyplot as plt
 import pandas as pd
 import ray
