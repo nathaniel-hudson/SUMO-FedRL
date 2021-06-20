@@ -48,7 +48,7 @@ class FedPolicyTrainer(BaseTrainer):
 
         for policy in self.policies:
             self.training_data["round"].append(self._round)
-            self.training_data["trainer"].append("MARL")
+            self.training_data["trainer"].append("FedRL")
             self.training_data["policy"].append(policy)
             self.training_data["fed_round"].append(aggregate_this_round)
             for key, value in self._result.items():

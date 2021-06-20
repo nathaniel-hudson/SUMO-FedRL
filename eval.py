@@ -82,6 +82,7 @@ def load_agent(
         raise ValueError("Invalid agent type.")
 
     agent = agent_class(env=env, config=config)
+    print(f">>> checkpoint={checkpoint}")
     agent.restore(checkpoint)
     return agent
 
@@ -180,6 +181,9 @@ def eval(
 
 
 def load_last_checkpoint(nettype: str, kind: str, ranked: bool) -> str:
+    # TODO: This function is broken and doesn't correctly get the most recent file...
+    # We may need ot rethink this setup.
+
     assert nettype in ["complex_inter", "single_inter", "two_inter"]
     assert kind in ["fedrl", "marl", "sarl"]
     assert isinstance(ranked, bool)
@@ -193,12 +197,13 @@ def load_last_checkpoint(nettype: str, kind: str, ranked: bool) -> str:
 
     ranked = "ranked" if ranked else "unranked"
     dirs = glob.glob(join("out", "models", kind, nettype, f"{ranked}*"))
-    recent_dir = sorted(dirs, key=lambda x: os.stat(x).st_mtime)[-1]
-    dirs = glob.glob(join(recent_dir, "checkpoint*"))
-    checkpoint_dir = sorted(dirs)[-1]
-    checkpoint_set = set(glob.glob(join(checkpoint_dir, "*"))) - \
-        set(glob.glob(join(checkpoint_dir, "*.*")))
-    checkpoint = next(iter(checkpoint_set))
+    model_dir = sorted(dirs, key=lambda x: os.stat(x).st_mtime)[-1]
+    # TODO: Reevaluate this approach ^^^
+    checkpoint_dirs = glob.glob(join(model_dir, "checkpoint*"))
+    checkpoint_dir = sorted(checkpoint_dirs,
+                            key=lambda x: int(x.split(os.sep)[-1].split("_")[1]))[-2]  # TODO
+    checkpoint_tail = checkpoint_dir.split(os.sep)[-1]
+    checkpoint = join(checkpoint_dir, checkpoint_tail.replace("_", "-"))
     return checkpoint
 
 
