@@ -83,9 +83,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         """
         taken_action = actions.copy()
         for tls in self.kernel.tls_hub:
-            action = actions[tls.id]
-            can_change = self.action_timer.can_change(tls.index)
-            if action == 1 and can_change:
+            if actions[tls.id] == 1 and self.action_timer.can_change(tls.index):
                 tls.next_phase()
                 self.action_timer.restart(tls.index)
             else:

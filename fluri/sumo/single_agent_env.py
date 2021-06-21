@@ -93,15 +93,12 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         """
         taken_action = actions.copy()
         for tls in self.kernel.tls_hub:
-            act = actions[tls.id]
-            can_change = self.action_timer.can_change(tls.index)
-
             # If this condition is true, then the RYG state of the current traffic light
             # `tls` will be changed to the selected `next_state` provided by `actions`.
             # This only occurs if the next state and current state are not the same, the
             # transition is valid, and the `tls` is available to change. If so, then
             # the change is made and the timer is reset.
-            if act == 1 and can_change:
+            if actions[tls.id] == 1 and self.action_timer.can_change(tls.index):
                 tls.next_phase()
                 self.action_timer.restart(tls.index)
                 taken_action[tls.index] = 1
