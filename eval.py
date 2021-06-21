@@ -126,23 +126,24 @@ def eval(
             if (kind == "marl") or (kind == "fedrl"):
                 obs, reward, done, info = marl_step(env, obs, agent)
                 # print(f">> obs:\n{obs}\n")
-                for tls_id, state in obs.items():
-                    temp_delete_later["tls_id"].append(tls_id)
-                    temp_delete_later["congestion"].append(state[CONGESTION])
-                    temp_delete_later["halt_congestion"].append(
-                        state[HALT_CONGESTION])
-                    temp_delete_later["avg_speed"].append(state[AVG_SPEED])
-                    temp_delete_later["curr_state_mode"].append(
-                        state[CURR_STATE_MODE])
-                    temp_delete_later["curr_state_std"].append(
-                        state[CURR_STATE_STD])
-                    if ranked:
-                        temp_delete_later["local_rank"].append(
-                            state[LOCAL_RANK])
-                        temp_delete_later["global_rank"].append(
-                            state[GLOBAL_RANK])
-                    temp_delete_later["step"].append(step)
-                    temp_delete_later["episode"].append(ep)
+                # for tls_id, state in obs.items():
+                #     temp_delete_later["tls_id"].append(tls_id)
+                #     temp_delete_later["congestion"].append(state[CONGESTION])
+                #     temp_delete_later["halt_congestion"].append(
+                #         state[HALT_CONGESTION])
+                #     temp_delete_later["avg_speed"].append(state[AVG_SPEED])
+                #     temp_delete_later["curr_state_mode"].append(
+                #         state[CURR_STATE_MODE])
+                #     temp_delete_later["curr_state_std"].append(
+                #         state[CURR_STATE_STD])
+                #     if ranked:
+                #         temp_delete_later["local_rank"].append(
+                #             state[LOCAL_RANK])
+                #         temp_delete_later["global_rank"].append(
+                #             state[GLOBAL_RANK])
+                #     temp_delete_later["step"].append(step)
+                #     temp_delete_later["episode"].append(ep)
+                #     temp_delete_later["reward"].append(sum(reward.values()))
 
                 for tls_id, r in reward.items():
                     eval_data["netfile"].append(netfile)
@@ -171,11 +172,11 @@ def eval(
             else:
                 raise ValueError("Invalid value for parameter `kind`.")
             step += 1
+    
     env.close()
     ray.shutdown()
-
-    pd.DataFrame.from_dict(temp_delete_later).to_csv("temp_delete_later.csv")
-    exit(0)
+    # pd.DataFrame.from_dict(temp_delete_later).to_csv("temp_delete_later.csv")
+    # exit(0)
 
     return DataFrame.from_dict(eval_data)
 
@@ -201,7 +202,7 @@ def load_last_checkpoint(nettype: str, kind: str, ranked: bool) -> str:
     # TODO: Reevaluate this approach ^^^
     checkpoint_dirs = glob.glob(join(model_dir, "checkpoint*"))
     checkpoint_dir = sorted(checkpoint_dirs,
-                            key=lambda x: int(x.split(os.sep)[-1].split("_")[1]))[-2]  # TODO
+                            key=lambda x: int(x.split(os.sep)[-1].split("_")[1]))[-1]  # TODO
     checkpoint_tail = checkpoint_dir.split(os.sep)[-1]
     checkpoint = join(checkpoint_dir, checkpoint_tail.replace("_", "-"))
     return checkpoint
@@ -223,7 +224,6 @@ if __name__ == "__main__":
                                                   ranked=ranked)
                 df = eval(netfile, checkpoint, kind, ranked, n_episodes=10)
                 dataframes.append(df)
-                exit(0)
 
     print(">> EVAL DONE!")
     final_df = pd.concat(dataframes)

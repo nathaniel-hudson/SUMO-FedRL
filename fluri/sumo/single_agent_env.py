@@ -39,17 +39,13 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         spaces.Box
             The observation space.
         """
-        # return spaces.Tuple((
-        #     tls.observation_space
-        #     for tls in self.kernel.tls_hub
-        # ))
         dtype = np.float64
         high = np.finfo(dtype).max
         n_tls = len(self.kernel.tls_hub)
         n_features = N_RANKED_FEATURES if self.ranked else N_UNRANKED_FEATURES
-        # TODO: This is the issue. We need to be able to dynamically set the upper bound
-        #       so the trainer can learn reasonably.
         return spaces.Box(low=0, high=high, shape=(n_tls, n_features), dtype=SPACE_DTYPE)
+        ## ^^ We need to adjust this somehow so that the state space representation is
+        ##    compatible with that of the MARL approaches.
 
     def step(self, action: List[int]) -> Tuple[np.ndarray, float, bool, dict]:
         """Performs a single step in the environment, as per the Open AI Gym framework.
