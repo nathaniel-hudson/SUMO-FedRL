@@ -14,7 +14,7 @@ from os.path import join
 
 
 if __name__ == "__main__":
-    n_episodes = 20  # 100
+    n_episodes = 100
     fed_step = 5
     net_files = [
         join("configs", "complex_inter", "complex_inter.net.xml"),

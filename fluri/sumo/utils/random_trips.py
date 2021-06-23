@@ -29,25 +29,23 @@ from collections import defaultdict
 import math
 import optparse
 
-if 'SUMO_HOME' in os.environ:
+if "SUMO_HOME" in os.environ:
     sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
 import sumolib  # noqa
 from sumolib.miscutils import euclidean  # noqa
 from sumolib.geomhelper import naviDegree, minAngleDegreeDiff  # noqa
 
-DUAROUTER = sumolib.checkBinary('duarouter')
-
+DUAROUTER = sumolib.checkBinary("duarouter")
 SOURCE_SUFFIX = ".src.xml"
 SINK_SUFFIX = ".dst.xml"
 VIA_SUFFIX = ".via.xml"
-
-verbosity = 0
 VERBOSE_LEVELS = {
     "NOTHING": 0,
     "WARNINGS": 1,
 }
 
 
+verbosity = 0
 def my_log(*msg: str) -> None:
     """This function just wraps the standard `print()` function so that it follows the
        verbosity rules. This is mostly to avoid exhaustive warning messages caused by this
