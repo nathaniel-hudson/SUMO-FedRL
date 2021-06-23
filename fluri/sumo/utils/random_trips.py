@@ -30,7 +30,7 @@ import math
 import optparse
 
 if "SUMO_HOME" in os.environ:
-    sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
+    sys.path.append(os.path.join(os.environ["SUMO_HOME"], "tools"))
 import sumolib  # noqa
 from sumolib.miscutils import euclidean  # noqa
 from sumolib.geomhelper import naviDegree, minAngleDegreeDiff  # noqa
@@ -166,7 +166,7 @@ def get_options(args=None):
         options.pedestrians = True
 
     if options.pedestrians:
-        options.vclass = 'pedestrian'
+        options.vclass = "pedestrian"
         if options.flows > 0:
             my_log("Error: Person flows are not supported yet", file=sys.stderr)
             sys.exit(1)
@@ -190,7 +190,7 @@ def get_options(args=None):
         else:
             options.vtypeID = options.vehicle_class
 
-        if 'type=' in options.tripattrs:
+        if "type=" in options.tripattrs:
             my_log(
                 "Error: trip-attribute 'type' cannot be used together with option --vehicle-class", file=sys.stderr)
             sys.exit(1)
