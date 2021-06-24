@@ -4,13 +4,15 @@ import numpy as np
 from gym import spaces
 from typing import Any, Dict, List, Tuple
 
-from .const import *
-from .sumo_env import SumoEnv
+from fluri.sumo.config import *
+from fluri.sumo.sumo_env import SumoEnv
 
 GUI_DEFAULT = True
 
+
 class SinglePolicySumoEnv(SumoEnv, gym.Env):
-    """Custom Gym environment designed for simple RL experiments using SUMO/TraCI."""    
+    """Custom Gym environment designed for simple RL experiments using SUMO/TraCI."""
+
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
 
@@ -38,9 +40,12 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
             The observation space.
         """
         dtype = np.float64
-        high  = np.finfo(dtype).max
+        high = np.finfo(dtype).max
         n_tls = len(self.kernel.tls_hub)
-        return spaces.Box(low=0, high=high, shape=(n_tls, N_FEATURES), dtype=dtype)
+        n_features = N_RANKED_FEATURES if self.ranked else N_UNRANKED_FEATURES
+        return spaces.Box(low=0, high=high, shape=(n_tls, n_features), dtype=SPACE_DTYPE)
+        ## ^^ We need to adjust this somehow so that the state space representation is
+        ##    compatible with that of the MARL approaches.
 
     def step(self, action: List[int]) -> Tuple[np.ndarray, float, bool, dict]:
         """Performs a single step in the environment, as per the Open AI Gym framework.
@@ -61,7 +66,8 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         obs = self._observe()
         reward = self._get_reward(obs)
         done = self.kernel.done()
-        info = {"taken_action": taken_action}
+        info = {"taken_action": taken_action,
+                "cum_reward": reward}  # .values())}
 
         return obs, reward, done, info
 
@@ -83,19 +89,16 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         """
         taken_action = actions.copy()
         for tls in self.kernel.tls_hub:
-            act = actions[tls.id]
-            can_change = self.action_timer.can_change(tls.index)
-
             # If this condition is true, then the RYG state of the current traffic light
             # `tls` will be changed to the selected `next_state` provided by `actions`.
             # This only occurs if the next state and current state are not the same, the
             # transition is valid, and the `tls` is available to change. If so, then
             # the change is made and the timer is reset.
-            if act == 1 and can_change:
+            if actions[tls.id] == 1 and self.action_timer.can_change(tls.index):
                 tls.next_phase()
                 self.action_timer.restart(tls.index)
                 taken_action[tls.index] = 1
-            # Otherwise, keep the state the same, update the taken action, and then 
+            # Otherwise, keep the state the same, update the taken action, and then
             # decrease the remaining time by 1.
             else:
                 self.action_timer.decr(tls.index)
@@ -118,13 +121,20 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         float
             The reward for this step.
         """
-        num_veh = obs[:, NUM_VEHICLES]
-        num_halt = obs[:, NUM_HALT]
-        wait_time = obs[:, WAIT_TIME]
-        travel_time = obs[:, TRAVEL_TIME]
-        return sum(-1*num_veh) + sum(-1*num_halt) + sum(-1*wait_time) + sum(-1*travel_time)
+        # TODO: This needs to be adjusted to be more fair in comparison to MARL approaches.
+        # num_veh = obs[:, NUM_VEHICLES]
+        # num_halt = obs[:, HALT_CONGESTION]
+        # wait_time = obs[:, WAIT_TIME]
+        # travel_time = obs[:, TRAVEL_TIME]
+        # return sum(-1*num_veh) + sum(-1*num_halt) + sum(-1*wait_time) + sum(-1*travel_time)
 
-    def _observe(self) -> np.ndarray:
+        # NOTE: This should address the mentioned problem above.
+        # return -np.mean(obs[:, HALT_CONGESTION])
+        # return -sum(obs[:, HALT_CONGESTION]) - sum(obs[:, CONGESTION])
+        return -np.mean(obs[:, HALT_CONGESTION]) - np.mean(obs[:, CONGESTION])
+        # TODO: Maybe use `num_vehicles`?
+
+    def _observe(self, ranked: bool=False) -> np.ndarray:
         """Get a the observations across all the trafficlights (represented by a single
            numpy array).
 
@@ -134,4 +144,18 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
             Trafficlight observations.
         """
         obs = np.array([tls.get_observation() for tls in self.kernel.tls_hub])
+        if ranked:
+            self._get_ranks(obs)
+
+        # TODO: Fix this so that the tls observations are tuples and the tuples are edited
+        #       via the `_get_ranks` function.
+        # for key in obs:
+        #     obs[key] = tuple(np.array([val]) for val in obs[key])
+
         return obs
+
+    def _get_ranks(self, obs: np.ndarray) -> None:
+        pairs = sorted([tls_state[CONGESTION]
+                        for tls_state in obs], reverse=True)
+        graph = self.kernel.tls_hub.tls_graph
+        # TODO: Implement this thing...

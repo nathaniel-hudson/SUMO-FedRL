@@ -9,10 +9,10 @@ from gym import spaces
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
 from typing import Any, Dict, List, Tuple
 
-from .const import *
-from .kernel.kernel import SumoKernel
-from .sumo_env import SumoEnv
-from .utils.random_routes import generate_random_routes
+from fluri.sumo.config import *
+from fluri.sumo.kernel.kernel import SumoKernel
+from fluri.sumo.sumo_env import SumoEnv
+from fluri.sumo.utils.random_routes import generate_random_routes
 
 
 class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
@@ -23,7 +23,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
     @property
     def multi_action_space(self) -> spaces.Space:
         space = {}
-        for index, idx in self.kernel.tls_hub.index2id.items():
+        for _, idx in self.kernel.tls_hub.index2id.items():
             space[idx] = self.kernel.tls_hub[idx].action_space
         return spaces.Dict(space)
 
@@ -56,7 +56,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         return self.kernel.tls_hub[tls_id].observation_space
 
     def step(self, action_dict: Dict[Any, int]) -> Tuple[Dict, Dict, Dict, Dict]:
-        self._do_action(action_dict)
+        taken_action = self._do_action(action_dict)
         self.kernel.step()
 
         obs = self._observe()
@@ -65,6 +65,8 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
             for tls in self.kernel.tls_hub
         }
         done = {"__all__": self.kernel.done()}
+        # info = {"taken_action": taken_action,
+        #         "cum_reward": sum(reward.values())}
         info = {}
 
         return obs, reward, done, info
@@ -76,20 +78,18 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
             actions (Dict[Any, int]): The action that each trafficlight will take
 
         Returns:
-            List[int]: Returns the action taken -- influenced by which moves are legal or
-                not.
+            Dict[Any, int]: Returns the action taken -- influenced by which moves are
+                legal or not.
         """
         taken_action = actions.copy()
         for tls in self.kernel.tls_hub:
-            action = actions[tls.id]
-            can_change = self.action_timer.can_change(tls.index)
-            if action == 1 and can_change:
+            if actions[tls.id] == 1 and self.action_timer.can_change(tls.index):
                 tls.next_phase()
                 self.action_timer.restart(tls.index)
             else:
                 self.action_timer.decr(tls.index)
                 taken_action[tls.index] = 0
-        return List[int]
+        return taken_action
 
     def _get_reward(self, obs: np.ndarray) -> float:
         """Negative reward function based on the number of halting vehicles, waiting time,
@@ -105,7 +105,9 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         float
             The reward for this step
         """
-        return -obs[NUM_HALT] - obs[WAIT_TIME] - obs[TRAVEL_TIME]
+        # Deprecated.
+        # return -obs[HALT_CONGESTION] - obs[WAIT_TIME] - obs[TRAVEL_TIME]
+        return -obs[HALT_CONGESTION] - obs[CONGESTION]
 
     def _observe(self) -> Dict[Any, np.ndarray]:
         """Get the observations across all the trafficlights, indexed by trafficlight id.
@@ -115,4 +117,41 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         Dict[Any, np.ndarray]
             Observations from each trafficlight.
         """
-        return {tls.id: tls.get_observation() for tls in self.kernel.tls_hub}
+        obs = {tls.id: tls.get_observation() for tls in self.kernel.tls_hub}
+        if self.ranked:
+            self._get_ranks(obs)
+        return obs
+
+    def _get_ranks(self, obs: Dict) -> None:
+        """Appends global and local ranks to the observations in an inplace fashion.
+
+        Args:
+            obs (Dict): Observation provided by a trafficlight.
+        """
+        pairs = [(tls_id, tls_state[CONGESTION])
+                 for tls_id, tls_state in obs.items()]
+        pairs = sorted(pairs, key=lambda x: x[1], reverse=True)
+        graph = self.kernel.tls_hub.tls_graph  # Adjacency list representation.
+
+        # Calculate the global ranks for each tls in the road network.
+        for global_rank, (tls_id, _) in enumerate(pairs):
+            try:
+                obs[tls_id][GLOBAL_RANK] = 1 - (global_rank / (len(graph)-1))
+            except ZeroDivisionError:
+                obs[tls_id][GLOBAL_RANK] = 1
+
+        # Calculate local ranks based on global ranks from above.
+        for tls_id in graph:
+            local_rank = 0
+            for neighbor in graph[tls_id]:
+                if obs[tls_id][GLOBAL_RANK] > obs[neighbor][GLOBAL_RANK]:
+                    local_rank += 1
+            try:
+                obs[tls_id][LOCAL_RANK] = 1 - \
+                    (local_rank / (len(graph[tls_id])))
+                # ^^ We do *not* subtract the denominator by 1 (as we do with global
+                #    rank) because `len(graph[tls_id])` does not include `tls_id` as a
+                #    node in the sub-network when it should be included. This means that
+                #    +1 node cancels out the -1 node.
+            except ZeroDivisionError:
+                obs[tls_id][LOCAL_RANK] = 1

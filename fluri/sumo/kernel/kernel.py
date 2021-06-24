@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 
 from typing import Any, Dict, List, Tuple, Union
 
-from fluri.sumo.kernel.trafficlights import TrafficLightHub
+from fluri.sumo.kernel.trafficlight.hub import TrafficLightHub
 
 SORT_DEFAULT = True
 VERBOSE_DEFAULT = 0
@@ -14,7 +14,7 @@ VERBOSE_DEFAULT = 0
 
 class SumoKernel():
 
-    def __init__(self, config: Dict[str, Any]=None):
+    def __init__(self, config: Dict[str, Any]=None, ranked: bool=True):
         """Initialize a wrapper for a SUMO simulation by passing a `config` dict object
            that stores the command-line arguments needed for a SUMO simulation.
 
@@ -35,9 +35,11 @@ class SumoKernel():
             "additional-files": config.get("additional-files", None),
             "tripinfo-output": config.get("tripinfo-output", None),
         }
-        self.tls_hub = TrafficLightHub(self.config["net-file"])
-        # NOTE: Commented out `self.world` b/c it's not used currently.
-        # self.world = World(self.config["net-file"])
+        self.tls_hub = TrafficLightHub(
+            self.config["net-file"], 
+            ranked=config.get("ranked", True)
+        )
+
 
     def get_command_args(
         self,
@@ -73,25 +75,24 @@ class SumoKernel():
 
         return command_args
 
-    def update(self, ignore_world: bool=False, ignore_tls: bool=False) -> None:
-        """Updates the world and trafficlight hub objects. For the time being, this is
+
+    def update(self, ignore_tls: bool=False) -> None:
+        """Updates the trafficlight hub objects. For the time being, this is
            NOT being used.
 
         Parameters
         ----------
-        ignore_world : bool, optional
-            Whether to update the world matrix (True) or not (False), by default False.
         ignore_tls : bool, optional
             Whether to update the trafficlights (True) or not (False), by default False.
         """
-        if not ignore_world:
-            self.world.update()
         if not ignore_tls:
             self.tls_hub.update()
+
 
     # <|==============================================================================|> #
     # <|==============================================================================|> #
     # <|==============================================================================|> #
+
 
     def is_loaded(self) -> bool:
         """Checks whether a simulation is loaded or not.
@@ -107,10 +108,12 @@ class SumoKernel():
         except:
             return False
 
+
     def close(self) -> None:
         """Closes the SUMO simulation through TraCI if one is up and running."""
         if self.is_loaded():
             traci.close()
+
 
     def done(self) -> bool:
         """Returns whether or not the simulation handled by this Kernel instance is
@@ -124,6 +127,7 @@ class SumoKernel():
         """
         return not traci.simulation.getMinExpectedNumber() > 0
 
+
     def start(self) -> None:
         """Starts or resets the simulation based on whether or not it has been started
            or not.
@@ -132,6 +136,7 @@ class SumoKernel():
             traci.load(self.get_command_args()[1:])
         else:
             traci.start(self.get_command_args())
+
 
     def step(self) -> None:
         """Iterates the simulation to the next simulation step."""

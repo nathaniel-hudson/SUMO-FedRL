@@ -6,10 +6,9 @@ import xml.etree.ElementTree as ET
 
 from typing import Any, Dict, List, Tuple, Union
 
-from .trafficlights import TrafficLight, TrafficLightHub
-from .world import World
-
-from ..utils.random_routes import generate_random_routes
+from fluri.sumo.kernel.trafficlights import TrafficLight, TrafficLightHub
+from fluri.sumo.kernel.world import World
+from fluri.sumo.utils.random_routes import generate_random_routes
 
 SORT_DEFAULT = True
 VERBOSE_DEFAULT = 0
@@ -22,7 +21,7 @@ class SumoKernel():
         Parameters
         ----------
         config : Dict[str, Any], optional
-            The command-line arguments required for running a SUMO simulation, by default 
+            The command-line arguments required for running a SUMO simulation, by default
             None.
         """
 
@@ -36,7 +35,7 @@ class SumoKernel():
 
         assert 0.0 < scale_factor and scale_factor <= 1.0
 
-        # TODO: Create a function that "validates" a config so that 
+        # TODO: Create a function that "validates" a config so that
         #       it has everything necessary for a SUMO simulation.
         self.config = {
             "gui": config.get("gui", False),
@@ -57,14 +56,14 @@ class SumoKernel():
            Parameters
            ----------
            verbose : int, optional
-               If the passed int value is not 0, then warnings on SUMO's end will be 
+               If the passed int value is not 0, then warnings on SUMO's end will be
                displayed; otherwise they will be hidden (default 0).
         """
         program_cmd = "sumo-gui" if self.config["gui"] == True else "sumo"
         command_args = [program_cmd]
         if verbose == 0:
             command_args.extend(["--no-warnings", "true"])
-        
+
         for cmd, args in self.config.items():
             if cmd == "gui" or args == None:
                 continue
@@ -83,7 +82,7 @@ class SumoKernel():
 
 
     def get_tls_observations(
-        self, 
+        self,
         obs_width: float=0.2,
         return_dict: bool=True,
     ) -> Union[Dict[str, np.ndarray], np.ndarray]:
@@ -95,7 +94,7 @@ class SumoKernel():
             (x, y) = self.world.convert_coords(tls.get_position())
             top_left = (x - width, y - width)
             bottom_right = (x + width, y + width)
-            
+
             obs = self.world.observe(top_left, bottom_right)
             if return_dict:
                 observations[tls.id] = obs
@@ -119,7 +118,7 @@ class SumoKernel():
 
 
     def is_loaded(self) -> bool:
-        """Returns a boolean based on whether a connection has been loaded (True), or not 
+        """Returns a boolean based on whether a connection has been loaded (True), or not
         (False).
         """
         try:
