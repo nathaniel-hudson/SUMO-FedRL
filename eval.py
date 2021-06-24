@@ -15,7 +15,7 @@ from fluri.trainer.single_agent import SinglePolicyTrainer
 from os.path import join
 from pandas import DataFrame
 from typing import Dict, Tuple
-from ray.rllib import agents as raygents
+from ray.rllib import agents as raygents, policy
 from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy
 from ray.rllib.agents.ppo.ppo import PPOTrainer
 
@@ -84,6 +84,12 @@ def load_agent(
     agent = agent_class(env=env, config=config)
     print(f">>> checkpoint={checkpoint}")
     agent.restore(checkpoint)
+    policy_map = agent.workers.local_worker().policy_map
+    policy = next(iter(policy_map.values()))
+    print(policy_map)
+    print(policy)
+    policy.export_model("out\\models\\TorchScript-Models\\dummy-fedrl")
+    exit(0)
     return agent
 
 

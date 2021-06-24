@@ -120,15 +120,6 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         obs = {tls.id: tls.get_observation() for tls in self.kernel.tls_hub}
         if self.ranked:
             self._get_ranks(obs)
-
-        # ranks = [tls_obs[GLOBAL_RANK] for tls_obs in obs.values()]
-        # print(f"\n\nglobal_ranks = {ranks}\n\n")
-        # exit(0)
-        # TODO: Fix this so that the tls observations are tuples and the tuples are edited
-        #       via the `_get_ranks` function.
-        # for key in obs:
-        #     obs[key] = tuple(np.array([val]) for val in obs[key])
-
         return obs
 
     def _get_ranks(self, obs: Dict) -> None:

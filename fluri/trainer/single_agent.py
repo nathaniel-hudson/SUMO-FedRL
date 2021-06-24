@@ -1,3 +1,4 @@
+from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
 from fluri.sumo.single_agent_env import SinglePolicySumoEnv
 from fluri.trainer.base import BaseTrainer
 from fluri.trainer.util import *
@@ -5,14 +6,19 @@ from typing import Any, Dict
 
 
 class SinglePolicyTrainer(BaseTrainer):
-
+    # TODO: Add communication cost trade-off code.
     def __init__(self, **kwargs):
         name = "SARL"
         super().__init__(
-            env=SinglePolicySumoEnv,
+            env=MultiPolicySumoEnv,
             sub_dir=name,
             **kwargs
         )
+        # super().__init__(
+        #     env=SinglePolicySumoEnv,
+        #     sub_dir=name,
+        #     **kwargs
+        # )
         self.trainer_name = name
         self.idx = self.get_key_count()
         self.incr_key_count()

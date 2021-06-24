@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 
 class MultiPolicyTrainer(BaseTrainer):
-
+    # TODO: Add communication cost trade-off code.
     def __init__(self, **kwargs):
         super().__init__(
             env=MultiPolicySumoEnv,

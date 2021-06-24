@@ -10,7 +10,7 @@ Policy = NewType("Policy", Dict[Any, np.array])
 
 
 class FedPolicyTrainer(BaseTrainer):
-
+    # TODO: Add communication cost trade-off code.
     def __init__(self, fed_step: int, **kwargs) -> None:
         super().__init__(
             env=MultiPolicySumoEnv,
