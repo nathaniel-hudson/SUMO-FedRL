@@ -105,20 +105,22 @@ class TrafficLight:
 
 
         # Extract the lane-specific features.
-        max_lane_speeds = mean_lane_speeds = 0
+        max_lane_speeds = vehicle_speeds = 0
         total_lane_length = vehicle_lengths = halted_vehicle_lengths = 0
         for l in traci.trafficlight.getControlledLanes(self.id):
-            mean_lane_speeds += traci.lane.getLastStepMeanSpeed(l)
-            max_lane_speeds += traci.lane.getMaxSpeed(l)
             total_lane_length += traci.lane.getLength(l)
+            max_speed = traci.lane.getMaxSpeed(l)
             for v in traci.lane.getLastStepVehicleIDs(l):
+                speed = traci.vehicle.getSpeed(v)
+                vehicle_speeds += speed
+                max_lane_speeds += max_speed
                 vehicle_lengths += traci.vehicle.getLength(v)
-                if traci.vehicle.getSpeed(v) < HALTING_SPEED:
+                if speed < HALTING_SPEED:
                     halted_vehicle_lengths += traci.vehicle.getLength(v)
 
         obs[CONGESTION] = vehicle_lengths / total_lane_length
         obs[HALT_CONGESTION] = halted_vehicle_lengths / total_lane_length
-        obs[AVG_SPEED] = min(1.0, mean_lane_speeds / max_lane_speeds) 
+        obs[AVG_SPEED] = min(1.0, vehicle_speeds / max_lane_speeds) 
         # ^^ We need to "clip" average speed because drivers sometimes exceed the 
         #    speed limit.
 
@@ -138,31 +140,3 @@ class TrafficLight:
     @property
     def observation_space(self) -> spaces.Tuple:
         return trafficlight_space(self.ranked)
-
-        # dtype = np.float64
-        # high = np.finfo(dtype).max
-        # n_features = N_RANKED_FEATURES if self.ranked else N_UNRANKED_FEATURES
-        # return spaces.Box(low=0, high=high, shape=(n_features,), dtype=dtype)
-
-        # TODO: Implement statistics-based traffic light state representation.
-
-        # TODO: We NEED to fix the bounding issues here. The `high` upper bound is too
-        # large for bounded features (i.e., congestion, rank).
-        '''
-        dtype = np.float64
-        max_num_halt = 0  # TODO: Dynamically get this.
-        max_speed = 75  # TODO: Dynamically get this.
-        max_num_states = 5  # TODO: Dynamically get this.
-        space_list = [  # Add unranked features first/
-            spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=dtype),
-            spaces.Box(low=0.0, high=max_num_halt, shape=(1,), dtype=int),
-            spaces.Box(low=0.0, high=max_speed, shape=(1,), dtype=dtype),
-            spaces.Discrete(max_num_states)
-        ]
-        if self.ranked:
-            space_list.extend([
-                spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=dtype),
-                spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=dtype)
-            ])
-        return spaces.Tuple(tuple(space_list))
-        '''

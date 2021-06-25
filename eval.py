@@ -2,6 +2,7 @@ import glob
 import os
 import pandas as pd
 import ray
+import torch
 
 from collections import defaultdict
 from fluri.trainer.base import BaseTrainer
@@ -81,21 +82,34 @@ def load_agent(
         # TODO: Add the others.
         raise ValueError("Invalid agent type.")
 
+    ## TEMPORARY
+    ## ------------------------------ ##
+    agent = torch.jit.load("out\\models\\TorchScript-Models\\dummy-fedrl\\model.pt")
+    return agent
+    ## ============================== ##
+
+    
     agent = agent_class(env=env, config=config)
     print(f">>> checkpoint={checkpoint}")
     agent.restore(checkpoint)
     policy_map = agent.workers.local_worker().policy_map
     policy = next(iter(policy_map.values()))
     print(policy_map)
-    print(policy)
+    print(policy, type(policy))
     policy.export_model("out\\models\\TorchScript-Models\\dummy-fedrl")
     exit(0)
     return agent
 
 
 def marl_step(env, obs, agent) -> Tuple:
-    action = {agent_id: agent.compute_action(agent_obs, policy_id=agent_id)
+    print(agent.code)
+    action = {agent_id: agent({"obs": agent_obs}, [], ())
               for agent_id, agent_obs in obs.items()}
+    exit(0)
+    action = {agent_id: agent(agent_obs)
+              for agent_id, agent_obs in obs.items()}
+    # action = {agent_id: agent.compute_action(agent_obs, policy_id=agent_id)
+    #           for agent_id, agent_obs in obs.items()}
     next_obs, reward, done, info = env.step(action)
     done = next(iter(done.values()))
     return (next_obs, reward, done, info)
@@ -230,6 +244,8 @@ if __name__ == "__main__":
                                                   ranked=ranked)
                 df = eval(netfile, checkpoint, kind, ranked, n_episodes=10)
                 dataframes.append(df)
+                print(f">>> TorchScript Model worked! Exiting...")
+                exit(0)
 
     print(">> EVAL DONE!")
     final_df = pd.concat(dataframes)
