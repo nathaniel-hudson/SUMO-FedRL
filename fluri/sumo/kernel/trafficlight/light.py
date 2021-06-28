@@ -103,7 +103,6 @@ class TrafficLight:
         n_features = N_RANKED_FEATURES if self.ranked else N_UNRANKED_FEATURES
         obs = [0 for _ in range(n_features)]
 
-
         # Extract the lane-specific features.
         max_lane_speeds = vehicle_speeds = 0
         total_lane_length = vehicle_lengths = halted_vehicle_lengths = 0
@@ -120,15 +119,20 @@ class TrafficLight:
 
         obs[CONGESTION] = vehicle_lengths / total_lane_length
         obs[HALT_CONGESTION] = halted_vehicle_lengths / total_lane_length
-        obs[AVG_SPEED] = min(1.0, vehicle_speeds / max_lane_speeds) 
-        # ^^ We need to "clip" average speed because drivers sometimes exceed the 
-        #    speed limit.
+        try:
+            obs[AVG_SPEED] = min(1.0, vehicle_speeds / max_lane_speeds)
+            # ^^ We need to "clip" average speed because drivers sometimes exceed the
+            #    speed limit.
+        except ZeroDivisionError:
+            obs[AVG_SPEED] = 0.0
+            # ^^ This happens when 0 vehicles are on lanes controlled by the traffic light.
 
         # Extract descriptive statistics features for the current traffic light state.
         curr_tls_state = traci.trafficlight.getRedYellowGreenState(self.id)
         curr_tls_state_arr = [STATE_STR_TO_INT[phase]
                               for phase in curr_tls_state]
-        obs[CURR_STATE_MODE] = stats.mode(curr_tls_state_arr)[0].item() / NUM_TLS_STATES
+        obs[CURR_STATE_MODE] = stats.mode(curr_tls_state_arr)[
+            0].item() / NUM_TLS_STATES
         obs[CURR_STATE_STD] = np.std(curr_tls_state_arr) / NUM_TLS_STATES
 
         return np.array(obs)

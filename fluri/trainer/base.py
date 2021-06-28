@@ -7,7 +7,7 @@ from collections import defaultdict
 from pandas import DataFrame
 from ray.rllib.agents import (a3c, dqn, ppo)
 from time import ctime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from fluri.trainer.counter import Counter
 from fluri.trainer.defaults import *
@@ -86,7 +86,7 @@ class BaseTrainer(ABC):
 
         self.trainer_name = None
         self.idx = None
-        self.multi_agent_policy_config = None
+        self.policy_config = None
 
     def load(self, checkpoint: str) -> None:
         if type(self) is BaseTrainer:
@@ -96,11 +96,10 @@ class BaseTrainer(ABC):
         self.ray_trainer.restore(checkpoint)
 
     def train(self, num_rounds: int, save_on_end: bool=True, **kwargs) -> DataFrame:
-        if self.multi_policy_flag:
-            self.on_multi_policy_setup()
         if kwargs.get("checkpoint", None) is not None:
             self.load(kwargs["checkpoint"])
         else:
+            self.policies = self.on_policy_setup()
             self.on_setup()
         for r in range(num_rounds):
             self._round = r
@@ -130,16 +129,6 @@ class BaseTrainer(ABC):
 
     # ------------------------------------------------------------------------------ #
 
-    def on_multi_policy_setup(self) -> None:
-        dummy_env = self.env(config=self.env_config_fn())
-        obs_space = dummy_env.observation_space
-        act_space = dummy_env.action_space
-        self.policies = {
-            agent_id: (self.policy_type, obs_space, act_space,
-                       self.multi_agent_policy_config)
-            for agent_id in dummy_env._observe()
-        }
-
     def on_setup(self) -> None:
         ray.init()
         self.ray_trainer = self.trainer_type(env=self.env,
@@ -155,7 +144,7 @@ class BaseTrainer(ABC):
         return DataFrame.from_dict(self.training_data)
 
     def on_logging_step(self) -> None:
-        status = "[Ep. #{}] Mean reward: {:6.2f} -- Mean length: {:4.2f} -- Saved {} ({})."
+        status = "[Ep. #{}] Mean reward: {:6.2f}, Mean length: {:4.2f}, Saved {} ({})."
         print(status.format(
             self._round+1,
             self._result["episode_reward_mean"],
@@ -183,13 +172,16 @@ class BaseTrainer(ABC):
         ranked = "ranked" if self.ranked else "unranked"
         return f"{ranked}_{self.idx}"
 
-    def env_config_fn(self) -> Dict:
+    def env_config_fn(self) -> Dict[str, Any]:
         return {
             "gui": self.gui,
             "net-file": self.net_file,
             "rand_routes_on_reset": self.rand_routes_on_reset,
             "ranked": self.ranked,
+            # TODO: Add the random route generation arguments here.
         }
+
+    # ------------------------------------------------------------------------------ #
 
     @abstractmethod
     def init_config(self) -> Dict[str, Any]:
@@ -200,3 +192,8 @@ class BaseTrainer(ABC):
     def on_data_recording_step(self) -> None:
         raise NotImplementedError("Must implement abstract function "
                                   "`on_data_recording_step`.")
+
+    @abstractmethod
+    def on_policy_setup(self) -> Dict[str, Tuple[Any]]:
+        raise NotImplementedError("Must implement abstract function "
+                                  "`on_policy_setup`.")

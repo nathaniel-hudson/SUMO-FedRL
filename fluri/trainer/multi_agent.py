@@ -1,11 +1,12 @@
 from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
 from fluri.trainer.base import BaseTrainer
 from fluri.trainer.util import *
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 
+# TODO: Add communication cost trade-off code.
 class MultiPolicyTrainer(BaseTrainer):
-    # TODO: Add communication cost trade-off code.
+
     def __init__(self, **kwargs):
         super().__init__(
             env=MultiPolicySumoEnv,
@@ -16,7 +17,7 @@ class MultiPolicyTrainer(BaseTrainer):
         self.trainer_name = "MARL"
         self.idx = self.get_key_count()
         self.incr_key_count()
-        self.multi_agent_policy_config = {}
+        self.policy_config = {}
 
     def init_config(self) -> Dict[str, Any]:
         return {
@@ -45,3 +46,17 @@ class MultiPolicyTrainer(BaseTrainer):
                         self.training_data[key].append(value)
                 else:
                     self.training_data[key].append(value)
+
+    def on_policy_setup(self) -> Dict[str, Tuple[Any]]:
+        dummy_env = self.env(config=self.env_config_fn())
+        obs_space = dummy_env.observation_space
+        act_space = dummy_env.action_space
+        return {
+            agent_id: (
+                self.policy_type,
+                obs_space,
+                act_space,
+                self.policy_config
+            )
+            for agent_id in dummy_env._observe()
+        }

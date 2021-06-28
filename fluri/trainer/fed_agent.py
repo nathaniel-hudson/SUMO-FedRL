@@ -4,13 +4,15 @@ from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
 from typing import Any, Dict, List, NewType
 from fluri.trainer.base import BaseTrainer
 from fluri.trainer.util import *
+from typing import Any, Dict, Tuple
 
 Weights = NewType("Weights", Dict[Any, np.array])
 Policy = NewType("Policy", Dict[Any, np.array])
 
 
+# TODO: Add communication cost trade-off code.
 class FedPolicyTrainer(BaseTrainer):
-    # TODO: Add communication cost trade-off code.
+
     def __init__(self, fed_step: int, **kwargs) -> None:
         super().__init__(
             env=MultiPolicySumoEnv,
@@ -22,7 +24,7 @@ class FedPolicyTrainer(BaseTrainer):
         self.fed_step = fed_step
         self.idx = self.get_key_count()
         self.incr_key_count()
-        self.multi_agent_policy_config = {}
+        self.policy_config = {}
 
     def init_config(self) -> Dict[str, Any]:
         return {
@@ -67,6 +69,20 @@ class FedPolicyTrainer(BaseTrainer):
             new_weights = FedPolicyTrainer.fedavg(policy_arr)
             for policy_id in self.policies:
                 self.ray_trainer.get_policy(policy_id).set_weights(new_weights)
+
+    def on_policy_setup(self) -> Dict[str, Tuple[Any]]:
+        dummy_env = self.env(config=self.env_config_fn())
+        obs_space = dummy_env.observation_space
+        act_space = dummy_env.action_space
+        return {
+            agent_id: (
+                self.policy_type,
+                obs_space,
+                act_space,
+                self.policy_config
+            )
+            for agent_id in dummy_env._observe()
+        }
 
     @classmethod
     def fedavg(cls, policies: List[Policy], C: float=1.0) -> Weights:

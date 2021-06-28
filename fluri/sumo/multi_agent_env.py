@@ -28,7 +28,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         return spaces.Dict(space)
 
     @property
-    def action_space(self):
+    def action_space(self) -> spaces.Space:
         """This is the action space defined for a *single* traffic light. It is
            defined this way to support RlLib more easily.
 
@@ -39,7 +39,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         return self.kernel.tls_hub[first].action_space
 
     @property
-    def observation_space(self):
+    def observation_space(self) -> spaces.Space:
         """This is the observation space defined for a *single* traffic light. It is
            defined this way to support RlLib more easily.
 
@@ -49,10 +49,10 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         first = self.kernel.tls_hub.index2id[0]
         return self.kernel.tls_hub[first].observation_space
 
-    def action_spaces(self, tls_id):
+    def action_spaces(self, tls_id) -> spaces.Space:
         return self.kernel.tls_hub[tls_id].action_space
 
-    def observation_spaces(self, tls_id):
+    def observation_spaces(self, tls_id) -> spaces.Space:
         return self.kernel.tls_hub[tls_id].observation_space
 
     def step(self, action_dict: Dict[Any, int]) -> Tuple[Dict, Dict, Dict, Dict]:
@@ -66,7 +66,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         }
         done = {"__all__": self.kernel.done()}
         # info = {"taken_action": taken_action,
-        #         "cum_reward": sum(reward.values())}
+        #         "total_reward": sum(reward.values())}
         info = {}
 
         return obs, reward, done, info

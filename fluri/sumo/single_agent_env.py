@@ -14,6 +14,8 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
     """Custom Gym environment designed for simple RL experiments using SUMO/TraCI."""
 
     def __init__(self, config: Dict[str, Any]):
+        raise NotImplementedError("This class, `SinglePolicySumoEnv`, "
+                                  "is deprecated.")
         super().__init__(config)
 
     @property
@@ -44,8 +46,8 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         n_tls = len(self.kernel.tls_hub)
         n_features = N_RANKED_FEATURES if self.ranked else N_UNRANKED_FEATURES
         return spaces.Box(low=0, high=high, shape=(n_tls, n_features), dtype=SPACE_DTYPE)
-        ## ^^ We need to adjust this somehow so that the state space representation is
-        ##    compatible with that of the MARL approaches.
+        # ^^ We need to adjust this somehow so that the state space representation is
+        # compatible with that of the MARL approaches.
 
     def step(self, action: List[int]) -> Tuple[np.ndarray, float, bool, dict]:
         """Performs a single step in the environment, as per the Open AI Gym framework.

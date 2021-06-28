@@ -67,8 +67,8 @@ class SumoEnv(ABC):
     def close(self) -> None:
         self.kernel.close()
 
-    ## ================================================================================ ##
-    ## ........ABSTRACT METHODS THAT NEED TO BE IMPLEMENTED BY CHILDREN CLASSES........ ##
+    ## ================================================================================= ##
+    ## ......ABSTRACT METHODS THAT NEED TO BE IMPLEMENTED BY CHILDREN CLASSES....... ##
     ## -------------------------------------------------------------------------------- ##
     @abstractmethod
     def step(self, actions) -> Tuple[Any, Any, Any, Any]:
