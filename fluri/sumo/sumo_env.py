@@ -33,6 +33,7 @@ class SumoEnv(ABC):
             self.__first_rand_routes_flag = True
         else:
             self.rand_routes_on_reset = False
+            self.__first_rand_routes_flag = False
 
         self.kernel = SumoKernel(self.config)
         self.action_timer = ActionTimer(len(self.kernel.tls_hub))

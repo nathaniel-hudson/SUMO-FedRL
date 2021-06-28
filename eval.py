@@ -86,7 +86,10 @@ def load_agent(
     # TODO: Look into how this can be used to reconstruct the policy map used during
     # training.
     policy_map = agent.workers.local_worker().policy_map
+    # policy = next(iter(policy_map.values()))
+    # policy.export_model("dummy")
     print(f"POLICY_MAP:\n{policy_map}\n")
+    exit(0)
 
     return agent
 
@@ -94,6 +97,10 @@ def load_agent(
 def eval_step(env, obs, agent) -> Tuple:
     action = {agent_id: agent.compute_action(agent_obs, policy_id=agent_id)
               for agent_id, agent_obs in obs.items()}
+
+    print(f"action:\n{action}")
+    exit(0)
+
     next_obs, reward, done, info = env.step(action)
     done = next(iter(done.values()))
     return (next_obs, reward, done, info)
@@ -118,6 +125,7 @@ def eval(
     env = env_class(config["env_config"])
     for ep in range(1, n_episodes+1):
         obs = env.reset()
+        print(f"\n\nobs:\n{obs}\n")
         done, step = False, 0
         last_reward = defaultdict(float)
         while not done:
@@ -179,11 +187,13 @@ if __name__ == "__main__":
         for kind in ["fedrl", "marl", "sarl"]:
             for ranked in [True, False]:
                 nettype = netfile.split(os.sep)[1]
-                # checkpoint = load_last_checkpoint(nettype=nettype, kind=kind,
-                #                                   ranked=ranked)
-                ranked_str = "ranked" if ranked else "unranked"
-                checkpoint = join("out", "models", "Simple", f"{ranked_str}-fedrl",
-                                  "checkpoint_100", "checkpoint-100")
+                checkpoint = load_last_checkpoint(nettype=nettype, kind=kind,
+                                                  ranked=ranked)
+                
+                # ranked_str = "ranked" if ranked else "unranked"
+                # checkpoint = join("out", "models", "Simple", f"{ranked_str}-fedrl",
+                #                   "checkpoint_100", "checkpoint-100")
+
                 df = eval(netfile, checkpoint, kind, ranked, n_episodes=10)
                 dataframes.append(df)
                 # print(f">>> TorchScript Model worked! Exiting...")

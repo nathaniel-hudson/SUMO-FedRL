@@ -1,18 +1,10 @@
-import gym
-from gym.spaces.space import Space
 import numpy as np
-import os
-import traci
 
-from collections import OrderedDict
+from fluri.sumo.config import *
+from fluri.sumo.sumo_env import SumoEnv
 from gym import spaces
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
 from typing import Any, Dict, List, Tuple
-
-from fluri.sumo.config import *
-from fluri.sumo.kernel.kernel import SumoKernel
-from fluri.sumo.sumo_env import SumoEnv
-from fluri.sumo.utils.random_routes import generate_random_routes
 
 
 class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
