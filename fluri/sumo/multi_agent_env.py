@@ -99,6 +99,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         """
         # Deprecated.
         # return -obs[HALT_CONGESTION] - obs[WAIT_TIME] - obs[TRAVEL_TIME]
+        # TODO: Finalize this!!! 
         return -obs[HALT_CONGESTION] - obs[CONGESTION]
 
     def _observe(self) -> Dict[Any, np.ndarray]:
@@ -125,14 +126,14 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         pairs = sorted(pairs, key=lambda x: x[1], reverse=True)
         graph = self.kernel.tls_hub.tls_graph  # Adjacency list representation.
 
-        # Calculate the global ranks for each tls in the road network.
+        # Calculate the GLOBAL ranks for each tls in the road network.
         for global_rank, (tls_id, _) in enumerate(pairs):
             try:
                 obs[tls_id][GLOBAL_RANK] = 1 - (global_rank / (len(graph)-1))
             except ZeroDivisionError:
                 obs[tls_id][GLOBAL_RANK] = 1
 
-        # Calculate local ranks based on global ranks from above.
+        # Calculate LOCAL ranks based on global ranks from above.
         for tls_id in graph:
             local_rank = 0
             for neighbor in graph[tls_id]:
