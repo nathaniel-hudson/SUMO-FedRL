@@ -7,11 +7,12 @@ from collections import defaultdict
 from pandas import DataFrame
 from ray.rllib.agents import (a3c, dqn, ppo)
 from time import ctime
-from typing import Any, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 from fluri.trainer.counter import Counter
 from fluri.trainer.defaults import *
-from fluri.sumo.sumo_env import SumoEnv
+from fluri.trainer.util import *
+from fluri.sumo.abstract_env import AbstractSumoEnv
 
 
 # TODO: To avoid confusion with RlLib's `Trainer` class, let's rename this to
@@ -21,26 +22,25 @@ class BaseTrainer(ABC):
     counter: Counter
     idx: int
     num_gpus: int
-    env: SumoEnv
+    env: AbstractSumoEnv
     learning_rate: float
     log_level: str
     gamma: float
-    multi_policy_flag: bool
     num_gpus: int
     num_workers: int
     policy: str
+    policy_mapping_fn: Callable
     policy_type: Any  # TODO: Change this.
     trainer_type: Any  # TODO: Change this.
 
     def __init__(
         self,
         checkpoint_freq: int=1,
-        env: SumoEnv=None,
+        env: AbstractSumoEnv=None,
         gamma: float=0.95,
         learning_rate: float=0.001,
         log_level: str="ERROR",
         model_name: str=None,
-        multi_policy_flag: bool=False,
         num_gpus: int=0,
         num_workers: int=0,
         root_dir: List[str]=["out"],
@@ -56,7 +56,6 @@ class BaseTrainer(ABC):
         self.learning_rate = learning_rate
         self.log_level = log_level
         self.model_name = model_name
-        self.multi_policy_flag = multi_policy_flag
         self.num_gpus = num_gpus
         self.num_workers = num_workers
 
@@ -87,6 +86,7 @@ class BaseTrainer(ABC):
         self.trainer_name = None
         self.idx = None
         self.policy_config = None
+        self.policy_mapping_fn = None
 
     def load(self, checkpoint: str) -> None:
         if type(self) is BaseTrainer:
@@ -100,6 +100,12 @@ class BaseTrainer(ABC):
             self.load(kwargs["checkpoint"])
         else:
             self.policies = self.on_policy_setup()
+            if GLOBAL_POLICY_VAR in self.policies:
+                raise ValueError(f"Sub-classes of `BaseTrainer` cannot have "
+                                 f"policies with key '{GLOBAL_POLICY_VAR}'.")
+            else:
+                temp = next(iter(self.policies.values()))
+                self.policies[GLOBAL_POLICY_VAR] = temp
             self.on_setup()
         for r in range(num_rounds):
             self._round = r
@@ -108,6 +114,7 @@ class BaseTrainer(ABC):
             self.on_logging_step()
             if r % self.checkpoint_freq == 0:
                 self.ray_trainer.save(self.model_path)
+        self.on_make_final_policy() # <== TODO
         dataframe = self.on_tear_down()
         if save_on_end:
             path = os.path.join(self.out_data_dir, f"{self.get_filename()}.csv")
@@ -126,6 +133,22 @@ class BaseTrainer(ABC):
             self.policy_type = ppo.PPOTorchPolicy
         else:
             raise NotImplemented(f"Do not support policies for `{policy}`.")
+
+    # ------------------------------------------------------------------------------ #
+
+    def init_config(self) -> Dict[str, Any]:
+        return {
+            "env_config": self.env_config_fn(),
+            "framework": "torch",
+            "log_level": self.log_level,
+            "lr": self.learning_rate,
+            "multiagent": {
+                "policies": self.policies,
+                "policy_mapping_fn": lambda _: self.policy_mapping_fn
+            },
+            "num_gpus": self.num_gpus,
+            "num_workers": self.num_workers,
+        }
 
     # ------------------------------------------------------------------------------ #
 
@@ -184,9 +207,22 @@ class BaseTrainer(ABC):
     # ------------------------------------------------------------------------------ #
 
     @abstractmethod
-    def init_config(self) -> Dict[str, Any]:
+    def on_make_final_policy() -> Weights:
+        """This function is to be used for defining the weights used for the final policy 
+           to be used during evaluation. Each Trainer sub-class will come up with their
+           own way for doing this procedure. For instance, simply grabbing one of the
+           trained policies at random and returning its weights is sufficient (though 
+           likely not a desirable approach). The returned weights will then be used to 
+           in the GLOBAL policy that evaluation will be used.
+
+        Raises:
+            NotImplementedError: Cannot be called for the abstract BaseTrainer class.
+
+        Returns:
+            Weights: The model weights to be used in the GLOBAL model for evaluation.
+        """
         raise NotImplementedError("Must implement abstract function "
-                                  "`init_config`.")
+                                  "`on_make_final_policy`.")
 
     @abstractmethod
     def on_data_recording_step(self) -> None:

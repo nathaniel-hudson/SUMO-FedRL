@@ -1,23 +1,23 @@
 import numpy as np
 
 from fluri.sumo.config import *
-from fluri.sumo.sumo_env import SumoEnv
+from fluri.sumo.abstract_env import AbstractSumoEnv
 from gym import spaces
-from ray.rllib.env.multi_agent_env import MultiAgentEnv
+from ray.rllib.env import MultiAgentEnv
 from typing import Any, Dict, List, Tuple
 
 
-class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
+class SumoEnv(AbstractSumoEnv, MultiAgentEnv):
 
     def __init__(self, config):
         super().__init__(config)
 
     @property
     def multi_action_space(self) -> spaces.Space:
-        space = {}
-        for _, idx in self.kernel.tls_hub.index2id.items():
-            space[idx] = self.kernel.tls_hub[idx].action_space
-        return spaces.Dict(space)
+        return spaces.Dict({
+            idx: self.kernel.tls_hub[idx].action_space
+            for _, idx in self.kernel.tls_hub.index2id.items()
+        })
 
     @property
     def action_space(self) -> spaces.Space:
@@ -97,10 +97,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         float
             The reward for this step
         """
-        # Deprecated.
-        # return -obs[HALT_CONGESTION] - obs[WAIT_TIME] - obs[TRAVEL_TIME]
-        # TODO: Finalize this!!! 
-        return -obs[HALT_CONGESTION] - obs[CONGESTION]
+        return -(obs[LANE_OCCUPANCY] + obs[HALTED_LANE_OCCUPANCY])
 
     def _observe(self) -> Dict[Any, np.ndarray]:
         """Get the observations across all the trafficlights, indexed by trafficlight id.
@@ -121,7 +118,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
         Args:
             obs (Dict): Observation provided by a trafficlight.
         """
-        pairs = [(tls_id, tls_state[CONGESTION])
+        pairs = [(tls_id, tls_state[LANE_OCCUPANCY])
                  for tls_id, tls_state in obs.items()]
         pairs = sorted(pairs, key=lambda x: x[1], reverse=True)
         graph = self.kernel.tls_hub.tls_graph  # Adjacency list representation.
@@ -141,7 +138,7 @@ class MultiPolicySumoEnv(SumoEnv, MultiAgentEnv):
                     local_rank += 1
             try:
                 obs[tls_id][LOCAL_RANK] = 1 - \
-                    (local_rank / (len(graph[tls_id])))
+                    (local_rank / len(graph[tls_id]))
                 # ^^ We do *not* subtract the denominator by 1 (as we do with global
                 #    rank) because `len(graph[tls_id])` does not include `tls_id` as a
                 #    node in the sub-network when it should be included. This means that

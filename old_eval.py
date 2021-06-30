@@ -9,8 +9,7 @@ import seaborn as sns
 
 from collections import defaultdict
 from datetime import datetime
-from fluri.sumo.single_agent_env import SinglePolicySumoEnv
-from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
+from fluri.sumo.env import SumoEnv
 from gym import Space
 from os.path import join
 from ray.rllib.agents.ppo import PPOTrainer
@@ -27,7 +26,7 @@ def get_args() -> argparse.Namespace:
 
 
 def get_policies() -> Tuple[Space, Space]:
-    dummy_env = MultiPolicySumoEnv(config={
+    dummy_env = SumoEnv(config={
         "gui": False,
         "net-file": join("configs", "two_inter", "two_inter.net.xml")
     })
@@ -48,7 +47,7 @@ def load_agent(
 
     if kind.lower() == "marl":
         policies = get_policies()
-        agent = PPOTrainer(env=MultiPolicySumoEnv, config={
+        agent = PPOTrainer(env=SumoEnv, config={
             "multiagent": {
                 "policies": policies,
                 "policy_mapping_fn": lambda agent_id: agent_id,
@@ -63,18 +62,18 @@ def load_agent(
         agent.restore(checkpoint)
         return agent
 
-    elif kind.lower() == "sarl":
-        policies = get_policies()
-        agent = PPOTrainer(env=SinglePolicySumoEnv, config={
-            "lr": 0.001,
-            # "num_gpus": 0,
-            "num_workers": 0,  # NOTE: For some reason, this *needs* to be 0.
-            "framework": "torch",
-            "log_level": "ERROR",
-            "env_config": env_config,
-        })
-        agent.restore(checkpoint)
-        return agent
+    # elif kind.lower() == "sarl":
+    #     policies = get_policies()
+    #     agent = PPOTrainer(env=N/A, config={
+    #         "lr": 0.001,
+    #         # "num_gpus": 0,
+    #         "num_workers": 0,  # NOTE: For some reason, this *needs* to be 0.
+    #         "framework": "torch",
+    #         "log_level": "ERROR",
+    #         "env_config": env_config,
+    #     })
+    #     agent.restore(checkpoint)
+    #     return agent
 
     elif kind.lower() == "fedrl":
         raise NotImplemented(
@@ -111,7 +110,7 @@ def eval(n_episodes: int=1, kind: str="marl") -> None:
 
     ray.init()
     if kind == "marl":
-        env = MultiPolicySumoEnv({
+        env = SumoEnv({
             "gui": False,
             "net-file": join("configs", "two_inter", "two_inter.net.xml"),
             "rand_routes_on_reset": True,
@@ -119,14 +118,14 @@ def eval(n_episodes: int=1, kind: str="marl") -> None:
         agent = load_agent(join("out", "models", "MARL-ray",
                                 "checkpoint_100", "checkpoint-100"))
 
-    elif kind == "sarl":
-        env = SinglePolicySumoEnv({
-            "gui": False,
-            "net-file": join("configs", "two_inter", "two_inter.net.xml"),
-            "rand_routes_on_reset": True
-        })
-        agent = load_agent(join("out", "models", "SARL-ray",
-                                "checkpoint_100", "checkpoint-100"), kind=kind)
+    # elif kind == "sarl":
+    #     env = N/A({
+    #         "gui": False,
+    #         "net-file": join("configs", "two_inter", "two_inter.net.xml"),
+    #         "rand_routes_on_reset": True
+    #     })
+    #     agent = load_agent(join("out", "models", "SARL-ray",
+    #                             "checkpoint_100", "checkpoint-100"), kind=kind)
 
     # STEP 2: Run through the simulation.
     eval_data = defaultdict(list)

@@ -1,6 +1,6 @@
 import numpy as np
 
-from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
+from fluri.sumo.env import SumoEnv
 from typing import Any, Dict, List, NewType
 from fluri.trainer.base import BaseTrainer
 from fluri.trainer.util import *
@@ -15,9 +15,8 @@ class FedPolicyTrainer(BaseTrainer):
 
     def __init__(self, fed_step: int, **kwargs) -> None:
         super().__init__(
-            env=MultiPolicySumoEnv,
+            env=SumoEnv,
             sub_dir="FedRL",
-            multi_policy_flag=True,
             **kwargs
         )
         self.trainer_name = "FedRL"
@@ -25,20 +24,7 @@ class FedPolicyTrainer(BaseTrainer):
         self.idx = self.get_key_count()
         self.incr_key_count()
         self.policy_config = {}
-
-    def init_config(self) -> Dict[str, Any]:
-        return {
-            "env_config": self.env_config_fn(),
-            "framework": "torch",
-            "log_level": self.log_level,
-            "lr": self.learning_rate,
-            "multiagent": {
-                "policies": self.policies,
-                "policy_mapping_fn": lambda agent_id: agent_id
-            },
-            "num_gpus": self.num_gpus,
-            "num_workers": self.num_workers,
-        }
+        self.policy_mapping_fn = lambda agent_id: agent_id
 
     def on_data_recording_step(self) -> None:
         if self.fed_step is None:
@@ -70,6 +56,11 @@ class FedPolicyTrainer(BaseTrainer):
             for policy_id in self.policies:
                 self.ray_trainer.get_policy(policy_id).set_weights(new_weights)
 
+    def on_make_final_policy(self) -> Weights:
+        policy_arr = [self.ray_trainer.get_policy(policy_id)
+                      for policy_id in self.policies if policy_id != GLOBAL_POLICY_VAR]
+        return FedPolicyTrainer.fedavg(policy_arr)
+
     def on_policy_setup(self) -> Dict[str, Tuple[Any]]:
         dummy_env = self.env(config=self.env_config_fn())
         obs_space = dummy_env.observation_space
@@ -86,6 +77,7 @@ class FedPolicyTrainer(BaseTrainer):
 
     @classmethod
     def fedavg(cls, policies: List[Policy], C: float=1.0) -> Weights:
+        ## TODO: Adjust this so that it's not longer the basic, worthless, naive avg.
         weights = np.array([policy.get_weights() for policy in policies])
         policy_keys = policies[0].get_weights().keys()
         new_weights = {}

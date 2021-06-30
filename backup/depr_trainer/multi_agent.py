@@ -6,7 +6,7 @@ from os.path import join
 from ray.rllib.agents.ppo import PPOTrainer
 from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy
 from time import ctime
-from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
+from fluri.sumo.env import SumoEnv
 from fluri.sumo.kernel.trafficlights import RANK_DEFAULT
 from fluri.trainer.const import *
 from fluri.trainer.util import *
@@ -25,7 +25,7 @@ def train(
     Args:
         n_rounds (int): Number of training rounds. Defaults to 10.
     """
-    dummy_env = MultiPolicySumoEnv(config=get_env_config(ranked=ranked))
+    dummy_env = SumoEnv(config=get_env_config(ranked=ranked))
     obs_space = dummy_env.observation_space
     act_space = dummy_env.action_space
     policies = {
@@ -34,7 +34,7 @@ def train(
     }
 
     ray.init()
-    trainer = PPOTrainer(env=MultiPolicySumoEnv, config={
+    trainer = PPOTrainer(env=SumoEnv, config={
         "multiagent": {
             "policies": policies,
             "policy_mapping_fn": lambda agent_id: agent_id,

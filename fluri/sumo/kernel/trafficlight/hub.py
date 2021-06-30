@@ -27,7 +27,7 @@ class TrafficLightHub:
         road_netfile: str,
         sort_phases: bool=SORT_DEFAULT,
         ranked: bool=RANK_DEFAULT
-    ):
+    ) -> None:
         self.road_netfile = road_netfile
         self.ids = sorted([tls_id for tls_id in self.get_traffic_light_ids()])
         self.index2id = {index:  tls_id for index,
@@ -75,7 +75,6 @@ class TrafficLightHub:
                         if cond:
                             neighbors.add(other_tls_id)
                 graph[tls_id] = list(neighbors)
-
         return graph
 
     def update(self) -> None:

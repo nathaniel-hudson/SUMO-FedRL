@@ -7,8 +7,8 @@ import torch
 from collections import defaultdict
 from fluri.trainer.base import BaseTrainer
 from fluri.sumo.config import *
-from fluri.sumo.sumo_env import SumoEnv
-from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
+from fluri.sumo.abstract_env import AbstractSumoEnv
+from fluri.sumo.env import SumoEnv
 from fluri.trainer.fed_agent import FedPolicyTrainer
 from fluri.trainer.multi_agent import MultiPolicyTrainer
 from fluri.trainer.single_agent import SinglePolicyTrainer
@@ -36,7 +36,7 @@ def load_config(netfile: str, kind: str, ranked: bool) -> Dict:
         "num_workers": 0,
     }
 
-    dummy_env = MultiPolicySumoEnv(config={
+    dummy_env = SumoEnv(config={
         "gui": False,
         "net-file": netfile,
         "ranked": ranked,
@@ -60,14 +60,14 @@ def load_config(netfile: str, kind: str, ranked: bool) -> Dict:
     return config
 
 
-def load_env(netfile: str, kind: str, ranked: bool) -> Tuple[SumoEnv, Dict]:
-    env_class = MultiPolicySumoEnv
+def load_env(netfile: str, kind: str, ranked: bool) -> Tuple[AbstractSumoEnv, Dict]:
+    env_class = SumoEnv
     config = load_config(netfile, kind, ranked)
     return env_class, config
 
 
 def load_agent(
-    env: SumoEnv,
+    env: AbstractSumoEnv,
     config: Dict,
     checkpoint: str,
     agent_type: str="ppo"

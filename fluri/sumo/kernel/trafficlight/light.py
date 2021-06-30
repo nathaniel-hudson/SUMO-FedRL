@@ -2,15 +2,12 @@ import networkx as nx
 import numpy as np
 import random
 import traci
-import warnings
 import xml.etree.ElementTree as ET
 
-from collections import OrderedDict
 from gym import spaces
 from scipy import stats
-from typing import Any, Dict, List, Set, Tuple, Union
+from typing import List
 
-from fluri.sumo.utils.core import get_node_id
 from fluri.sumo.config import *
 from fluri.sumo.kernel.const import *
 from fluri.sumo.kernel.trafficlight.space import trafficlight_space
@@ -49,6 +46,14 @@ class TrafficLight:
         self.phase = self.program[self.state]
         self.ranked = ranked
 
+    @property
+    def action_space(self) -> spaces.Box:
+        return spaces.Box(low=0, high=1, shape=(1,), dtype=int)
+
+    @property
+    def observation_space(self) -> spaces.Tuple:
+        return trafficlight_space(self.ranked)
+
     def update(self) -> None:
         """Update the current state by interacting with `traci`."""
         try:
@@ -61,9 +66,9 @@ class TrafficLight:
         next_state = (self.state+1) % self.num_phases
         next_phase = self.program[next_state]
         try:
-            traci.trafficlight.setRedYellowGreenState(self.id, self.phase)
             self.state = next_state
             self.phase = next_phase
+            traci.trafficlight.setRedYellowGreenState(self.id, self.phase)
         except traci.exceptions.FatalTraCIError:
             pass
 
@@ -117,30 +122,37 @@ class TrafficLight:
                 if speed < HALTING_SPEED:
                     halted_vehicle_lengths += traci.vehicle.getLength(v)
 
-        obs[CONGESTION] = vehicle_lengths / total_lane_length
-        obs[HALT_CONGESTION] = halted_vehicle_lengths / total_lane_length
+        obs[LANE_OCCUPANCY] = vehicle_lengths / total_lane_length
+        obs[HALTED_LANE_OCCUPANCY] = halted_vehicle_lengths / total_lane_length
         try:
-            obs[AVG_SPEED] = min(1.0, vehicle_speeds / max_lane_speeds)
-            # ^^ We need to "clip" average speed because drivers sometimes exceed the
-            #    speed limit.
+            # We need to "clip" average speed because drivers sometimes exceed the
+            # speed limit.
+            obs[SPEED_RATIO] = min(1.0, vehicle_speeds / max_lane_speeds)
         except ZeroDivisionError:
-            obs[AVG_SPEED] = 0.0
-            # ^^ This happens when 0 vehicles are on lanes controlled by the traffic light.
+            # This happens when 0 vehicles are on lanes controlled by the traffic light.
+            obs[SPEED_RATIO] = 0.0
 
         # Extract descriptive statistics features for the current traffic light state.
         curr_tls_state = traci.trafficlight.getRedYellowGreenState(self.id)
         curr_tls_state_arr = [STATE_STR_TO_INT[phase]
                               for phase in curr_tls_state]
-        obs[CURR_STATE_MODE] = stats.mode(curr_tls_state_arr)[
+        obs[PHASE_STATE_MODE] = stats.mode(curr_tls_state_arr)[
             0].item() / NUM_TLS_STATES
-        obs[CURR_STATE_STD] = np.std(curr_tls_state_arr) / NUM_TLS_STATES
+        obs[PHASE_STATE_STD] = np.std(curr_tls_state_arr) / NUM_TLS_STATES
 
         return np.array(obs)
 
-    @property
-    def action_space(self) -> spaces.Box:
-        return spaces.Box(low=0, high=1, shape=(1,), dtype=int)
+    def __get_lane_occupancy(self) -> float:
+        pass
 
-    @property
-    def observation_space(self) -> spaces.Tuple:
-        return trafficlight_space(self.ranked)
+    def __get_halted_lane_occupancy(self) -> float:
+        pass
+
+    def __get_speed_ratio(self) -> float:
+        pass
+
+    def __get_phase_mode(self) -> float:
+        pass
+
+    def __get_phase_std(self) -> float:
+        pass

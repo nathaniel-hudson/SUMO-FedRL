@@ -1,5 +1,5 @@
 from abc import ABC
-from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
+from fluri.sumo.env import SumoEnv
 from pandas import DataFrame
 from ray.rllib.agents import ppo
 from typing import Dict
@@ -10,7 +10,7 @@ class BaseTester(ABC):
         self,
         env_config,
         checkpoint,
-        env_class=MultiPolicySumoEnv,
+        env_class=SumoEnv,
         config=None
     ) -> None:
         self.env_class = env_class

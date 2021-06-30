@@ -1,5 +1,4 @@
-from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
-from fluri.sumo.single_agent_env import SinglePolicySumoEnv
+from fluri.sumo.env import SumoEnv
 from fluri.trainer.base import BaseTrainer
 from fluri.trainer.util import *
 from typing import Any, Dict, Tuple
@@ -13,7 +12,7 @@ class SinglePolicyTrainer(BaseTrainer):
     def __init__(self, **kwargs):
         name = "SARL"
         super().__init__(
-            env=MultiPolicySumoEnv,
+            env=SumoEnv,
             sub_dir=name,
             **kwargs
         )
@@ -21,20 +20,11 @@ class SinglePolicyTrainer(BaseTrainer):
         self.idx = self.get_key_count()
         self.incr_key_count()
         self.policy_config = {}
+        self.policy_mapping_fn = lambda _: SinglePolicyTrainer.POLICY_KEY
 
-    def init_config(self) -> Dict[str, Any]:
-        return {
-            "env_config": self.env_config_fn(),
-            "framework": "torch",
-            "log_level": self.log_level,
-            "lr": self.learning_rate,
-            "multiagent": {
-                "policies": self.policies,
-                "policy_mapping_fn": lambda _: SinglePolicyTrainer.POLICY_KEY
-            },
-            "num_gpus": self.num_gpus,
-            "num_workers": self.num_workers,
-        }
+    def on_make_final_policy(self) -> Weights:
+        policy = self.ray_trainer.get_policy(SinglePolicyTrainer.POLICY_KEY)
+        return policy.get_weights()
 
     def on_data_recording_step(self) -> None:
         for policy in self.policies:

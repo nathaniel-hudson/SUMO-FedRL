@@ -1,4 +1,6 @@
-from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
+import numpy as np
+
+from fluri.sumo.env import SumoEnv
 from fluri.trainer.base import BaseTrainer
 from fluri.trainer.util import *
 from typing import Any, Dict, Tuple
@@ -9,29 +11,28 @@ class MultiPolicyTrainer(BaseTrainer):
 
     def __init__(self, **kwargs):
         super().__init__(
-            env=MultiPolicySumoEnv,
+            env=SumoEnv,
             sub_dir="MARL",
-            multi_policy_flag=True,
             **kwargs
         )
         self.trainer_name = "MARL"
         self.idx = self.get_key_count()
         self.incr_key_count()
         self.policy_config = {}
+        self.policy_mapping_fn = lambda agent_id: agent_id
 
-    def init_config(self) -> Dict[str, Any]:
-        return {
-            "env_config": self.env_config_fn(),
-            "framework": "torch",
-            "log_level": self.log_level,
-            "lr": self.learning_rate,
-            "multiagent": {
-                "policies": self.policies,
-                "policy_mapping_fn": lambda agent_id: agent_id
-            },
-            "num_gpus": self.num_gpus,
-            "num_workers": self.num_workers,
-        }
+    def on_make_final_policy(self) -> Weights:
+        policies = [policy for key, policy in self.policies.items() 
+                    if key != GLOBAL_POLICY_VAR]
+        weights = np.array([policy.get_weights() for policy in policies])
+        policy_keys = policies[0].get_weights().keys()
+        new_weights = {}
+        for key in policy_keys:
+            weights = np.array([policy.get_weights()[key]
+                                for policy in policies])
+            new_weights[key] = sum(1/len(policies) * weights[k]
+                                   for k in range(len(policies)))
+        return new_weights
 
     def on_data_recording_step(self) -> None:
         for policy in self.policies:
@@ -52,11 +53,9 @@ class MultiPolicyTrainer(BaseTrainer):
         obs_space = dummy_env.observation_space
         act_space = dummy_env.action_space
         return {
-            agent_id: (
-                self.policy_type,
-                obs_space,
-                act_space,
-                self.policy_config
-            )
+            agent_id: (self.policy_type,
+                       obs_space,
+                       act_space,
+                       self.policy_config)
             for agent_id in dummy_env._observe()
         }

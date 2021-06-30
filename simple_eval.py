@@ -1,7 +1,7 @@
 import ray
 import fluri.tester.config as test_config
 
-from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
+from fluri.sumo.env import SumoEnv
 from os.path import join
 from ray.rllib.agents.ppo import PPOTrainer
 from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy
@@ -48,14 +48,14 @@ env_config = {
 }
 
 ray.init()
-env = MultiPolicySumoEnv(env_config)
+env = SumoEnv(env_config)
 tls_ids = [tls.id for tls in env.kernel.tls_hub]
 multiagent = {
     "policies": {idx: (None, env.observation_space, env.action_space, {})
                  for idx in tls_ids},# + [test_config.GLOBAL_POLICY]},
     "policy_mapping_fn": lambda idx: idx
 }
-trainer = PPOTrainer(env=MultiPolicySumoEnv, config={
+trainer = PPOTrainer(env=SumoEnv, config={
     "env_config": env_config,
     "framework": "torch",
     "in_evaluation": True,

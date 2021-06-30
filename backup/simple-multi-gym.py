@@ -4,14 +4,14 @@ import seaborn as sns
 import traci
 
 from collections import defaultdict
-from fluri.sumo.multi_agent_env import MultiPolicySumoEnv
+from fluri.sumo.env import SumoEnv
 from fluri.sumo.kernel.kernel import SumoKernel
 from fluri.sumo.utils.random_routes import generate_random_routes
 from os.path import join
 from typing import Tuple
 
 def main() -> pd.DataFrame:
-    env = MultiPolicySumoEnv(config={
+    env = SumoEnv(config={
         "gui": False,
         "net-file": join("configs", "two_inter", "two_inter.net.xml"),
         "rand_route_args": {

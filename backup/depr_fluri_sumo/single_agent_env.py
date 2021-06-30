@@ -5,12 +5,12 @@ from gym import spaces
 from typing import Any, Dict, List, Tuple
 
 from fluri.sumo.config import *
-from fluri.sumo.sumo_env import SumoEnv
+from fluri.sumo.abstract_env import AbstractSumoEnv
 
 GUI_DEFAULT = True
 
 
-class SinglePolicySumoEnv(SumoEnv, gym.Env):
+class SinglePolicySumoEnv(AbstractSumoEnv, gym.Env):
     """Custom Gym environment designed for simple RL experiments using SUMO/TraCI."""
 
     def __init__(self, config: Dict[str, Any]):
@@ -125,15 +125,15 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         """
         # TODO: This needs to be adjusted to be more fair in comparison to MARL approaches.
         # num_veh = obs[:, NUM_VEHICLES]
-        # num_halt = obs[:, HALT_CONGESTION]
+        # num_halt = obs[:, HALTED_LANE_OCCUPANCY]
         # wait_time = obs[:, WAIT_TIME]
         # travel_time = obs[:, TRAVEL_TIME]
         # return sum(-1*num_veh) + sum(-1*num_halt) + sum(-1*wait_time) + sum(-1*travel_time)
 
         # NOTE: This should address the mentioned problem above.
-        # return -np.mean(obs[:, HALT_CONGESTION])
-        # return -sum(obs[:, HALT_CONGESTION]) - sum(obs[:, CONGESTION])
-        return -np.mean(obs[:, HALT_CONGESTION]) - np.mean(obs[:, CONGESTION])
+        # return -np.mean(obs[:, HALTED_LANE_OCCUPANCY])
+        # return -sum(obs[:, HALTED_LANE_OCCUPANCY]) - sum(obs[:, LANE_OCCUPANCY])
+        return -np.mean(obs[:, HALTED_LANE_OCCUPANCY]) - np.mean(obs[:, LANE_OCCUPANCY])
         # TODO: Maybe use `num_vehicles`?
 
     def _observe(self, ranked: bool=False) -> np.ndarray:
@@ -157,7 +157,7 @@ class SinglePolicySumoEnv(SumoEnv, gym.Env):
         return obs
 
     def _get_ranks(self, obs: np.ndarray) -> None:
-        pairs = sorted([tls_state[CONGESTION]
+        pairs = sorted([tls_state[LANE_OCCUPANCY]
                         for tls_state in obs], reverse=True)
         graph = self.kernel.tls_hub.tls_graph
         # TODO: Implement this thing...

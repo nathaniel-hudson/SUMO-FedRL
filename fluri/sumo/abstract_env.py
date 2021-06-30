@@ -11,12 +11,12 @@ from fluri.sumo.timer import ActionTimer
 from fluri.sumo.utils.random_routes import generate_random_routes
 
 
-class SumoEnv(ABC):
+class AbstractSumoEnv(ABC):
 
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.path = os.path.split(
-            self.config["net-file"])[0]  # "foo/bar" => "foo"
+            self.config["net-file"])[0]  # Example: "foo/bar" => "foo"
         self.ranked = config.get("ranked", DEFUALT_RANKED)
 
         # Check if the user provided a route-file to be used for simulations and if the
@@ -68,21 +68,25 @@ class SumoEnv(ABC):
     def close(self) -> None:
         self.kernel.close()
 
-    ## ================================================================================= ##
-    ## ......ABSTRACT METHODS THAT NEED TO BE IMPLEMENTED BY CHILDREN CLASSES....... ##
-    ## -------------------------------------------------------------------------------- ##
+    ## ============================================================================== ##
+    ## ......ABSTRACT METHODS THAT NEED TO BE IMPLEMENTED BY CHILDREN CLASSES........ ##
+    ## ============================================================================== ##
     @abstractmethod
     def step(self, actions) -> Tuple[Any, Any, Any, Any]:
-        pass
+        raise NotImplementedError("Cannot be called from Abstract "
+                                  "Class `AbstractSumoEnv`.")
 
     @abstractmethod
     def _do_action(self, actions: Any) -> Any:
-        pass
+        raise NotImplementedError("Cannot be called from Abstract "
+                                  "Class `AbstractSumoEnv`.")
 
     @abstractmethod
     def _get_reward(self) -> float:
-        pass
+        raise NotImplementedError("Cannot be called from Abstract "
+                                  "Class `AbstractSumoEnv`.")
 
     @abstractmethod
     def _observe(self) -> Any:
-        pass
+        raise NotImplementedError("Cannot be called from Abstract "
+                                  "Class `AbstractSumoEnv`.")
