@@ -6,6 +6,8 @@ from os.path import join
 from ray.rllib.agents.ppo import PPOTrainer
 from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy
 
+# TODO: Finish implementing this so that we can give it to Pratham as an example.
+
 EVAL_CONFIG = {
     "env_config": {}
 }
@@ -34,11 +36,13 @@ unranked_policy_checkpoint = join(
 #     }
 # }
 
+
 def global_policy(key):
     return "GLOBAL"
 
 # def load_policy(checkpoint):
 #     ...
+
 
 env_config = {
     "gui": False,
@@ -52,7 +56,7 @@ env = SumoEnv(env_config)
 tls_ids = [tls.id for tls in env.kernel.tls_hub]
 multiagent = {
     "policies": {idx: (None, env.observation_space, env.action_space, {})
-                 for idx in tls_ids},# + [test_config.GLOBAL_POLICY]},
+                 for idx in tls_ids},  # + [test_config.GLOBAL_POLICY]},
     "policy_mapping_fn": lambda idx: idx
 }
 trainer = PPOTrainer(env=SumoEnv, config={

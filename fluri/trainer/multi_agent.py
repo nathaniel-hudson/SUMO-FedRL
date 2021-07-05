@@ -21,9 +21,10 @@ class MultiPolicyTrainer(BaseTrainer):
         self.policy_config = {}
         self.policy_mapping_fn = lambda agent_id: agent_id
 
+    # TODO: Finish this
     def on_make_final_policy(self) -> Weights:
-        policies = [policy for key, policy in self.policies.items() 
-                    if key != GLOBAL_POLICY_VAR]
+        policies = [self.ray_trainer.get_policy(policy_id)
+                    for policy_id in self.policies if policy_id != GLOBAL_POLICY_VAR]
         weights = np.array([policy.get_weights() for policy in policies])
         policy_keys = policies[0].get_weights().keys()
         new_weights = {}

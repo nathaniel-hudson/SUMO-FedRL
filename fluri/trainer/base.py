@@ -114,7 +114,8 @@ class BaseTrainer(ABC):
             self.on_logging_step()
             if r % self.checkpoint_freq == 0:
                 self.ray_trainer.save(self.model_path)
-        self.on_make_final_policy() # <== TODO
+        weights = self.on_make_final_policy()
+        self.ray_trainer.get_policy(GLOBAL_POLICY_VAR).set_weights(weights)
         dataframe = self.on_tear_down()
         if save_on_end:
             path = os.path.join(self.out_data_dir, f"{self.get_filename()}.csv")
@@ -144,7 +145,7 @@ class BaseTrainer(ABC):
             "lr": self.learning_rate,
             "multiagent": {
                 "policies": self.policies,
-                "policy_mapping_fn": lambda _: self.policy_mapping_fn
+                "policy_mapping_fn": self.policy_mapping_fn
             },
             "num_gpus": self.num_gpus,
             "num_workers": self.num_workers,
@@ -208,11 +209,11 @@ class BaseTrainer(ABC):
 
     @abstractmethod
     def on_make_final_policy() -> Weights:
-        """This function is to be used for defining the weights used for the final policy 
+        """This function is to be used for defining the weights used for the final policy
            to be used during evaluation. Each Trainer sub-class will come up with their
            own way for doing this procedure. For instance, simply grabbing one of the
-           trained policies at random and returning its weights is sufficient (though 
-           likely not a desirable approach). The returned weights will then be used to 
+           trained policies at random and returning its weights is sufficient (though
+           likely not a desirable approach). The returned weights will then be used to
            in the GLOBAL policy that evaluation will be used.
 
         Raises:
