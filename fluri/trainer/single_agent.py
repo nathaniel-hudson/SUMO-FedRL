@@ -22,7 +22,6 @@ class SinglePolicyTrainer(BaseTrainer):
         self.policy_config = {}
         self.policy_mapping_fn = lambda _: SinglePolicyTrainer.POLICY_KEY
 
-    # TODO: Finish this.
     def on_make_final_policy(self) -> Weights:
         policy = self.ray_trainer.get_policy(SinglePolicyTrainer.POLICY_KEY)
         return policy.get_weights()

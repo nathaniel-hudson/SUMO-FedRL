@@ -137,11 +137,11 @@ class SumoEnv(AbstractSumoEnv, MultiAgentEnv):
                 if obs[tls_id][GLOBAL_RANK] > obs[neighbor][GLOBAL_RANK]:
                     local_rank += 1
             try:
+                # We do *not* subtract the denominator by 1 (as we do with global
+                # rank) because `len(graph[tls_id])` does not include `tls_id` as a
+                # node in the sub-network when it should be included. This means that
+                # +1 node cancels out the -1 node.
                 obs[tls_id][LOCAL_RANK] = 1 - \
                     (local_rank / len(graph[tls_id]))
-                # ^^ We do *not* subtract the denominator by 1 (as we do with global
-                #    rank) because `len(graph[tls_id])` does not include `tls_id` as a
-                #    node in the sub-network when it should be included. This means that
-                #    +1 node cancels out the -1 node.
             except ZeroDivisionError:
                 obs[tls_id][LOCAL_RANK] = 1

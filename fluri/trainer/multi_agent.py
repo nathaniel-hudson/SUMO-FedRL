@@ -21,8 +21,14 @@ class MultiPolicyTrainer(BaseTrainer):
         self.policy_config = {}
         self.policy_mapping_fn = lambda agent_id: agent_id
 
-    # TODO: Finish this
     def on_make_final_policy(self) -> Weights:
+        """This function takes the policy weights for each of the traffic light policies
+           and merges them using a naive gradient averaging approach (i.e., policy weights
+           are summed up and then divided by the number of policies in the system).
+
+        Returns:
+            Weights: The naively averaged policy weights.
+        """
         policies = [self.ray_trainer.get_policy(policy_id)
                     for policy_id in self.policies if policy_id != GLOBAL_POLICY_VAR]
         weights = np.array([policy.get_weights() for policy in policies])

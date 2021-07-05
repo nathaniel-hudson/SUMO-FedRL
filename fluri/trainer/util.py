@@ -20,3 +20,6 @@ def get_env_config(**kwargs):
         "ranked": kwargs.get("ranked", DEFAULT_RANKED),
     }
     return config
+
+def eval_policy_mapping_fn(key) -> str:
+    return GLOBAL_POLICY_VAR
