@@ -3,14 +3,14 @@ import pandas as pd
 import seaborn as sns
 
 from collections import defaultdict
-from fluri.sumo.single_agent_env import SinglePolicySumoEnv
+from seal.sumo.single_agent_env import SinglePolicySumoEnv
 from os.path import join
 
 sns.set_style("ticks")
 
 
 def main(n_episodes: int=1, use_gui: bool=False) -> None:
-    """A simple example for how to setup a single-policy simulation with FLURI using 
+    """A simple example for how to setup a single-policy simulation with seal using 
        random actions.
 
     Args:

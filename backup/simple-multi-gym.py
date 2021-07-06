@@ -4,9 +4,9 @@ import seaborn as sns
 import traci
 
 from collections import defaultdict
-from fluri.sumo.env import SumoEnv
-from fluri.sumo.kernel.kernel import SumoKernel
-from fluri.sumo.utils.random_routes import generate_random_routes
+from seal.sumo.env import SumoEnv
+from seal.sumo.kernel.kernel import SumoKernel
+from seal.sumo.utils.random_routes import generate_random_routes
 from os.path import join
 from typing import Tuple
 

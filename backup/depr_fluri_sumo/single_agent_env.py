@@ -4,8 +4,8 @@ import numpy as np
 from gym import spaces
 from typing import Any, Dict, List, Tuple
 
-from fluri.sumo.config import *
-from fluri.sumo.abstract_env import AbstractSumoEnv
+from seal.sumo.config import *
+from seal.sumo.abstract_env import AbstractSumoEnv
 
 GUI_DEFAULT = True
 

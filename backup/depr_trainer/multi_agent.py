@@ -6,10 +6,10 @@ from os.path import join
 from ray.rllib.agents.ppo import PPOTrainer
 from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy
 from time import ctime
-from fluri.sumo.env import SumoEnv
-from fluri.sumo.kernel.trafficlights import RANK_DEFAULT
-from fluri.trainer.const import *
-from fluri.trainer.util import *
+from seal.sumo.env import SumoEnv
+from seal.sumo.kernel.trafficlights import RANK_DEFAULT
+from seal.trainer.const import *
+from seal.trainer.util import *
 
 OUT_DIR = "marl"
 

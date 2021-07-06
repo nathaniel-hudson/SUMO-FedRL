@@ -1,7 +1,7 @@
 import argparse
-import fluri.trainer.fed_agent as fedrl
-import fluri.trainer.multi_agent as marl
-import fluri.trainer.single_agent as sarl
+import seal.trainer.fed_agent as fedrl
+import seal.trainer.multi_agent as marl
+import seal.trainer.single_agent as sarl
 import matplotlib.pyplot as plt
 import pandas as pd
 import ray
@@ -9,7 +9,7 @@ import seaborn as sns
 
 from collections import defaultdict
 from datetime import datetime
-from fluri.sumo.env import SumoEnv
+from seal.sumo.env import SumoEnv
 from gym import Space
 from os.path import join
 from ray.rllib.agents.ppo import PPOTrainer

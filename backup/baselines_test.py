@@ -4,8 +4,8 @@ import seaborn as sns
 
 from collections import defaultdict
 
-from fluri.sumo.single_agent_env import SinglePolicySumoEnv
-from fluri.sumo.kernel.kernel import SumoKernel
+from seal.sumo.single_agent_env import SinglePolicySumoEnv
+from seal.sumo.kernel.kernel import SumoKernel
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env

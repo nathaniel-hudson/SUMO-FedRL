@@ -7,9 +7,9 @@ https://github.com/LucasAlegre/sumo-rl/blob/master/experiments/a3c_4x4grid.py
 Ray RlLib agent training example.
 https://github.com/ray-project/ray/blob/master/rllib/examples/custom_train_fn.py
 """
-from fluri.trainer.fed_agent import FedPolicyTrainer
-from fluri.trainer.multi_agent import MultiPolicyTrainer
-from fluri.trainer.single_agent import SinglePolicyTrainer
+from seal.trainer.fed_agent import FedPolicyTrainer
+from seal.trainer.multi_agent import MultiPolicyTrainer
+from seal.trainer.single_agent import SinglePolicyTrainer
 from os.path import join
 
 

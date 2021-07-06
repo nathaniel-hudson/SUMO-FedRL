@@ -5,10 +5,10 @@ from collections import defaultdict
 from os.path import join
 from ray.rllib.agents.ppo import PPOTrainer
 from time import ctime
-from fluri.sumo.single_agent_env import SinglePolicySumoEnv
-from fluri.sumo.kernel.trafficlights import RANK_DEFAULT
-from fluri.trainer.const import *
-from fluri.trainer.util import *
+from seal.sumo.single_agent_env import SinglePolicySumoEnv
+from seal.sumo.kernel.trafficlights import RANK_DEFAULT
+from seal.trainer.const import *
+from seal.trainer.util import *
 
 
 def train(

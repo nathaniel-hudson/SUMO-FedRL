@@ -5,13 +5,13 @@ import ray
 import torch
 
 from collections import defaultdict
-from fluri.trainer.base import BaseTrainer
-from fluri.sumo.config import *
-from fluri.sumo.abstract_env import AbstractSumoEnv
-from fluri.sumo.env import SumoEnv
-from fluri.trainer.fed_agent import FedPolicyTrainer
-from fluri.trainer.multi_agent import MultiPolicyTrainer
-from fluri.trainer.single_agent import SinglePolicyTrainer
+from seal.trainer.base import BaseTrainer
+from seal.sumo.config import *
+from seal.sumo.abstract_env import AbstractSumoEnv
+from seal.sumo.env import SumoEnv
+from seal.trainer.fed_agent import FedPolicyTrainer
+from seal.trainer.multi_agent import MultiPolicyTrainer
+from seal.trainer.single_agent import SinglePolicyTrainer
 from os.path import join
 from pandas import DataFrame
 from typing import Dict, Tuple

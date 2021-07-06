@@ -25,7 +25,7 @@ Tuple(
 """
 
 if __name__ == "__main__":
-    from fluri.sumo.kernel.trafficlight.space import trafficlight_space
+    from seal.sumo.kernel.trafficlight.space import trafficlight_space
 
     space = trafficlight_space()
     sample = space.sample()
