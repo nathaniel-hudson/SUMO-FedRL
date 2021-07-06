@@ -1,5 +1,0 @@
-# Progress Thus Far
-There's an issue that bothers me... the transferability of the learned policies w.r.t. the traffic light's current phase is questionable. Currently, we're using a mechanism that sorts the traffic lights alphabetically and then assigns integer values to each. This isn't good methodology. The sorting of this ignores the topology of the intersection. For instance, "rrGG" and "rrrrGGGG" should be similar, but this representation could make it difficult to cess out this difference while leveraging the similarities.
-
-## New Direction
-Now, we need to adapt a new direction: ***lane-based representation***. We need to provide the features (aside from ranking, if considered) to be collected at the lane level. We *could* consider a `Dict` state representation where each key represents a different lane in the road network topology and each lane has the features associated with it --- including the traffic light phase specific to that lane. But... how will the varying number of lanes across road network topologies (as well as varying lane ids) be addressed?
