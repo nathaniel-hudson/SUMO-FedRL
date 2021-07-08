@@ -11,12 +11,15 @@ from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy
 # These are dummy model weights used with laughably small amounts of training. However
 # these Pickle (.pkl) files contain the model weights of the policy that will be used
 # for evaluation. We will set this policy's weights to one of these based on whether
-# we want the ranked or unranked policy. 
-RANKED_WEIGHTS_PKL = join("example_weights", "FedRL", "complex_inter", "ranked.pkl")
-UNRANKED_WEIGHTS_PKL = join("example_weights", "FedRL", "complex_inter", "unranked.pkl")
+# we want the ranked or unranked policy.
+RANKED_WEIGHTS_PKL = join("example_weights", "FedRL",
+                          "complex_inter", "ranked.pkl")
+UNRANKED_WEIGHTS_PKL = join("example_weights", "FedRL",
+                            "complex_inter", "unranked.pkl")
+
 
 def get_netfile(code: str) -> str:
-    """This is just a convenient function that returns the netfile path based on a code. 
+    """This is just a convenient function that returns the netfile path based on a code.
        Valid netfile codes include the following: 'complex', 'single', and 'two'.
 
     Args:
@@ -35,12 +38,13 @@ def get_netfile(code: str) -> str:
     elif code == "two":
         return join("configs", "two_inter", "two_inter.net.xml")
     else:
-        raise ValueError("Parameter `code` must be in ['complex', 'single', 'two'].")
+        raise ValueError(
+            "Parameter `code` must be in ['complex', 'single', 'two'].")
 
 
 def load_policy(weights_pkl, env_config) -> PPOTrainer:
     """Return a Ray RlLib PPOTrainer class with the multiagent policy setup specifically
-       for the netfile we are performing evaluation on. Further, this will apply the 
+       for the netfile we are performing evaluation on. Further, this will apply the
        weights from prior training to the testing/evaluating policy network.
 
     Args:
@@ -54,8 +58,9 @@ def load_policy(weights_pkl, env_config) -> PPOTrainer:
     tls_ids = [tls.id for tls in temp_env.kernel.tls_hub]
     multiagent = {
         "policies": {idx: (None, temp_env.observation_space, temp_env.action_space, {})
-                    for idx in tls_ids + [util.GLOBAL_POLICY_VAR]},
-        "policy_mapping_fn": util.eval_policy_mapping_fn  # This is NEEDED for evaluation.
+                     for idx in tls_ids + [util.GLOBAL_POLICY_VAR]},
+        # This is NEEDED for evaluation.
+        "policy_mapping_fn": util.eval_policy_mapping_fn
     }
     policy = PPOTrainer(env=SumoEnv, config={
         "env_config": env_config,
@@ -81,8 +86,8 @@ if __name__ == "__main__":
     # Designate whether we wish to use the ranked policy and state space or not.
     ranked = True
     weights_pkl = RANKED_WEIGHTS_PKL if ranked \
-                 else UNRANKED_WEIGHTS_PKL
-    
+        else UNRANKED_WEIGHTS_PKL
+
     # Initialize the dictionary object to record the evaluation data (i.e., `tls_rewards`)
     # and then begin the evaluation by looping over each of the netfiles.
     tls_rewards = defaultdict(list)
@@ -90,14 +95,15 @@ if __name__ == "__main__":
         ray.init()
         print(f">>> Performing evaluation using '{netfile}' net-file.")
         env_config = util.get_env_config(**{
-            "gui": False, 
-            "net-file": get_netfile(netfile), 
-            "rand_routes_on_reset": True, 
+            "gui": False,
+            "net-file": get_netfile(netfile),
+            "rand_routes_on_reset": True,
             "ranked": ranked
         })
         policy = load_policy(weights_pkl, env_config)
         env = SumoEnv(env_config)
         obs, done = env.reset(), False
+        step = 1
         while not done:
             actions = {agent_id: policy.compute_action(agent_obs, policy_id=agent_id)
                        for agent_id, agent_obs in obs.items()}
@@ -106,7 +112,9 @@ if __name__ == "__main__":
                 tls_rewards["tls_id"].append(tls)
                 tls_rewards["reward"].append(r)
                 tls_rewards["netfile"].append(netfile)
+                tls_rewards["step"].append(step)
             done = next(iter(dones.values()))
+            step += 1
         env.close()
         ray.shutdown()
 
