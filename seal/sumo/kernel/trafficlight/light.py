@@ -134,11 +134,21 @@ class TrafficLight:
 
         # Extract descriptive statistics features for the current traffic light state.
         curr_tls_state = traci.trafficlight.getRedYellowGreenState(self.id)
-        curr_tls_state_arr = [STATE_STR_TO_INT[phase]
-                              for phase in curr_tls_state]
-        obs[PHASE_STATE_MODE] = stats.mode(curr_tls_state_arr)[
-            0].item() / NUM_TLS_STATES
-        obs[PHASE_STATE_STD] = np.std(curr_tls_state_arr) / NUM_TLS_STATES
+        for light in curr_tls_state:
+            if light == "r":
+                obs[PHASE_STATE_r] += 1/len(curr_tls_state)
+            elif light == "y":
+                obs[PHASE_STATE_y] += 1/len(curr_tls_state)
+            elif light == "g":
+                obs[PHASE_STATE_g] += 1/len(curr_tls_state)
+            elif light == "G":
+                obs[PHASE_STATE_G] += 1/len(curr_tls_state)
+            elif light == "u":
+                obs[PHASE_STATE_u] += 1/len(curr_tls_state)
+            elif light == "o":
+                obs[PHASE_STATE_o] += 1/len(curr_tls_state)
+            elif light == "O":
+                obs[PHASE_STATE_O] += 1/len(curr_tls_state)
 
         return np.array(obs)
 
