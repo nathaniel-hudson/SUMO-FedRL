@@ -46,6 +46,8 @@ VERBOSE_LEVELS = {
 
 
 verbosity = 0
+
+
 def my_log(*msg: str) -> None:
     """This function just wraps the standard `print()` function so that it follows the
        verbosity rules. This is mostly to avoid exhaustive warning messages caused by this

@@ -64,8 +64,8 @@ class FedPolicyTrainer(BaseTrainer):
             # Track the reward for this policy during this training step. This is only
             # used for the FedAvg subroutine in the aggregation step.
             if policy != GLOBAL_POLICY_VAR:
-                self.reward_tracker[policy] += self._result["policy_reward_mean"].get(
-                    policy, 0)
+                self.reward_tracker[policy] += \
+                    self._result["policy_reward_mean"].get(policy, 0)
 
         # Aggregate the weights via the Federated Averaging algorithm.
         if aggregate_this_round:
@@ -90,7 +90,7 @@ class FedPolicyTrainer(BaseTrainer):
             for agent_id in dummy_env._observe()
         }
 
-    def fedavg(self, policy_dict: Dict[str, Policy], C: float=1.0) -> Weights:
+    def fedavg(self, policy_dict: Dict[str, Policy], C: float = 1.0) -> Weights:
         # Step 1: Compute the coefficients for each policy in the system based on reward.
         weight_keys = next(iter(policy_dict.values())).get_weights().keys()
         total_reward = abs(sum(self.reward_tracker.values()))

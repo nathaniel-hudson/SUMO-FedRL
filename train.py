@@ -12,6 +12,9 @@ from seal.trainer.multi_agent import MultiPolicyTrainer
 from seal.trainer.single_agent import SinglePolicyTrainer
 from os.path import join
 
+random_routes_config = {
+
+}
 
 if __name__ == "__main__":
     n_episodes = 1  # 100
