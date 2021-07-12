@@ -58,7 +58,7 @@ class SumoEnv(AbstractSumoEnv):
         done = {"__all__": self.kernel.done()}
         # info = {"taken_action": taken_action,
         #         "total_reward": sum(reward.values())}
-        info = {}
+        info = {tls.id: "BULLSHIT" for tls in self.kernel.tls_hub}
 
         return obs, reward, done, info
 

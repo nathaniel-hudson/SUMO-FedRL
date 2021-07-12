@@ -71,6 +71,7 @@ def load_policy(weights_pkl, env_config) -> PPOTrainer:
         "multiagent": multiagent,
         "num_gpus": 0,
         "num_workers": 0,
+        "explore": False,
     })
     with open(weights_pkl, "rb") as f:
         weights = pickle.load(f)

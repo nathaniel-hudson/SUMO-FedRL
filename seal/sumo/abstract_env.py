@@ -1,6 +1,7 @@
 import gym
 import numpy as np
 import os
+import random
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Tuple
@@ -11,13 +12,16 @@ from seal.sumo.kernel.kernel import SumoKernel
 from seal.sumo.timer import ActionTimer
 from seal.sumo.utils.random_routes import generate_random_routes
 
+DEFAULT_SEED = 0
+
 
 class AbstractSumoEnv(ABC, MultiAgentEnv):
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], use_dynamic_seed: bool=True):
         self.config = config
-        self.path = os.path.split(
-            self.config["net-file"])[0]  # Example: "foo/bar" => "foo"
+        self.env_seed = config.get("rand_route_args", {}).get("seed", DEFAULT_SEED)
+        self.use_dynamic_seed = use_dynamic_seed
+        self.path = os.path.split(self.config["net-file"])[0]  # Ex: "foo/bar" => "foo"
         self.ranked = config.get("ranked", DEFUALT_RANKED)
 
         # Check if the user provided a route-file to be used for simulations and if the
@@ -27,10 +31,10 @@ class AbstractSumoEnv(ABC, MultiAgentEnv):
         # forces the `reset()` function to generate at least ONE random route file before
         # being updated to False. This will never change back to True (hence the privacy).
         if self.config.get("route-files", None) is None:
-            self.config["route-files"] = os.path.join(
-                self.path, "traffic.rou.xml")
-            self.rand_routes_on_reset = self.config.get(
-                "rand_routes_on_reset", True)
+            self.config["route-files"] = os.path.join(self.path, 
+                                                      "traffic.rou.xml")
+            self.rand_routes_on_reset = self.config.get("rand_routes_on_reset", 
+                                                        True)
             self.__first_rand_routes_flag = True
         else:
             self.rand_routes_on_reset = False
@@ -60,14 +64,20 @@ class AbstractSumoEnv(ABC, MultiAgentEnv):
            at initialization.
         """
         net_name = self.config["net-file"]
-        rand_args = self.config.get("rand_route_args", dict())
-        # NOTE: Simplifies process, so leave this for now.
-        rand_args["n_routefiles"] = 1
+        rand_args = self.config.get("rand_route_args", {})
+        rand_args["n_routefiles"] = 1  # NOTE: There are issues when this isn't 1.
         generate_random_routes(net_name=net_name, path=self.path, **rand_args)
-        # TODO: Implement dynamic seed.
+        if self.use_dynamic_seed:
+            self.env_seed += 1
+            self.config.get("rand_route_args", {})["seed"] = self.env_seed
+            print(f"$ [AbstractSumoEnv] Using seed={self.env_seed}")
 
     def close(self) -> None:
         self.kernel.close()
+
+    def seed(self, seed) -> None:
+        random.seed(self.env_seed)
+        np.random.seed(self.env_seed)
 
     ## ============================================================================== ##
     ## ......ABSTRACT METHODS THAT NEED TO BE IMPLEMENTED BY CHILDREN CLASSES........ ##

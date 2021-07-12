@@ -9,7 +9,7 @@ VALID_DISTRIBUTIONS = ["arcsine", "uniform", "zipf"]
 
 def generate_random_routes(
     net_name: str,
-    n_vehicles: Union[int, Tuple[int, int]]=(100, 1000),
+    n_vehicles: Union[int, Tuple[int, int]]=(500, 1000),
     generator: str="uniform",
     n_routefiles: int=1,
     end_time: Union[int, Tuple[int, int]]=(1500, 3000),

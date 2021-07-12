@@ -10,6 +10,7 @@ from ray.rllib.agents import (a3c, dqn, ppo)
 from time import ctime
 from typing import Any, Callable, Dict, List, Tuple
 
+from seal.trainer.communication import CommunicationModel
 from seal.trainer.counter import Counter
 from seal.trainer.defaults import *
 from seal.trainer.util import *
@@ -20,6 +21,7 @@ from seal.sumo.abstract_env import AbstractSumoEnv
 #       `sealTrainer`.
 class BaseTrainer(ABC):
 
+    communication: CommunicationModel
     counter: Counter
     idx: int
     num_gpus: int
@@ -53,6 +55,7 @@ class BaseTrainer(ABC):
         **kwargs
     ) -> None:
         assert 0 <= gamma <= 1
+        self.communication = CommunicationModel()
         self.checkpoint_freq = checkpoint_freq
         self.counter = Counter()
         self.env = env
@@ -76,6 +79,8 @@ class BaseTrainer(ABC):
         self.ranked = kwargs.get("ranked", defaults.RANKED)
         self.rand_routes_on_reset = kwargs.get("rand_routes_on_reset",
                                                defaults.RAND_ROUTES_ON_RESET)
+        self.rand_routes_config = kwargs.get("rand_routes_config", 
+                                             defaults.RAND_ROUTES_CONFIG)
 
         self.net_dir = self.net_file.split(os.sep)[-1].split(".")[0]
         self.out_checkpoint_dir = os.path.join(self.out_checkpoint_dir, self.net_dir)
@@ -97,12 +102,16 @@ class BaseTrainer(ABC):
         self.policy_config = None
         self.policy_mapping_fn = None
 
+    # ------------------------------------------------------------------------------ #
+
     def load(self, checkpoint: str) -> None:
         if type(self) is BaseTrainer:
             raise NotImplementedError("Cannot load policy using abstract `BaseTrainer` "
                                       "class.")
         self.on_setup()
         self.ray_trainer.restore(checkpoint)
+
+    # ------------------------------------------------------------------------------ #
 
     def train(self, num_rounds: int, save_on_end: bool=True, **kwargs) -> DataFrame:
         if kwargs.get("checkpoint", None) is not None:
@@ -121,6 +130,7 @@ class BaseTrainer(ABC):
             self._result = self.ray_trainer.train()
             self.on_data_recording_step()
             self.on_logging_step()
+            # TODO: Seeding step using `r` for random route generation.
             if r % self.checkpoint_freq == 0:
                 self.ray_trainer.save(self.model_path)
         # Get the global test policy weights and then save them to a PICKLE file object.
@@ -138,6 +148,8 @@ class BaseTrainer(ABC):
             path = os.path.join(self.out_data_dir, f"{self.get_filename()}.csv")
             dataframe.to_csv(path)
         return dataframe
+
+    # ------------------------------------------------------------------------------ #
 
     def __load_policy_type(self) -> None:
         if self.policy == "a3c":
@@ -166,6 +178,7 @@ class BaseTrainer(ABC):
             },
             "num_gpus": self.num_gpus,
             "num_workers": self.num_workers,
+            "seed": 54321  # TODO: PARAMETERIZE THIS.
         }
 
     # ------------------------------------------------------------------------------ #
@@ -225,6 +238,9 @@ class BaseTrainer(ABC):
             "ranked": self.ranked,
             # TODO: Add the random route generation arguments here.
         }
+
+    def set_rand_route_seed(self, seed) -> None:
+        self.env
 
     # ------------------------------------------------------------------------------ #
 
