@@ -38,8 +38,7 @@ def get_netfile(code: str) -> str:
     elif code == "two":
         return join("configs", "two_inter", "two_inter.net.xml")
     else:
-        raise ValueError(
-            "Parameter `code` must be in ['complex', 'single', 'two'].")
+        raise ValueError("Parameter `code` must be in ['complex', 'single', 'two'].")
 
 
 def load_policy(weights_pkl, env_config) -> PPOTrainer:

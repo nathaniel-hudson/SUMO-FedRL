@@ -20,9 +20,9 @@ if __name__ == "__main__":
     n_episodes = 1  # 100
     fed_step = 5
     net_files = [
-        join("configs", "boston_inter", "boston.net.xml"),
+        # join("configs", "boston_inter", "boston.net.xml"),
         # join("configs", "complex_inter", "complex_inter.net.xml"),
-        join("configs", "single_inter", "single_inter.net.xml"),
+        # join("configs", "single_inter", "single_inter.net.xml"),
         join("configs", "two_inter", "two_inter.net.xml")
     ]
 

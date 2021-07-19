@@ -110,9 +110,9 @@ class TrafficLight:
 
         # Extract the lane-specific features.
         max_lane_speeds = vehicle_speeds = 0
-        total_lane_length = vehicle_lengths = halted_vehicle_lengths = 0
+        lane_lengths = vehicle_lengths = halted_lengths = 0
         for l in traci.trafficlight.getControlledLanes(self.id):
-            total_lane_length += traci.lane.getLength(l)
+            lane_lengths += traci.lane.getLength(l)
             max_speed = traci.lane.getMaxSpeed(l)
             for v in traci.lane.getLastStepVehicleIDs(l):
                 speed = traci.vehicle.getSpeed(v)
@@ -120,10 +120,24 @@ class TrafficLight:
                 max_lane_speeds += max_speed
                 vehicle_lengths += traci.vehicle.getLength(v)
                 if speed < HALTING_SPEED:
-                    halted_vehicle_lengths += traci.vehicle.getLength(v)
+                    halted_lengths += traci.vehicle.getLength(v)
 
-        obs[LANE_OCCUPANCY] = vehicle_lengths / total_lane_length
-        obs[HALTED_LANE_OCCUPANCY] = halted_vehicle_lengths / total_lane_length
+        # NEW.
+        lane_lengths = sum(traci.lane.getLength(l)
+                           for l in traci.trafficlight.getControlledLanes(self.id))
+        vehicle_lengths = sum(sum(traci.vehicle.getLength(v)
+                                  for v in traci.lane.getLastStepVehicleIDs(l))
+                              for l in traci.trafficlight.getControlledLanes(self.id))
+        halted_lengths = sum(sum(traci.vehicle.getLength(v)
+                                 for v in traci.lane.getLastStepVehicleIDs(l)
+                                 if traci.vehicle.getLength(v) < HALTING_SPEED)
+                             for l in traci.trafficlight.getControlledLanes(self.id))
+
+        obs[LANE_OCCUPANCY] = min(vehicle_lengths/lane_lengths, 1.0)
+        obs[HALTED_LANE_OCCUPANCY] = min(halted_lengths/lane_lengths, 1.0)
+
+        # TODO: Split into auxiliary functions...
+
         try:
             # We need to "clip" average speed because drivers sometimes exceed the
             # speed limit.
@@ -134,6 +148,7 @@ class TrafficLight:
 
         # Extract descriptive statistics features for the current traffic light state.
         curr_tls_state = traci.trafficlight.getRedYellowGreenState(self.id)
+        # print(f">> curr_tls_state={curr_tls_state}")
         for light in curr_tls_state:
             if light == "r":
                 obs[PHASE_STATE_r] += 1/len(curr_tls_state)

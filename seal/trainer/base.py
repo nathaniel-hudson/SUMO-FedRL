@@ -10,7 +10,7 @@ from ray.rllib.agents import (a3c, dqn, ppo)
 from time import ctime
 from typing import Any, Callable, Dict, List, Tuple
 
-from seal.trainer.communication import CommunicationModel
+from seal.trainer.communication import CommunicationModel, CommunicationCallback
 from seal.trainer.counter import Counter
 from seal.trainer.defaults import *
 from seal.trainer.util import *
@@ -70,7 +70,8 @@ class BaseTrainer(ABC):
         self.out_data_dir = os.path.join(*(root_dir + ["data"]))
         self.out_weights_dir = os.path.join(*(root_dir + ["weights"]))
         if sub_dir is not None:
-            self.out_checkpoint_dir = os.path.join(self.out_checkpoint_dir, sub_dir)
+            self.out_checkpoint_dir = os.path.join(
+                self.out_checkpoint_dir, sub_dir)
             self.out_data_dir = os.path.join(self.out_data_dir, sub_dir)
             self.out_weights_dir = os.path.join(self.out_weights_dir, sub_dir)
 
@@ -79,11 +80,12 @@ class BaseTrainer(ABC):
         self.ranked = kwargs.get("ranked", defaults.RANKED)
         self.rand_routes_on_reset = kwargs.get("rand_routes_on_reset",
                                                defaults.RAND_ROUTES_ON_RESET)
-        self.rand_routes_config = kwargs.get("rand_routes_config", 
+        self.rand_routes_config = kwargs.get("rand_routes_config",
                                              defaults.RAND_ROUTES_CONFIG)
 
         self.net_dir = self.net_file.split(os.sep)[-1].split(".")[0]
-        self.out_checkpoint_dir = os.path.join(self.out_checkpoint_dir, self.net_dir)
+        self.out_checkpoint_dir = os.path.join(
+            self.out_checkpoint_dir, self.net_dir)
         self.out_data_dir = os.path.join(self.out_data_dir, self.net_dir)
         self.out_weights_dir = os.path.join(self.out_weights_dir, self.net_dir)
 
@@ -178,7 +180,9 @@ class BaseTrainer(ABC):
             },
             "num_gpus": self.num_gpus,
             "num_workers": self.num_workers,
-            "seed": 54321  # TODO: PARAMETERIZE THIS.
+            "seed": 54321,  # TODO: PARAMETERIZE THIS.
+            #
+            "callbacks": CommunicationCallback,
         }
 
     # ------------------------------------------------------------------------------ #
@@ -187,7 +191,8 @@ class BaseTrainer(ABC):
         ray.init()
         self.ray_trainer = self.trainer_type(env=self.env,
                                              config=self.init_config())
-        self.model_path = os.path.join(self.out_checkpoint_dir, self.get_filename())
+        self.model_path = os.path.join(
+            self.out_checkpoint_dir, self.get_filename())
         self.training_data = defaultdict(list)
 
     def on_tear_down(self) -> DataFrame:
