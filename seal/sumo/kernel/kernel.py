@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Tuple, Union
 
 from seal.sumo.kernel.trafficlight.hub import TrafficLightHub
 
-SORT_DEFAULT = True
+SORT_DEFAULT = False
 VERBOSE_DEFAULT = 0
 
 

@@ -75,7 +75,6 @@ class TrafficLight:
     def get_program(
         self,
         road_netfile: str,
-        sort_phases: bool=SORT_DEFAULT,
         force_all_red: bool=False
     ) -> List[str]:
         """Get the possible traffic light phases for the specific traffic light via the
@@ -83,8 +82,6 @@ class TrafficLight:
 
         Args:
             road_netfile (str): The traffic light id.
-            sort_phases (bool, optional): Sorts the possible phases if True. Defaults to
-                SORT_DEFAULT.
             force_all_red (bool, optional): Requires there's a state of all red lights if
                 True. Defaults to False.
 
@@ -101,7 +98,7 @@ class TrafficLight:
                 if all_reds not in states:
                     states.append(all_reds)
 
-            return states if (sort_phases == False) else sorted(states)
+            return states
 
     def get_observation(self) -> np.ndarray:
         # Initialize the observation list (obs).
