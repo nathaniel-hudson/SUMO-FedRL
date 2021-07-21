@@ -148,10 +148,11 @@ class CommunicationCallback(DefaultCallbacks):
             policy, result["sum_actions_in_train_batch"]))
 
     def on_postprocess_trajectory(
-            self, *, worker: RolloutWorker, episode: MultiAgentEpisode,
-            agent_id: str, policy_id: str, policies: Dict[str, Policy],
-            postprocessed_batch: SampleBatch,
-            original_batches: Dict[str, SampleBatch], **kwargs):
+        self, *, worker: RolloutWorker, episode: MultiAgentEpisode,
+        agent_id: str, policy_id: str, policies: Dict[str, Policy],
+        postprocessed_batch: SampleBatch,
+        original_batches: Dict[str, SampleBatch], **kwargs
+    ) -> None:
         print("postprocessed {} steps".format(postprocessed_batch.count))
         if "num_batches" not in episode.custom_metrics:
             episode.custom_metrics["num_batches"] = 0

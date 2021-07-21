@@ -38,6 +38,7 @@ RESOURCES:
 
 import numpy as np
 
+from collections import defaultdict
 from ray.rllib.agents.callbacks import DefaultCallbacks
 from ray.rllib.env import BaseEnv
 from ray.rllib.evaluation import MultiAgentEpisode, RolloutWorker
@@ -48,17 +49,35 @@ from typing import Dict
 
 class FedRLCommCallback(DefaultCallbacks):
 
-    def on_episode_start(self, *, worker: RolloutWorker, base_env: BaseEnv, 
-                         policies: Dict[str, Policy], episode: MultiAgentEpisode, 
+    def on_episode_start(self, *, worker: RolloutWorker, base_env: BaseEnv,
+                         policies: Dict[str, Policy], episode: MultiAgentEpisode,
                          env_index: int, **kwargs) -> None:
-        episode.user_data["communication_cost"] = {}
-        episode.hist_data["communication_cost"] = {}
+        episode.user_data["communication_cost"] = defaultdict()
+        episode.hist_data["communication_cost"] = defaultdict()
 
     def on_episode_step(self, *, worker: RolloutWorker, base_env: BaseEnv,
                         episode: MultiAgentEpisode, env_index: int, **kwargs) -> None:
-        agent_id = next(iter(set(episode.agent_rewards.keys())))
-        info = episode.last_info_for(agent_id)
+        agent_ids = set(episode.agent_rewards.keys())
+
         ...
-        
-    def on_episode_end(self, *, worker: RolloutWorker, samples: SampleBatch, **kwargs) -> None:
+        for idx in agent_ids:
+            episode.user_data["communication_cost"]
+
+    def on_episode_end(self, *, worker: RolloutWorker, samples:
+                       SampleBatch, **kwargs) -> None:
+        pass
+
+    def on_train_result(self, *, trainer, result: dict, **kwargs) -> None:
+        pass
+
+    def on_postprocess_trajectory(
+        self, *, worker: RolloutWorker, episode: MultiAgentEpisode,
+        agent_id: str, policy_id: str, policies: Dict[str, Policy],
+        postprocessed_batch: SampleBatch,
+        original_batches: Dict[str, SampleBatch], **kwargs
+    ) -> None:
+        # return super().on_postprocess_trajectory(
+        #     worker, episode, agent_id, policy_id,
+        #     policies, postprocessed_batch, original_batches, **kwargs
+        # )
         pass
