@@ -59,9 +59,9 @@ class FedRLCommCallback(DefaultCallbacks):
                         episode: MultiAgentEpisode, env_index: int, **kwargs) -> None:
         agent_ids = set(episode.agent_rewards.keys())
 
-        ...
+        # ...
         for idx in agent_ids:
-            episode.user_data["communication_cost"]
+            episode.user_data["communication_cost"] = None
 
     def on_episode_end(self, *, worker: RolloutWorker, samples:
                        SampleBatch, **kwargs) -> None:

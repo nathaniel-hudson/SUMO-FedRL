@@ -40,7 +40,7 @@ class TrafficLight:
         # implementation that does not support Dict spaces.
         self.index = index
         self.id = tls_id
-        self.program = self.get_program(netfile, sort_phases, force_all_red)
+        self.program = self.get_program(netfile, force_all_red)
         self.num_phases = len(self.program)
         self.state = random.randrange(self.num_phases)
         self.phase = self.program[self.state]

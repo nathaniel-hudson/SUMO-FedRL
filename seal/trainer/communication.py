@@ -81,6 +81,7 @@ from ray.rllib.policy import Policy
 from ray.rllib.policy.sample_batch import SampleBatch
 from typing import Dict
 
+DUMMY = 12345
 
 class CommunicationCallback(DefaultCallbacks):
 
@@ -105,14 +106,15 @@ class CommunicationCallback(DefaultCallbacks):
 
         agent_id = next(iter(episode.agent_rewards.keys()))[0]
         info = episode.last_info_for(agent_id)
-        episode.user_data["edge_to_tls_action_comm_cost"].append(...)
-        episode.user_data["edge_to_tls_policy_comm_cost"].append(...)
-        episode.user_data["edge_to_tls_rank_comm_cost"].append(...)
-        episode.user_data["tls_to_edge_obs_comm_cost"].append(...)
-        episode.user_data["tls_to_edge_policy_comm_cost"].append(...)
-        episode.user_data["veh_to_tls_info_comm_cost"].append(...)
-        print(f"info[{agent_id}]:\n{info}")
-        exit(0)
+        episode.user_data["communication_cost"].append(DUMMY)
+        # episode.user_data["edge_to_tls_action_comm_cost"].append(data)
+        # episode.user_data["edge_to_tls_policy_comm_cost"].append(data)
+        # episode.user_data["edge_to_tls_rank_comm_cost"].append(data)
+        # episode.user_data["tls_to_edge_obs_comm_cost"].append(data)
+        # episode.user_data["tls_to_edge_policy_comm_cost"].append(data)
+        # episode.user_data["veh_to_tls_info_comm_cost"].append(data)
+        # print(f"info[{agent_id}]:\n{info}")
+        # exit(0)
 
     ## ---------------------------------------------------------------------------------- ##
 
@@ -120,14 +122,15 @@ class CommunicationCallback(DefaultCallbacks):
                        policies: Dict[str, Policy], episode: MultiAgentEpisode,
                        env_index: int, **kwargs):
         # Make sure this episode is really done.
-        assert episode.batch_builder.policy_collectors["default_policy"].\
-            buffers["dones"][-1], \
-            "ERROR: `on_episode_end()` should only be called " \
-            "after episode is done!"
-        comm_cost = np.mean(episode.user_data["communication_cost"])
-        print(f"episode {episode.episode_id} (env-idx={env_index}) ended with "
-              f"length {episode.length} and comm_cost angles {comm_cost}")
-        episode.custom_metrics["communication_cost"] = comm_cost
+        # assert episode.batch_builder.policy_collectors["default_policy"].\
+        #     buffers["dones"][-1], \
+        #     "ERROR: `on_episode_end()` should only be called " \
+        #     "after episode is done!"
+        #
+        # comm_cost = np.mean(episode.user_data["communication_cost"])
+        # print(f"episode {episode.episode_id} (env-idx={env_index}) ended with "
+        #       f"length {episode.length} and comm_cost angles {comm_cost}")
+        episode.custom_metrics["communication_cost"] = DUMMY
         episode.hist_data["communication_cost"] = episode.user_data["communication_cost"]
 
     def on_sample_end(self, *, worker: RolloutWorker, samples: SampleBatch,
@@ -157,3 +160,4 @@ class CommunicationCallback(DefaultCallbacks):
         if "num_batches" not in episode.custom_metrics:
             episode.custom_metrics["num_batches"] = 0
         episode.custom_metrics["num_batches"] += 1
+        episode.custom_metrics["DUMMY?!"] = DUMMY
