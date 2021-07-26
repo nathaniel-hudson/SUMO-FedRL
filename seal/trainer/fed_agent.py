@@ -62,7 +62,7 @@ class FedPolicyTrainer(BaseTrainer):
                     self.training_data[key].append(value)
 
             # Track the reward for this policy during this training step. This is only
-            # used for the FedAvg subroutine in the aggregation step.
+            # used for the FedAvg subroutine in the AGGREGATION step.
             if policy != GLOBAL_POLICY_VAR:
                 self.reward_tracker[policy] += \
                     self._result["policy_reward_mean"].get(policy, 0)

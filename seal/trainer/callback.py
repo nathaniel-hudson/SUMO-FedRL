@@ -34,6 +34,11 @@ SARL:
 RESOURCES:
     + https://docs.ray.io/en/master/_modules/ray/rllib/evaluation/episode.html
     + https://github.com/ray-project/ray/blob/master/rllib/examples/custom_metrics_and_callbacks.py
+
+comm_cost:
+    {"edge2tls_action": {"tls_1": 182, "tls_2": 182,  ...},
+     "edge2tls_policy": {"tls_1":   7, "tls_2":   7,  ...}}
+
 """
 
 import numpy as np
@@ -47,13 +52,13 @@ from ray.rllib.policy.sample_batch import SampleBatch
 from typing import Dict
 
 
-class FedRLCommCallback(DefaultCallbacks):
+class SinglePolicyCallback(DefaultCallbacks):
 
     def on_episode_start(self, *, worker: RolloutWorker, base_env: BaseEnv,
                          policies: Dict[str, Policy], episode: MultiAgentEpisode,
                          env_index: int, **kwargs) -> None:
-        episode.user_data["communication_cost"] = defaultdict()
-        episode.hist_data["communication_cost"] = defaultdict()
+        episode.user_data["comm_cost"] = defaultdict()
+        episode.hist_data["comm_cost"] = defaultdict()
 
     def on_episode_step(self, *, worker: RolloutWorker, base_env: BaseEnv,
                         episode: MultiAgentEpisode, env_index: int, **kwargs) -> None:
@@ -61,7 +66,45 @@ class FedRLCommCallback(DefaultCallbacks):
 
         # ...
         for idx in agent_ids:
-            episode.user_data["communication_cost"] = None
+            episode.user_data["comm_cost"] = None
+
+    def on_episode_end(self, *, worker: RolloutWorker, samples:
+                       SampleBatch, **kwargs) -> None:
+        pass
+
+    def on_train_result(self, *, trainer, result: dict, **kwargs) -> None:
+        pass
+
+    def on_postprocess_trajectory(
+        self, *, worker: RolloutWorker, episode: MultiAgentEpisode,
+        agent_id: str, policy_id: str, policies: Dict[str, Policy],
+        postprocessed_batch: SampleBatch,
+        original_batches: Dict[str, SampleBatch], **kwargs
+    ) -> None:
+        # return super().on_postprocess_trajectory(
+        #     worker, episode, agent_id, policy_id,
+        #     policies, postprocessed_batch, original_batches, **kwargs
+        # )
+        pass
+
+
+## ============================================================================== ##
+
+class FedRLCommCallback(DefaultCallbacks):
+
+    def on_episode_start(self, *, worker: RolloutWorker, base_env: BaseEnv,
+                         policies: Dict[str, Policy], episode: MultiAgentEpisode,
+                         env_index: int, **kwargs) -> None:
+        episode.user_data["comm_cost"] = defaultdict()
+        episode.hist_data["comm_cost"] = defaultdict()
+
+    def on_episode_step(self, *, worker: RolloutWorker, base_env: BaseEnv,
+                        episode: MultiAgentEpisode, env_index: int, **kwargs) -> None:
+        agent_ids = set(episode.agent_rewards.keys())
+
+        # ...
+        for idx in agent_ids:
+            episode.user_data["comm_cost"] = None
 
     def on_episode_end(self, *, worker: RolloutWorker, samples:
                        SampleBatch, **kwargs) -> None:
