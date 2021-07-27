@@ -4,6 +4,7 @@ from collections import defaultdict
 from seal.sumo.env import SumoEnv
 from typing import Any, Dict, List, NewType
 from seal.trainer.base import BaseTrainer
+from seal.trainer.callback import MultiPolicyCommCallback
 from seal.trainer.util import *
 from typing import Any, Dict, Tuple
 
@@ -27,6 +28,7 @@ class FedPolicyTrainer(BaseTrainer):
         self.policy_config = {}
         self.policy_mapping_fn = lambda agent_id: agent_id
         self.reward_tracker = defaultdict(float)
+        self.communication_callback_cls = MultiPolicyCommCallback
 
     def __reset_reward_tracker(self) -> None:
         for policy in self.reward_tracker:
@@ -94,10 +96,13 @@ class FedPolicyTrainer(BaseTrainer):
         # Step 1: Compute the coefficients for each policy in the system based on reward.
         weight_keys = next(iter(policy_dict.values())).get_weights().keys()
         total_reward = abs(sum(self.reward_tracker.values()))
-        coeffs = {
-            policy: (total_reward + self.reward_tracker[policy]) / total_reward
-            for policy in policy_dict
-        }
+        if total_reward > 0:
+            coeffs = {
+                policy: (total_reward + self.reward_tracker[policy]) / total_reward
+                for policy in policy_dict
+            }
+        else:
+            coeffs = {policy: 1/len(policy_dict) for policy in policy_dict}
         # Step 2: Compute the reward-based averaged policy weights by weight key.
         new_weights = {}
         for key in weight_keys:

@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from pandas import DataFrame
 from ray.rllib.agents import (a3c, dqn, ppo)
+from ray.rllib.agents.callbacks import DefaultCallbacks
 from time import ctime
 from typing import Any, Callable, Dict, List, Tuple
 
@@ -21,7 +22,7 @@ from seal.sumo.abstract_env import AbstractSumoEnv
 #       `sealTrainer`.
 class BaseTrainer(ABC):
 
-    communication: CommunicationModel
+    communication_callback_cls: DefaultCallbacks
     counter: Counter
     idx: int
     num_gpus: int
@@ -55,7 +56,8 @@ class BaseTrainer(ABC):
         **kwargs
     ) -> None:
         assert 0 <= gamma <= 1
-        self.communication = CommunicationModel()
+        self.communication_callback_cls = None
+        # self.communication = CommunicationModel()
         self.checkpoint_freq = checkpoint_freq
         self.counter = Counter()
         self.env = env
@@ -182,7 +184,7 @@ class BaseTrainer(ABC):
             "num_workers": self.num_workers,
             "seed": 54321,  # TODO: PARAMETERIZE THIS.
             #
-            "callbacks": CommunicationCallback,
+            "callbacks": self.communication_callback_cls,  # CommunicationCallback,
         }
 
     # ------------------------------------------------------------------------------ #

@@ -1,5 +1,6 @@
 from seal.sumo.env import SumoEnv
 from seal.trainer.base import BaseTrainer
+from seal.trainer.callback import SinglePolicyCommCallback
 from seal.trainer.util import *
 from typing import Any, Dict, Tuple
 
@@ -21,6 +22,7 @@ class SinglePolicyTrainer(BaseTrainer):
         self.incr_key_count()
         self.policy_config = {}
         self.policy_mapping_fn = lambda _: SinglePolicyTrainer.POLICY_KEY
+        self.communication_callback_cls = SinglePolicyCommCallback
 
     def on_make_final_policy(self) -> Weights:
         policy = self.ray_trainer.get_policy(SinglePolicyTrainer.POLICY_KEY)

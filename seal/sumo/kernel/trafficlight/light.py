@@ -164,6 +164,10 @@ class TrafficLight:
 
         return np.array(obs)
 
+    def get_num_of_controlled_vehicles(self) -> int:
+        return sum(traci.lane.getLastStepVehicleNumber(lane)
+                   for lane in traci.trafficlight.getControlledLanes(self.id))
+
     def __get_lane_occupancy(self) -> float:
         pass
 

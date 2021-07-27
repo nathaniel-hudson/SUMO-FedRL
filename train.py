@@ -18,7 +18,7 @@ random_routes_config = {
 
 if __name__ == "__main__":
     n_episodes = 1  # 100
-    fed_step = 5
+    fed_step = 1
     net_files = [
         # join("configs", "boston_inter", "boston.net.xml"),
         # join("configs", "complex_inter", "complex_inter.net.xml"),
@@ -28,16 +28,16 @@ if __name__ == "__main__":
 
     for net_file in net_files:
         for ranked in [True, False]:
-            print(">> Training with `FedPolicyTrainer`!")
-            results = FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked).\
-                train(n_episodes)
+            # print(">> Training with `FedPolicyTrainer`!")
+            # results = FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked).\
+            #     train(n_episodes)
 
+            # print(">> Training with `MultiPolicyTrainer`!")
+            # results = MultiPolicyTrainer(net_file=net_file, ranked=ranked).\
+            #     train(n_episodes)
+
+            print(">> Training with `SinglePolicyTrainer`!")
+            results = SinglePolicyTrainer(net_file=net_file, ranked=ranked).\
+                train(n_episodes)
             results.to_csv("delete_later.csv")
             exit(0)
-
-            print(">> Training with `MultiPolicyTrainer`!")
-            MultiPolicyTrainer(net_file=net_file, ranked=ranked).\
-                train(n_episodes)
-            print(">> Training with `SinglePolicyTrainer`!")
-            SinglePolicyTrainer(net_file=net_file, ranked=ranked).\
-                train(n_episodes)

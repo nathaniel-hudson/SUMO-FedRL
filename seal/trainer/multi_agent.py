@@ -2,6 +2,7 @@ import numpy as np
 
 from seal.sumo.env import SumoEnv
 from seal.trainer.base import BaseTrainer
+from seal.trainer.callback import MultiPolicyCommCallback
 from seal.trainer.util import *
 from typing import Any, Dict, Tuple
 
@@ -20,6 +21,7 @@ class MultiPolicyTrainer(BaseTrainer):
         self.incr_key_count()
         self.policy_config = {}
         self.policy_mapping_fn = lambda agent_id: agent_id
+        self.communication_callback_cls = MultiPolicyCommCallback
 
     def on_make_final_policy(self) -> Weights:
         """This function takes the policy weights for each of the traffic light policies
