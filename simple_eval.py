@@ -12,9 +12,9 @@ from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy
 # these Pickle (.pkl) files contain the model weights of the policy that will be used
 # for evaluation. We will set this policy's weights to one of these based on whether
 # we want the ranked or unranked policy.
-RANKED_WEIGHTS_PKL = join("example_weights", "FedRL",
+RANKED_WEIGHTS_PKL = join("example_weights", "new-state-space", "FedRL",
                           "complex_inter", "ranked.pkl")
-UNRANKED_WEIGHTS_PKL = join("example_weights", "FedRL",
+UNRANKED_WEIGHTS_PKL = join("example_weights", "new-state-space", "FedRL",
                             "complex_inter", "unranked.pkl")
 
 
@@ -31,14 +31,17 @@ def get_netfile(code: str) -> str:
     Returns:
         str: Path to the netfile based on the passed-in code.
     """
-    if code == "complex":
+    if code == "boston":
+        return join("configs", "boston_inter", "boston.net.xml")
+    elif code == "complex":
         return join("configs", "complex_inter", "complex_inter.net.xml")
     elif code == "single":
         return join("configs", "single_inter", "single_inter.net.xml")
     elif code == "two":
         return join("configs", "two_inter", "two_inter.net.xml")
     else:
-        raise ValueError("Parameter `code` must be in ['complex', 'single', 'two'].")
+        raise ValueError("Parameter `code` must be in ['boston', 'complex', "
+                         "'single', 'two'].")
 
 
 def load_policy(weights_pkl, env_config) -> PPOTrainer:
@@ -91,7 +94,7 @@ if __name__ == "__main__":
     # Initialize the dictionary object to record the evaluation data (i.e., `tls_rewards`)
     # and then begin the evaluation by looping over each of the netfiles.
     tls_rewards = defaultdict(list)
-    for netfile in ["complex", "single", "two"]:
+    for netfile in ["boston", "complex", "single", "two"]:
         ray.init()
         print(f">>> Performing evaluation using '{netfile}' net-file.")
         env_config = util.get_env_config(**{

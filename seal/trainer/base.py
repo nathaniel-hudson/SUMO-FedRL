@@ -11,7 +11,6 @@ from ray.rllib.agents.callbacks import DefaultCallbacks
 from time import ctime
 from typing import Any, Callable, Dict, List, Tuple
 
-from seal.trainer.communication import CommunicationModel, CommunicationCallback
 from seal.trainer.counter import Counter
 from seal.trainer.defaults import *
 from seal.trainer.util import *
