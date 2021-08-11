@@ -35,4 +35,5 @@ class BaseTester(ABC):
         pass
 
     def get_config(self) -> Dict:
+        pass
         

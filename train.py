@@ -22,8 +22,8 @@ if __name__ == "__main__":
     # n_episodes = 1
     # fed_step = 1
     net_files = [
-        join("configs", "boston_inter", "boston.net.xml"),
-        join("configs", "complex_inter", "complex_inter.net.xml"),
+        # join("configs", "boston_inter", "boston.net.xml"),
+        # join("configs", "complex_inter", "complex_inter.net.xml"), ## NOTE: Ignore this one.
         join("configs", "single_inter", "single_inter.net.xml"),
         join("configs", "two_inter", "two_inter.net.xml")
     ]
@@ -34,14 +34,14 @@ if __name__ == "__main__":
             ## the following warning: "WARNING:root:Nan or Inf found in input tensor".
             ## I'm not sure if this is because of federated averaging or if it's from
             ## the observations.
-            # print(">> Training with `FedPolicyTrainer`!")
-            # FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked).\
+            print(">> Training with `FedPolicyTrainer`!")
+            FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked).\
+                train(n_episodes)
+
+            # print(">> Training with `MultiPolicyTrainer`!")
+            # MultiPolicyTrainer(net_file=net_file, ranked=ranked).\
             #     train(n_episodes)
 
-            print(">> Training with `MultiPolicyTrainer`!")
-            MultiPolicyTrainer(net_file=net_file, ranked=ranked).\
-                train(n_episodes)
-
-            print(">> Training with `SinglePolicyTrainer`!")
-            SinglePolicyTrainer(net_file=net_file, ranked=ranked).\
-                train(n_episodes)
+            # print(">> Training with `SinglePolicyTrainer`!")
+            # SinglePolicyTrainer(net_file=net_file, ranked=ranked).\
+            #     train(n_episodes)
