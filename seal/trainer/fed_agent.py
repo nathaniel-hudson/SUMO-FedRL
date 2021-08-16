@@ -4,7 +4,7 @@ from collections import defaultdict
 from seal.sumo.env import SumoEnv
 from typing import Any, Dict, List, NewType
 from seal.trainer.base import BaseTrainer
-from seal.trainer.callback import MultiPolicyCommCallback
+from seal.trainer.callback import FedRLCommCallback
 from seal.trainer.util import *
 from typing import Any, Dict, Tuple
 
@@ -28,7 +28,7 @@ class FedPolicyTrainer(BaseTrainer):
         self.policy_config = {}
         self.policy_mapping_fn = lambda agent_id: agent_id
         self.reward_tracker = defaultdict(float)
-        self.communication_callback_cls = MultiPolicyCommCallback
+        self.communication_callback_cls = FedRLCommCallback
 
     def __reset_reward_tracker(self) -> None:
         for policy in self.reward_tracker:

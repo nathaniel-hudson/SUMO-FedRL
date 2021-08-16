@@ -107,19 +107,20 @@ class TrafficLight:
 
         # Extract the lane-specific features.
         max_lane_speeds = vehicle_speeds = 0
-        lane_lengths = vehicle_lengths = halted_lengths = 0
-        for l in traci.trafficlight.getControlledLanes(self.id):
-            lane_lengths += traci.lane.getLength(l)
-            max_speed = traci.lane.getMaxSpeed(l)
-            for v in traci.lane.getLastStepVehicleIDs(l):
-                speed = traci.vehicle.getSpeed(v)
-                vehicle_speeds += speed
-                max_lane_speeds += max_speed
-                vehicle_lengths += traci.vehicle.getLength(v)
-                if speed < HALTING_SPEED:
-                    halted_lengths += traci.vehicle.getLength(v)
+        # NOTE: OLD.
+        # lane_lengths = vehicle_lengths = halted_lengths = 0
+        # for l in traci.trafficlight.getControlledLanes(self.id):
+        #     lane_lengths += traci.lane.getLength(l)
+        #     max_speed = traci.lane.getMaxSpeed(l)
+        #     for v in traci.lane.getLastStepVehicleIDs(l):
+        #         speed = traci.vehicle.getSpeed(v)
+        #         vehicle_speeds += speed
+        #         max_lane_speeds += max_speed
+        #         vehicle_lengths += traci.vehicle.getLength(v)
+        #         if speed < HALTING_SPEED:
+        #             halted_lengths += traci.vehicle.getLength(v)
 
-        # NEW.
+        # NOTE: NEW.
         lane_lengths = sum(traci.lane.getLength(l)
                            for l in traci.trafficlight.getControlledLanes(self.id))
         vehicle_lengths = sum(sum(traci.vehicle.getLength(v)
