@@ -230,7 +230,8 @@ class BaseTrainer(ABC):
         if self.trainer_name is None:
             raise ValueError("`trainer_name` cannot be None.")
         ranked = "ranked" if self.ranked else "unranked"
-        return f"{ranked}_{self.idx}"
+        return f"{ranked}"
+        # return f"{ranked}_{self.idx}"
 
     def get_weights_filename(self) -> str:
         ranked = "ranked" if self.ranked else "unranked"

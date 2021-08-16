@@ -72,12 +72,16 @@ def generate_random_routes(
         #     dir=path
         # )
 
+        # TODO: Run a small script here that generates a n_vehicles value based on a float
+        # and the lane occupancy of the netfile under consideration.
+        ...
+
         # Use with the most recent version of randomTrips.py on GitHub.
         tripfile = join(path, "trips.trips.xml")
         args = ["--net-file", net_name, "--route-file", routefile, "-b", begin_time,
                 "-e", end_time, "--length", "--period", end_time/n_vehicles,
-                "--seed", seed, "--output-trip-file", tripfile,
-                "--random"]  # NOTE: The `--random` flag basically makes it ignore `seed`.
+                "--seed", seed, "--output-trip-file", tripfile]
+                # "--random"]  # NOTE: The `--random` flag basically makes it ignore `seed`.
         opts = random_trips.get_options(args=args)
 
         routes.append(routefile)

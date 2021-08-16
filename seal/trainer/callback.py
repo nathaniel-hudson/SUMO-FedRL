@@ -147,8 +147,9 @@ class FedRLCommCallback(DefaultCallbacks):
     def on_episode_start(self, *, worker: RolloutWorker, base_env: BaseEnv,
                          policies: Dict[str, Policy], episode: MultiAgentEpisode,
                          env_index: int, **kwargs) -> None:
-        episode.user_data["comm_cost"] = defaultdict()
-        episode.hist_data["comm_cost"] = defaultdict()
+        self.comm_cost = defaultdict(int)
+        episode.user_data["comm_cost"] = defaultdict(int)
+        episode.hist_data["comm_cost"] = defaultdict(int)
 
     def on_episode_step(self, *, worker: RolloutWorker, base_env: BaseEnv,
                         episode: MultiAgentEpisode, env_index: int, **kwargs) -> None:
