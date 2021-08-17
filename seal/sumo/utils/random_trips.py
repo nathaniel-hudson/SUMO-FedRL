@@ -96,9 +96,9 @@ def get_options(args=None):
     optParser.add_option("-b", "--begin", default=0, help="begin time")
     optParser.add_option("-e", "--end", default=3600,
                          help="end time (default 3600)")
-    optParser.add_option(
-        "-p", "--period", type="float", default=1, help="Generate vehicles with equidistant departure times and " +
-        "period=FLOAT (default 1.0). If option --binomial is used, the expected arrival rate is set to 1/period.")
+    optParser.add_option("-p", "--period", type="float", default=1,
+                         help="Generate vehicles with equidistant departure times and " +
+                         "period=FLOAT (default 1.0). If option --binomial is used, the expected arrival rate is set to 1/period.")
     optParser.add_option("-s", "--seed", type="int",
                          default=42, help="random seed")
     optParser.add_option("--random", action="store_true",

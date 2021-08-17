@@ -87,7 +87,8 @@ class SumoEnv(AbstractSumoEnv):
         """
         taken_action = actions.copy()
         for tls in self.kernel.tls_hub:
-            if actions[tls.id] == 1 and self.action_timer.can_change(tls.index):
+            if self.action_timer.must_change(tls.index) or \
+            (actions[tls.id] == 1 and self.action_timer.can_change(tls.index)):
                 tls.next_phase()
                 self.action_timer.restart(tls.index)
             else:

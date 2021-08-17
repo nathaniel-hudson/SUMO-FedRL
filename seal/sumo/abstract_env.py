@@ -19,7 +19,8 @@ class AbstractSumoEnv(ABC, MultiAgentEnv):
 
     def __init__(self, config: Dict[str, Any], use_dynamic_seed: bool=True):
         self.config = config
-        self.env_seed = config.get("rand_route_args", {}).get("seed", DEFAULT_SEED)
+        self.rand_route_args = config.get("rand_route_args", {})
+        self.env_seed = self.rand_route_args.get("seed", DEFAULT_SEED)
         self.use_dynamic_seed = use_dynamic_seed
         self.path = os.path.split(self.config["net-file"])[0]  # Ex: "foo/bar" => "foo"
         self.ranked = config.get("ranked", DEFUALT_RANKED)
@@ -53,25 +54,23 @@ class AbstractSumoEnv(ABC, MultiAgentEnv):
             The observation of the state space upon resetting the simulation/environment.
         """
         if self.rand_routes_on_reset or self.__first_rand_routes_flag:
-            self.rand_routes()
+            lane_capacity = self.kernel.get_lane_capacity()
+            self.rand_routes(lane_capacity)
             self.__first_rand_routes_flag = False
         self.kernel.start()
         self.action_timer.restart()
         return self._observe()
 
-    def rand_routes(self) -> None:
+    def rand_routes(self, lane_capacity: float=None) -> None:
         """Generate random routes based on the details in the configuration dict provided
            at initialization.
         """
         net_name = self.config["net-file"]
-        rand_args = self.config.get("rand_route_args", {})
-        rand_args["n_routefiles"] = 1  # NOTE: There are issues when this isn't 1.
-        generate_random_routes(net_name=net_name, path=self.path, **rand_args)
+        self.rand_route_args["n_routefiles"] = 1  # NOTE: Issues if > 1.
         if self.use_dynamic_seed:
+            self.rand_route_args["seed"] = self.env_seed
             self.env_seed += 1
-            self.config.get("rand_route_args", {})["seed"] = self.env_seed
-            print(f"$ [AbstractSumoEnv] Using seed={self.env_seed}")
-
+        generate_random_routes(net_name=net_name, path=self.path, **self.rand_route_args)
     def close(self) -> None:
         self.kernel.close()
 

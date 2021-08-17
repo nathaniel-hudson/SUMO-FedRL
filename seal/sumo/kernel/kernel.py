@@ -18,15 +18,12 @@ class SumoKernel():
         """Initialize a wrapper for a SUMO simulation by passing a `config` dict object
            that stores the command-line arguments needed for a SUMO simulation.
 
-        Parameters
-        ----------
-        config : Dict[str, Any], optional
-            The command-line arguments required for running a SUMO simulation, by default
-            None.
+        Args:
+            config (Dict[str, Any], optional): The command-line arguments required for 
+                running a SUMO simulation (default None).
+            ranked (bool, optional): Designates whether the SumoKernel is going to use
+                ranks in its state space (default True).
         """
-
-        # TODO: Create a function that "validates" a config so that
-        #       it has everything necessary for a SUMO simulation.
         self.config = {
             "gui": config.get("gui", False),
             "configuration-file": config.get("configuration-file", None),
@@ -37,8 +34,10 @@ class SumoKernel():
         }
         self.tls_hub = TrafficLightHub(
             self.config["net-file"], 
-            ranked=config.get("ranked", True)
+            ranked=config.get("ranked", ranked)
         )
+        # TODO: Create a function that "validates" a config so that it has everything 
+        #       necessary for a SUMO simulation.
 
 
     def get_command_args(
@@ -50,11 +49,14 @@ class SumoKernel():
            SUMO simulation given the provided parameters that are stored in the `config`
            dict object.
 
-           Parameters
-           ----------
-           verbose : int, optional
-               If the passed int value is not 0, then warnings on SUMO's end will be
-               displayed; otherwise they will be hidden (default 0).
+        Args:
+            verbose (int, optional): If the passed int value is not 0, then warnings 
+                on SUMO's end will be displayed; otherwise they will be hidden 
+                (default 0).
+        
+        Returns:
+            List[str]: The command line argument list of commands to be used for starting
+                SUMO.
         """
         program_cmd = "sumo-gui" if self.config["gui"] == True else "sumo"
         command_args = [program_cmd]
@@ -69,7 +71,6 @@ class SumoKernel():
                 continue
             if not isinstance(args, list):
                 args = [args]
-
             command_args.append(f"--{cmd}")
             command_args.append(",".join(arg for arg in args))
 
@@ -80,10 +81,9 @@ class SumoKernel():
         """Updates the trafficlight hub objects. For the time being, this is
            NOT being used.
 
-        Parameters
-        ----------
-        ignore_tls : bool, optional
-            Whether to update the trafficlights (True) or not (False), by default False.
+        Args:
+            ignore_tls (bool, optional): Whether to update the trafficlights (True) or 
+            not (False). Defaults to False.
         """
         if not ignore_tls:
             self.tls_hub.update()
@@ -92,10 +92,8 @@ class SumoKernel():
     def is_loaded(self) -> bool:
         """Checks whether a simulation is loaded or not.
 
-        Returns
-        -------
-        bool
-            Returns True if a connection is loaded, False otherwise.
+        Returns:
+            bool: Returns True if a connection is loaded, False otherwise.
         """
         try:
             traci.getConnection("")
@@ -115,10 +113,8 @@ class SumoKernel():
            finished or not. This is decided if there are still some number of expected
            vehicles that have yet to complete their routes.
 
-        Returns
-        -------
-        bool
-            Returns True if the simulation is done, False otherwise.
+        Returns:
+            bool: Returns True if the simulation is done, False otherwise.
         """
         return not traci.simulation.getMinExpectedNumber() > 0
 
@@ -136,3 +132,18 @@ class SumoKernel():
     def step(self) -> None:
         """Iterates the simulation to the next simulation step."""
         traci.simulationStep()
+
+    def get_lane_capacity(self) -> float:
+        was_loaded = self.is_loaded()
+        if not was_loaded:
+            self.start()
+        # Loop through all Lane objects and sum up their length. The conditional is
+        # included to ignore INTERNAL Lanes which handle overlapping lanes (usually
+        # in intersections). Since they're overlapping, they introduce redundant lengths.
+        # For clarity, SUMO generates internal lanes and denotes them with ':'.
+        lane_capacity = sum(traci.lane.getLength(idx) 
+                            for idx in traci.lane.getIDList()
+                            if not idx.startswith(":"))
+        if not was_loaded:
+            self.close()
+        return lane_capacity

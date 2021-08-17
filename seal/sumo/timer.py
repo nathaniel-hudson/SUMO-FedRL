@@ -1,6 +1,6 @@
 import numpy as np
 
-from seal.sumo.config import MIN_DELAY
+from seal.sumo.config import MAX_DELAY, MIN_DELAY
 
 '''
 TODO
@@ -39,6 +39,9 @@ class ActionTimer:
 
     def can_change(self, index: int) -> bool:
         return self.__timer[index] == 0
+
+    def must_change(self, index: int) -> bool:
+        return self.__timer[index] > MAX_DELAY
 
     def __repr__(self) -> str:
         return str(self.__timer)

@@ -1,7 +1,14 @@
 from numpy import float32
 
 MIN_DELAY = 4
+MAX_DELAY = 120
 DEFUALT_RANKED = True
+
+# This is is the observed vehicle length that is true for all vehicle types
+# since we are not varying that. This will be used to provide a sense of
+# how many vehicles are needed to accrue congestion in a road network based
+# on its lane capacity.
+VEHICLE_LENGTH = 5.0 
 
 # N_RANKED_FEATURES = 7
 # N_UNRANKED_FEATURES = N_RANKED_FEATURES - 2

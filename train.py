@@ -24,8 +24,8 @@ if __name__ == "__main__":
     # fed_step = 1
     net_files = [
         join("configs", "boston_inter", "boston.net.xml"),
-        join("configs", "single_inter", "single_inter.net.xml"),
-        join("configs", "two_inter", "two_inter.net.xml")
+        # join("configs", "single_inter", "single_inter.net.xml"),
+        # join("configs", "two_inter", "two_inter.net.xml")
     ]
 
     for net_file in net_files:

@@ -1,7 +1,8 @@
+import traci
+
 from random import randint
 from typing import List, Tuple, Union
 from os.path import join
-
 from seal.sumo.utils import random_trips
 
 VALID_DISTRIBUTIONS = ["arcsine", "uniform", "zipf"]
@@ -15,20 +16,26 @@ def generate_random_routes(
     end_time: Union[int, Tuple[int, int]]=(1500, 3000),
     seed: float=None,
     path: str=None,
+    lane_capacity: float=None,     # TODO
+    vehicle_length: float=None,    # TODO
+    dynamic_congestion: bool=False # TODO
 ) -> List[str]:
     """This function generates a *.rou.xml file for vehicles in the given road network.
 
-    Parameters
-    ----------
-    net_name : str
-        Filename of the SUMO *.net.xml file.
-    n_vehicles : int
-        Number of vehicles to be used in the simulation.
-    generator : str
-        A token that specifies the random distribution that will be used to assigning
-        routes to vehicles.
-    seed : float, optional
-        A random seed to fix the generator distribution, by default None
+    Args:
+        net_name (str): Filename of the SUMO *.net.xml file.
+        n_vehicles (Union[int, Tuple[int, int]]): Number of vehicles to be used in the 
+            simulation.
+        generator (str): A token that specifies the random distribution that will be 
+            used to assigning routes to vehicles.
+        n_routefiles (int): Number of routefiles to be generated. Typically no reason 
+            to change this input.
+        end_time (Union[int, Tuple[int, int]]): When the simulation ends --- this affects 
+            the number of vehicles.
+        seed (float): A random seed to fix the generator distribution, by default None.
+    
+    Returns:
+        List[str]: A list containing the names of the randomly-generated route files.
     """
     if isinstance(n_vehicles, int):
         assert n_vehicles > 0
@@ -50,6 +57,8 @@ def generate_random_routes(
             "`end_time` must be a valid and sorted range."
         end_time = randint(a, b)
 
+    print(f">>> generate_random_routes(): seed={seed}")
+
     begin_time = 0
     routes = []
     for i in range(n_routefiles):
@@ -59,29 +68,15 @@ def generate_random_routes(
         if path is not None:
             routefile = join(path, routefile)
 
-        # Use with the v1 version that Aram sent you.
-        # opts = rrs.set_options(
-        #     netfile=net_name,
-        #     routefile=routefile,
-        #     begin=begin_time,
-        #     end=end_time,
-        #     length=True,
-        #     period=end_time/n_vehicles,
-        #     generator=generator.lower(),
-        #     seed=seed,
-        #     dir=path
-        # )
-
         # TODO: Run a small script here that generates a n_vehicles value based on a float
         # and the lane occupancy of the netfile under consideration.
-        ...
+        # traci.start()
 
         # Use with the most recent version of randomTrips.py on GitHub.
         tripfile = join(path, "trips.trips.xml")
         args = ["--net-file", net_name, "--route-file", routefile, "-b", begin_time,
                 "-e", end_time, "--length", "--period", end_time/n_vehicles,
-                "--seed", seed, "--output-trip-file", tripfile]
-                # "--random"]  # NOTE: The `--random` flag basically makes it ignore `seed`.
+                "--seed", str(seed), "--output-trip-file", tripfile]
         opts = random_trips.get_options(args=args)
 
         routes.append(routefile)
