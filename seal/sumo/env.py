@@ -47,7 +47,8 @@ class SumoEnv(AbstractSumoEnv):
         return self.kernel.tls_hub[tls_id].observation_space
 
     def step(self, action_dict: Dict[Any, int]) -> Tuple[Dict, Dict, Dict, Dict]:
-        taken_action = self._do_action(action_dict)
+        if action_dict is not None:
+            taken_action = self._do_action(action_dict)
         self.kernel.step()
 
         obs = self._observe()
@@ -56,24 +57,11 @@ class SumoEnv(AbstractSumoEnv):
             for tls in self.kernel.tls_hub
         }
         done = {"__all__": self.kernel.done()}
-        # info = {tls.id: dict(edge_to_tls_action_comms=0, edge_to_tls_rank_comms=0,
-        #                      edge_to_tls_policy_comms=0, tls_to_edge_obs_comms=0,
-        #                      tls_to_edge_policy_comms=0, veh_to_tls_info_comms=0)
-        #         for tls in self.kernel.tls_hub}
         info = {tls.id: {"is_ranked": self.ranked,
                          "veh2tls_comms": tls.get_num_of_controlled_vehicles()}
                 for tls in self.kernel.tls_hub}
 
         return obs, reward, done, info
-
-
-# self.__edge_to_tls_action_comms = defaultdict(int)
-# self.__edge_to_tls_rank_comms = defaultdict(int)
-# self.__edge_to_tls_policy_comms = defaultdict(int)
-# self.__tls_to_edge_obs_comms = defaultdict(int)
-# self.__tls_to_edge_policy_comms = defaultdict(int)
-# self.__veh_to_tls_info_comms = defaultdict(int)
-
 
     def _do_action(self, actions: Dict[Any, int]) -> List[int]:
         """Perform the provided action for each trafficlight.
@@ -92,7 +80,7 @@ class SumoEnv(AbstractSumoEnv):
                 tls.next_phase()
                 self.action_timer.restart(tls.index)
             else:
-                self.action_timer.decr(tls.index)
+                self.action_timer.incr(tls.index)
                 taken_action[tls.index] = 0
         return taken_action
 

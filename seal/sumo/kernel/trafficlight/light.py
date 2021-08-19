@@ -166,14 +166,13 @@ class TrafficLight:
         return np.array(obs)
 
     def get_num_of_controlled_vehicles(self) -> int:
-        for lane in traci.trafficlight.getControlledLanes(self.id):
-            if traci.lane.getLastStepVehicleNumber(lane) > 2:
-                ids = traci.lane.getLastStepVehicleIDs(lane)
-                lengths = [traci.vehicle.getLength(idx) for idx in ids]
-                print(f">>>> `TrafficLight.get_num_of_controlled_vehicles(): "
-                      f"vehicle lengths -> {lengths}")
-                exit(0)
-
+        # for lane in traci.trafficlight.getControlledLanes(self.id):
+        #     if traci.lane.getLastStepVehicleNumber(lane) > 2:
+        #         ids = traci.lane.getLastStepVehicleIDs(lane)
+        #         lengths = [traci.vehicle.getLength(idx) for idx in ids]
+        #         print(f">>>> `TrafficLight.get_num_of_controlled_vehicles(): "
+        #               f"vehicle lengths -> {lengths}")
+        #         exit(0)
         return sum(traci.lane.getLastStepVehicleNumber(lane)
                    for lane in traci.trafficlight.getControlledLanes(self.id))
 

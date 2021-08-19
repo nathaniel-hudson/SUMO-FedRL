@@ -26,19 +26,19 @@ class ActionTimer:
 
     def restart(self, index: int=None) -> None:
         if index is not None:
-            self.__timer[index] = self.delay
+            self.__timer[index] = 0.0
         else:
-            self.__timer = self.delay * np.ones(shape=(self.__n_actions))
+            self.__timer = np.zeros(shape=(self.__n_actions))
 
-    def decr(self, index: int=None) -> None:
+    def incr(self, index: int=None) -> None:
         if index is not None:
-            self.__timer[index] = max(0, self.__timer[index] - 1)
+            self.__timer[index] += 1
         else:
             for i in range(self.__n_actions):
-                self.__timer[i] = max(0, self.__timer[i] - 1)
+                self.__timer[i] += 1
 
     def can_change(self, index: int) -> bool:
-        return self.__timer[index] == 0
+        return self.__timer[index] >= MIN_DELAY
 
     def must_change(self, index: int) -> bool:
         return self.__timer[index] > MAX_DELAY

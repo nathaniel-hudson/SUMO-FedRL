@@ -94,11 +94,12 @@ if __name__ == "__main__":
     # Initialize the dictionary object to record the evaluation data (i.e., `tls_rewards`)
     # and then begin the evaluation by looping over each of the netfiles.
     tls_rewards = defaultdict(list)
-    for netfile in ["boston", "complex", "single", "two"]:
+    # for netfile in ["boston", "single", "two"]:
+    for netfile in ["boston"]:
         ray.init()
         print(f">>> Performing evaluation using '{netfile}' net-file.")
         env_config = util.get_env_config(**{
-            "gui": False,
+            "gui": True,
             "net-file": get_netfile(netfile),
             "rand_routes_on_reset": True,
             "ranked": ranked
@@ -110,17 +111,22 @@ if __name__ == "__main__":
         while not done:
             actions = {agent_id: policy.compute_action(agent_obs, policy_id=agent_id)
                        for agent_id, agent_obs in obs.items()}
-            obs, rewards, dones, info = env.step(actions)
+            obs, rewards, dones, info = env.step(None)#actions)
+            n_vehicles = env.kernel.get_num_of_vehicles()
             for tls, r in rewards.items():
                 tls_rewards["tls_id"].append(tls)
                 tls_rewards["reward"].append(r)
                 tls_rewards["netfile"].append(netfile)
                 tls_rewards["step"].append(step)
+                tls_rewards["n_vehicles"].append(n_vehicles)
             done = next(iter(dones.values()))
             step += 1
         env.close()
         ray.shutdown()
 
     # Plot the results.
-    sns.displot(tls_rewards, kind="ecdf", col="netfile", x="reward")
+    sns.displot(data=tls_rewards, kind="ecdf", col="netfile", x="reward")
+    plt.show()
+
+    sns.lineplot(data=tls_rewards, x="step", y="n_vehicles", ci=None)
     plt.show()

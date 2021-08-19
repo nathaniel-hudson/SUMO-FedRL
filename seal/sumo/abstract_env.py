@@ -54,14 +54,14 @@ class AbstractSumoEnv(ABC, MultiAgentEnv):
             The observation of the state space upon resetting the simulation/environment.
         """
         if self.rand_routes_on_reset or self.__first_rand_routes_flag:
-            lane_capacity = self.kernel.get_lane_capacity()
-            self.rand_routes(lane_capacity)
+            road_capacity = self.kernel.get_road_capacity()
+            self.rand_routes(road_capacity=road_capacity)
             self.__first_rand_routes_flag = False
         self.kernel.start()
         self.action_timer.restart()
         return self._observe()
 
-    def rand_routes(self, lane_capacity: float=None) -> None:
+    def rand_routes(self, road_capacity: float=None) -> None:
         """Generate random routes based on the details in the configuration dict provided
            at initialization.
         """
@@ -70,7 +70,12 @@ class AbstractSumoEnv(ABC, MultiAgentEnv):
         if self.use_dynamic_seed:
             self.rand_route_args["seed"] = self.env_seed
             self.env_seed += 1
-        generate_random_routes(net_name=net_name, path=self.path, **self.rand_route_args)
+        if road_capacity is not None:
+            generate_random_routes(net_name=net_name, path=self.path, 
+                                   road_capacity=road_capacity, **self.rand_route_args)
+        else:
+            generate_random_routes(net_name=net_name, path=self.path, 
+                                   **self.rand_route_args)
     def close(self) -> None:
         self.kernel.close()
 

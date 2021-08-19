@@ -133,7 +133,8 @@ class SumoKernel():
         """Iterates the simulation to the next simulation step."""
         traci.simulationStep()
 
-    def get_lane_capacity(self) -> float:
+
+    def get_road_capacity(self) -> float:
         was_loaded = self.is_loaded()
         if not was_loaded:
             self.start()
@@ -147,3 +148,7 @@ class SumoKernel():
         if not was_loaded:
             self.close()
         return lane_capacity
+
+
+    def get_num_of_vehicles(self) -> int:
+        return len(traci.vehicle.getIDList())
