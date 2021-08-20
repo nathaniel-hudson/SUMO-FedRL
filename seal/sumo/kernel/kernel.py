@@ -136,6 +136,10 @@ class SumoKernel():
 
     def get_road_capacity(self) -> float:
         was_loaded = self.is_loaded()
+        original_gui = self.config.get("gui", False)
+        original_route_file = self.config.get("route-files", None)
+        self.config["gui"] = False
+        del self.config["route-files"]
         if not was_loaded:
             self.start()
         # Loop through all Lane objects and sum up their length. The conditional is
@@ -147,6 +151,8 @@ class SumoKernel():
                             if not idx.startswith(":"))
         if not was_loaded:
             self.close()
+        self.config["gui"] = original_gui
+        self.config["route-files"] = original_route_file
         return lane_capacity
 
 

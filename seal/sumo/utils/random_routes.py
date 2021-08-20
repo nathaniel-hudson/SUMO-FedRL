@@ -1,11 +1,12 @@
-from random import randint
+import random
+
 from typing import List, Tuple, Union
 from os.path import join
 from seal.sumo.config import VEHICLE_LENGTH
 from seal.sumo.utils import random_trips
 
 VALID_DISTRIBUTIONS = ["arcsine", "uniform", "zipf"]
-DEFAULT_END_TIME = 3600
+DEFAULT_END_TIME = 3600 / 2 # (equivalent to 30 minutes)
 
 def __extract_number_of_vehicles(n_vehicles: Union[int, Tuple[int, int]]) -> int:
     if isinstance(n_vehicles, int):
@@ -16,18 +17,33 @@ def __extract_number_of_vehicles(n_vehicles: Union[int, Tuple[int, int]]) -> int
         a, b = n_vehicles
         assert a < b, \
             "`n_vehicles` must be a valid and sorted range."
-        n_vehicles = randint(a, b)
+        n_vehicles = random.randint(a, b)
     return n_vehicles
+
 
 def __extract_end_time(end_time: Union[int, Tuple[int, int]]) -> int:
     if isinstance(end_time, tuple):
         assert len(end_time) == 2, \
-            "`end_time` must be of len 2 if provided a tuple."
+            "`end_time` must be of len 2 if provided as a tuple."
         a, b = end_time
         assert a < b, \
-            "`end_time` must be a valid and sorted range."
-        end_time = randint(a, b)
+            "`end_time` must be a valid and sorted tuple."
+        end_time = random.randint(a, b)
     return end_time
+
+
+def __extract_congestion_coeff(
+    congestion_coeff: Union[float, Tuple[float, float]]
+) -> float:
+    if isinstance(congestion_coeff, tuple):
+        assert len(congestion_coeff) == 2, \
+            "`congestion_coeff` must be of len 2 if provided as a tuple."
+        a, b = congestion_coeff
+        assert a < b, \
+            "`congestion_coeff` must be a valid and sorted tuple."
+        congestion_coeff = random.uniform(a, b)
+    return congestion_coeff
+
 
 def generate_random_routes(
     net_name: str,
@@ -37,10 +53,10 @@ def generate_random_routes(
     end_time: Union[int, Tuple[int, int]]=DEFAULT_END_TIME,
     seed: float=None,
     path: str=None,
-    road_capacity: float=1.0,                                # TODO
-    vehicle_length: float=VEHICLE_LENGTH,                    # TODO
-    congestion_coeff: Union[float, Tuple[float, float]]=1.0, # TODO
-    dynamic_congestion: bool=True                            # TODO
+    road_capacity: float=1.0,                                        # TODO
+    vehicle_length: float=VEHICLE_LENGTH,                            # TODO
+    congestion_coeff: Union[float, Tuple[float, float]]=(0.1, 0.5), # TODO
+    dynamic_congestion: bool=True                                    # TODO
 ) -> List[str]:
     """This function generates a *.rou.xml file for vehicles in the given road network.
 
@@ -61,14 +77,17 @@ def generate_random_routes(
     """
     assert generator.lower() in VALID_DISTRIBUTIONS
 
+    print(f">>> random_routes.py: generate_random_routes(): seed={seed}")
+    random.seed(seed)
     end_time = __extract_end_time(end_time)
     n_vehicles = __extract_number_of_vehicles(n_vehicles)
 
-    print(f">>> random_routes.py: generate_random_routes(): seed={seed}")
-    # ...
     if dynamic_congestion:
-        n_vehicles = int(0.025 * congestion_coeff * (road_capacity/vehicle_length))
-        print(f">>> random_routes.py: `n_vehicles` = {n_vehicles}")
+        congestion_coeff = __extract_congestion_coeff(congestion_coeff)
+        congestion_coeff = 0.5 # 0.25409812259064435
+        n_vehicles = int(congestion_coeff * (road_capacity/vehicle_length))
+        print(f">>> random_routes.py: `n_vehicles` = {n_vehicles} "
+              f"(using `congestion_coeff` = {congestion_coeff})")
 
     begin_time = 0
     routes = []

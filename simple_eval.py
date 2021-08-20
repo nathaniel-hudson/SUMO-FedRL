@@ -39,6 +39,12 @@ def get_netfile(code: str) -> str:
         return join("configs", "single_inter", "single_inter.net.xml")
     elif code == "two":
         return join("configs", "two_inter", "two_inter.net.xml")
+    elif code == "spider":
+        return join("configs", "random_inters", "spider", "spider.net.xml")
+    elif code == "grid":
+        return join("configs", "random_inters", "grid", "grid.net.xml")
+    elif code == "random":
+        return join("configs", "random_inters", "random", "random.net.xml")
     else:
         raise ValueError("Parameter `code` must be in ['boston', 'complex', "
                          "'single', 'two'].")
@@ -95,7 +101,7 @@ if __name__ == "__main__":
     # and then begin the evaluation by looping over each of the netfiles.
     tls_rewards = defaultdict(list)
     # for netfile in ["boston", "single", "two"]:
-    for netfile in ["boston"]:
+    for netfile in ["spider"]:
         ray.init()
         print(f">>> Performing evaluation using '{netfile}' net-file.")
         env_config = util.get_env_config(**{
@@ -111,7 +117,8 @@ if __name__ == "__main__":
         while not done:
             actions = {agent_id: policy.compute_action(agent_obs, policy_id=agent_id)
                        for agent_id, agent_obs in obs.items()}
-            obs, rewards, dones, info = env.step(None)#actions)
+            # obs, rewards, dones, info = env.step(actions)
+            obs, rewards, dones, info = env.step(None)
             n_vehicles = env.kernel.get_num_of_vehicles()
             for tls, r in rewards.items():
                 tls_rewards["tls_id"].append(tls)
