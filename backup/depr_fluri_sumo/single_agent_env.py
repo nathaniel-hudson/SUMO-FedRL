@@ -101,9 +101,9 @@ class SinglePolicySumoEnv(AbstractSumoEnv, gym.Env):
                 self.action_timer.restart(tls.index)
                 taken_action[tls.index] = 1
             # Otherwise, keep the state the same, update the taken action, and then
-            # decrease the remaining time by 1.
+            # increase the time by 1.
             else:
-                self.action_timer.decr(tls.index)
+                self.action_timer.incr(tls.index)
                 taken_action[tls.index] = 0
 
         return taken_action

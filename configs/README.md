@@ -13,13 +13,13 @@ A key emphasis of this work is to study how *deep reinforcement learning* can be
 > `netgenerate --grid --grid.number=2 --grid.length=100 --no-turnarounds -j=traffic_light -L=3 --output=grid.net.xml`
 
 ### 3x3 Grid Network
-> `netgenerate --grid --grid.number=3 --grid.length=100 --no-turnarounds --rand.random-lanenumber=true -L=4 --output=grid.net.xml`
+> `netgenerate --grid --grid.number=3 --grid.length=100 --no-turnarounds -j=traffic_light --rand.random-lanenumber=true -L=4 --output=grid.net.xml`
 
 ### 5x5 Grid Network
-> `netgenerate --grid --grid.number=5 --grid.length=100 --no-turnarounds --rand.random-lanenumber=true -L=4 --output=grid.net.xml`
+> `netgenerate --grid --grid.number=5 --grid.length=100 --no-turnarounds -j=traffic_light --rand.random-lanenumber=true -L=4 --output=grid.net.xml`
 
 ### 7x7 Grid Network
-> `netgenerate --grid --grid.number=7 --grid.length=100 --no-turnarounds --rand.random-lanenumber=true -L=4 --output=grid.net.xml`
+> `netgenerate --grid --grid.number=7 --grid.length=100 --no-turnarounds -j=traffic_light --rand.random-lanenumber=true -L=4 --output=grid.net.xml`
 
 ### 9x9 Grid Network
-> `netgenerate --grid --grid.number=9 --grid.length=100 --no-turnarounds --rand.random-lanenumber=true -L=4 --output=grid.net.xml`
+> `netgenerate --grid --grid.number=9 --grid.length=100 --no-turnarounds -j=traffic_light --rand.random-lanenumber=true -L=4 --output=grid.net.xml`

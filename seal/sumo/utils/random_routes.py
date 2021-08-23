@@ -106,7 +106,9 @@ def generate_random_routes(
         tripfile = join(path, "trips.trips.xml")
         args = ["--net-file", net_name, "--route-file", routefile, "-b", begin_time,
                 "-e", end_time, "--length", "--period", end_time/n_vehicles,
-                "--seed", str(seed), "--output-trip-file", tripfile]
+                "--seed", str(seed), "--output-trip-file", tripfile,
+                "--fringe-factor", 100]#,
+                # '--trip-attributes="carFollowModel=\"IDM\" tau=\"1.0\""']
         opts = random_trips.get_options(args=args)
 
         routes.append(routefile)

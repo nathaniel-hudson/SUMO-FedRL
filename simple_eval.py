@@ -103,11 +103,11 @@ if __name__ == "__main__":
     tls_rewards = defaultdict(list)
     # for netfile in ["boston", "single", "two"]:
     # for netfile in ["spider"]:
-    for netfile in [GRID_9x9]:
+    for netfile in [GRID_3x3]:
         ray.init()
         print(f">>> Performing evaluation using '{netfile}' net-file.")
         env_config = util.get_env_config(**{
-            "gui": False,
+            "gui": True,
             # "net-file": get_netfile(netfile),
             "net-file": netfile,
             "rand_routes_on_reset": True,
