@@ -34,7 +34,7 @@ class TrafficLight:
         sort_phases: bool=SORT_DEFAULT,
         force_all_red: bool=False,
         ranked: bool=True
-    ):
+    ) -> None:
         # The `index` data member is for the consistently simple indexing for actions
         # that are represented via lists. This is important for the `stable-baselines`
         # implementation that does not support Dict spaces.
@@ -146,7 +146,6 @@ class TrafficLight:
 
         # Extract descriptive statistics features for the current traffic light state.
         curr_tls_state = traci.trafficlight.getRedYellowGreenState(self.id)
-        # print(f">> curr_tls_state={curr_tls_state}")
         for light in curr_tls_state:
             if light == "r":
                 obs[PHASE_STATE_r] += 1/len(curr_tls_state)
@@ -183,10 +182,4 @@ class TrafficLight:
         pass
 
     def __get_speed_ratio(self) -> float:
-        pass
-
-    def __get_phase_mode(self) -> float:
-        pass
-
-    def __get_phase_std(self) -> float:
         pass

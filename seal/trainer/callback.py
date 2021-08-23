@@ -1,36 +1,4 @@
-"""
-FedRL:
-    >> Trainer
-        * edge2tls_policy += 1 (each fed round)
-        * tls2edge_policy += 1 (each fed round)
-    >> Env
-        * edge2tls_action += 0
-        * edge2tls_rank += 1 (if ranked)
-        * tls2edge_obs += 0
-        * veh2tls += 1 (per vehicle) [$$$]
-
-SARL:
-    >> Trainer
-        * edge2tls_policy += 0
-        * tls2edge_policy += 0
-    >> Env
-        * edge2tls_action += 1
-        * edge2tls_rank += 1 (if ranked)
-        * tls2edge_obs += 1
-        * veh2tls += 1 (per vehicle) [$$$]
-
-SARL:
-    >> Trainer
-        * edge2tls_policy += 0
-        * tls2edge_policy += 0
-    >> Env
-        * edge2tls_action += 0
-        * edge2tls_rank += 1 (if ranked)
-        * tls2edge_obs += 0
-        * veh2tls += 1 (per vehicle) [$$$]
-
-[$$$] -- is the most difficult feature.
-
+'''
 RESOURCES:
     + https://docs.ray.io/en/master/_modules/ray/rllib/evaluation/episode.html
     + https://github.com/ray-project/ray/blob/master/rllib/examples/custom_metrics_and_callbacks.py
@@ -38,18 +6,13 @@ RESOURCES:
 comm_cost:
     {"edge2tls_action": {"tls_1": 182, "tls_2": 182,  ...},
      "edge2tls_policy": {"tls_1":   7, "tls_2":   7,  ...}}
-
-"""
-
-import numpy as np
+'''
 
 from collections import defaultdict
-from collections.abc import Iterable
 from ray.rllib.agents.callbacks import DefaultCallbacks
 from ray.rllib.env import BaseEnv
 from ray.rllib.evaluation import MultiAgentEpisode, RolloutWorker
 from ray.rllib.policy import Policy
-from ray.rllib.policy.sample_batch import SampleBatch
 from typing import Dict
 
 
@@ -65,6 +28,16 @@ COMM_TYPES = set([EDGE2TLS_POLICY, TLS2EDGE_POLICY, EDGE2TLS_ACTION, EDGE2TLS_RA
 
 
 class SinglePolicyCommCallback(DefaultCallbacks):
+    '''
+    TRAINER:
+        * edge2tls_policy += 0
+        * tls2edge_policy += 0
+    ENVIRONMENT:
+        * edge2tls_action += 1
+        * edge2tls_rank   += 1 (if ranked)
+        * tls2edge_obs    += 1
+        * veh2tls         += 1 (per vehicle)
+    '''
 
     def on_episode_start(self, *, worker: RolloutWorker, base_env: BaseEnv,
                          policies: Dict[str, Policy], episode: MultiAgentEpisode,
@@ -104,6 +77,16 @@ class SinglePolicyCommCallback(DefaultCallbacks):
 
 
 class MultiPolicyCommCallback(DefaultCallbacks):
+    '''
+    TRAINER:
+        * edge2tls_policy += 0
+        * tls2edge_policy += 0
+    ENVIRONMENT:
+        * edge2tls_action += 0
+        * edge2tls_rank   += 1 (if ranked)
+        * tls2edge_obs    += 0
+        * veh2tls         += 1 (per vehicle)
+    '''
 
     def on_episode_start(self, *, worker: RolloutWorker, base_env: BaseEnv,
                          policies: Dict[str, Policy], episode: MultiAgentEpisode,
@@ -143,6 +126,16 @@ class MultiPolicyCommCallback(DefaultCallbacks):
 
 
 class FedRLCommCallback(DefaultCallbacks):
+    '''
+    TRAINER:
+        * edge2tls_policy += 1 (each fed round)
+        * tls2edge_policy += 1 (each fed round)
+    ENVIRONMENT:
+        * edge2tls_action += 0
+        * edge2tls_rank   += 1 (if ranked)
+        * tls2edge_obs    += 0
+        * veh2tls         += 1 (per vehicle)
+    '''
 
     def on_episode_start(self, *, worker: RolloutWorker, base_env: BaseEnv,
                          policies: Dict[str, Policy], episode: MultiAgentEpisode,

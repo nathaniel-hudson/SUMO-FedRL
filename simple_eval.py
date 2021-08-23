@@ -2,6 +2,7 @@ import pickle
 import ray
 import seal.trainer.util as util
 
+from netfiles import *
 from seal.sumo.env import SumoEnv
 from os.path import join
 from ray.rllib.agents.ppo import PPOTrainer
@@ -101,12 +102,14 @@ if __name__ == "__main__":
     # and then begin the evaluation by looping over each of the netfiles.
     tls_rewards = defaultdict(list)
     # for netfile in ["boston", "single", "two"]:
-    for netfile in ["spider"]:
+    # for netfile in ["spider"]:
+    for netfile in [GRID_9x9]:
         ray.init()
         print(f">>> Performing evaluation using '{netfile}' net-file.")
         env_config = util.get_env_config(**{
-            "gui": True,
-            "net-file": get_netfile(netfile),
+            "gui": False,
+            # "net-file": get_netfile(netfile),
+            "net-file": netfile,
             "rand_routes_on_reset": True,
             "ranked": ranked
         })

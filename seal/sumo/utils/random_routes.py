@@ -6,7 +6,8 @@ from seal.sumo.config import VEHICLE_LENGTH
 from seal.sumo.utils import random_trips
 
 VALID_DISTRIBUTIONS = ["arcsine", "uniform", "zipf"]
-DEFAULT_END_TIME = 3600 / 2 # (equivalent to 30 minutes)
+DEFAULT_END_TIME = 3600 / 2  # (equivalent to 30 minutes)
+
 
 def __extract_number_of_vehicles(n_vehicles: Union[int, Tuple[int, int]]) -> int:
     if isinstance(n_vehicles, int):
@@ -55,23 +56,23 @@ def generate_random_routes(
     path: str=None,
     road_capacity: float=1.0,                                        # TODO
     vehicle_length: float=VEHICLE_LENGTH,                            # TODO
-    congestion_coeff: Union[float, Tuple[float, float]]=(0.1, 0.5), # TODO
+    congestion_coeff: Union[float, Tuple[float, float]]=(0.1, 0.5),  # TODO
     dynamic_congestion: bool=True                                    # TODO
 ) -> List[str]:
     """This function generates a *.rou.xml file for vehicles in the given road network.
 
     Args:
         net_name (str): Filename of the SUMO *.net.xml file.
-        n_vehicles (Union[int, Tuple[int, int]]): Number of vehicles to be used in the 
+        n_vehicles (Union[int, Tuple[int, int]]): Number of vehicles to be used in the
             simulation.
-        generator (str): A token that specifies the random distribution that will be 
+        generator (str): A token that specifies the random distribution that will be
             used to assigning routes to vehicles.
-        n_routefiles (int): Number of routefiles to be generated. Typically no reason 
+        n_routefiles (int): Number of routefiles to be generated. Typically no reason
             to change this input.
-        end_time (Union[int, Tuple[int, int]]): When the simulation ends --- this affects 
+        end_time (Union[int, Tuple[int, int]]): When the simulation ends --- this affects
             the number of vehicles.
         seed (float): A random seed to fix the generator distribution, by default None.
-    
+
     Returns:
         List[str]: A list containing the names of the randomly-generated route files.
     """
@@ -84,7 +85,7 @@ def generate_random_routes(
 
     if dynamic_congestion:
         congestion_coeff = __extract_congestion_coeff(congestion_coeff)
-        congestion_coeff = 0.5 # 0.25409812259064435
+        congestion_coeff = 1.0  # 0.25409812259064435
         n_vehicles = int(congestion_coeff * (road_capacity/vehicle_length))
         print(f">>> random_routes.py: `n_vehicles` = {n_vehicles} "
               f"(using `congestion_coeff` = {congestion_coeff})")
@@ -98,7 +99,7 @@ def generate_random_routes(
         if path is not None:
             routefile = join(path, routefile)
 
-        # TODO: Run a small script here that generates a n_vehicles value based on a 
+        # TODO: Run a small script here that generates a n_vehicles value based on a
         #       float  and the lane occupancy of the netfile under consideration.
 
         # Use with the most recent version of randomTrips.py on GitHub.
