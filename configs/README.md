@@ -23,3 +23,14 @@ A key emphasis of this work is to study how *deep reinforcement learning* can be
 
 ### 9x9 Grid Network
 > `netgenerate --grid --grid.number=9 --grid.length=100 --no-turnarounds -j=traffic_light --rand.random-lanenumber=true -L=4 --output=grid.net.xml`
+
+***
+
+### Small Random Network
+...
+
+### Medium Random Network
+...
+
+### Large Random Network
+...

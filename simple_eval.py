@@ -9,6 +9,9 @@ from ray.rllib.agents.ppo import PPOTrainer
 from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy
 
 
+# NETFILES = [GRID_3x3, GRID_5x5, GRID_7x7, GRID_9x9]
+NETFILES = [GRID_3x3]
+
 # These are dummy model weights used with laughably small amounts of training. However
 # these Pickle (.pkl) files contain the model weights of the policy that will be used
 # for evaluation. We will set this policy's weights to one of these based on whether
