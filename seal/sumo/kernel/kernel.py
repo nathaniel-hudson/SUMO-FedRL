@@ -134,6 +134,20 @@ class SumoKernel():
         traci.simulationStep()
 
 
+    def get_num_of_lanes(self) -> int:
+        n_lanes = 0
+        netfile = self.config["net-file"]
+        with open(netfile, "r") as f:
+            tree = ET.parse(f)
+            root = tree.getroot()
+            for edge in root.findall("edge"):
+                if "function" in edge.attrib:
+                    if edge.attrib["function"] == "internal":
+                        continue
+                n_lanes += len(edge.findall("lane"))
+        return n_lanes
+
+
     def get_road_capacity(self) -> float:
         was_loaded = self.is_loaded()
         original_gui = self.config.get("gui", False)

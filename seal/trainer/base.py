@@ -56,7 +56,6 @@ class BaseTrainer(ABC):
     ) -> None:
         assert 0 <= gamma <= 1
         self.communication_callback_cls = None
-        # self.communication = CommunicationModel()
         self.checkpoint_freq = checkpoint_freq
         self.counter = Counter()
         self.env = env

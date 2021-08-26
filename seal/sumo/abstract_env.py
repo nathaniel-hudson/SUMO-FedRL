@@ -43,6 +43,8 @@ class AbstractSumoEnv(ABC, MultiAgentEnv):
 
         self.kernel = SumoKernel(self.config)
         self.action_timer = ActionTimer(len(self.kernel.tls_hub))
+        self.num_of_lanes = self.kernel.get_num_of_lanes()
+        # self.road_capacity = self.kernel.get_road_capacity()
         self.reset()
 
     def reset(self) -> Any:
@@ -54,28 +56,32 @@ class AbstractSumoEnv(ABC, MultiAgentEnv):
             The observation of the state space upon resetting the simulation/environment.
         """
         if self.rand_routes_on_reset or self.__first_rand_routes_flag:
-            road_capacity = self.kernel.get_road_capacity()
-            self.rand_routes(road_capacity=road_capacity)
+            self.rand_routes()
             self.__first_rand_routes_flag = False
         self.kernel.start()
         self.action_timer.restart()
         return self._observe()
 
-    def rand_routes(self, road_capacity: float=None) -> None:
-        """Generate random routes based on the details in the configuration dict provided
-           at initialization.
+    def rand_routes(self) -> None:
+        """Generate random routes based on the details in the configuration 
+           dict provided at initialization.
         """
         net_name = self.config["net-file"]
         self.rand_route_args["n_routefiles"] = 1  # NOTE: Issues if > 1.
         if self.use_dynamic_seed:
             self.rand_route_args["seed"] = self.env_seed
             self.env_seed += 1
-        if road_capacity is not None:
-            generate_random_routes(net_name=net_name, path=self.path, 
-                                   road_capacity=road_capacity, **self.rand_route_args)
-        else:
-            generate_random_routes(net_name=net_name, path=self.path, 
-                                   **self.rand_route_args)
+        
+        generate_random_routes(net_name=net_name, path=self.path, 
+                               number_of_lanes=self.num_of_lanes, 
+                               **self.rand_route_args)
+
+        # if road_capacity is not None:
+        #     generate_random_routes(net_name=net_name, path=self.path, 
+        #                            road_capacity=road_capacity, **self.rand_route_args)
+        # else:
+        #     generate_random_routes(net_name=net_name, path=self.path, 
+        #                            **self.rand_route_args)
     def close(self) -> None:
         self.kernel.close()
 

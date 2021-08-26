@@ -6,7 +6,8 @@ from seal.sumo.config import VEHICLE_LENGTH
 from seal.sumo.utils import random_trips
 
 VALID_DISTRIBUTIONS = ["arcsine", "uniform", "zipf"]
-DEFAULT_END_TIME = 3600 / 2  # (equivalent to 30 minutes)
+HOUR = 3600
+DEFAULT_END_TIME = HOUR / 8# 2  # (equivalent to 30 minutes)
 
 
 def __extract_number_of_vehicles(n_vehicles: Union[int, Tuple[int, int]]) -> int:
@@ -54,6 +55,11 @@ def generate_random_routes(
     end_time: Union[int, Tuple[int, int]]=DEFAULT_END_TIME,
     seed: float=None,
     path: str=None,
+    # 
+    vehicles_per_lane_per_hour: int=90,  # Try upping this to 90 (was 60)
+    number_of_lanes: int=None,
+    number_of_hours: int=1,
+    # 
     road_capacity: float=1.0,                                        # TODO
     vehicle_length: float=VEHICLE_LENGTH,                            # TODO
     congestion_coeff: Union[float, Tuple[float, float]]=(0.1, 0.5),  # TODO
@@ -83,12 +89,18 @@ def generate_random_routes(
     end_time = __extract_end_time(end_time)
     n_vehicles = __extract_number_of_vehicles(n_vehicles)
 
-    if dynamic_congestion:
-        congestion_coeff = __extract_congestion_coeff(congestion_coeff)
-        congestion_coeff = 1.0  # 0.25409812259064435
-        n_vehicles = int(congestion_coeff * (road_capacity/vehicle_length))
-        print(f">>> random_routes.py: `n_vehicles` = {n_vehicles} "
-              f"(using `congestion_coeff` = {congestion_coeff})")
+    if True:
+        n_vehicles = vehicles_per_lane_per_hour * \
+                     number_of_lanes * \
+                     number_of_hours
+        print(f">>> random_routes.py: {n_vehicles} vehicles per lane per hour.")
+
+    # if dynamic_congestion:
+    #     congestion_coeff = __extract_congestion_coeff(congestion_coeff)
+    #     congestion_coeff = 1.0  # 0.25409812259064435
+    #     n_vehicles = int(congestion_coeff * (road_capacity/vehicle_length))
+    #     print(f">>> random_routes.py: `n_vehicles` = {n_vehicles} "
+    #           f"(using `congestion_coeff` = {congestion_coeff})")
 
     begin_time = 0
     routes = []
@@ -105,7 +117,7 @@ def generate_random_routes(
         # Use with the most recent version of randomTrips.py on GitHub.
         tripfile = join(path, "trips.trips.xml")
         args = ["--net-file", net_name, "--route-file", routefile, "-b", begin_time,
-                "-e", end_time, "--length", "--period", end_time/n_vehicles,
+                "-e", end_time, "--length", "--period", HOUR/n_vehicles, #end_time/n_vehicles,
                 "--seed", str(seed), "--output-trip-file", tripfile,
                 "--fringe-factor", 100]#,
                 # '--trip-attributes="carFollowModel=\"IDM\" tau=\"1.0\""']
