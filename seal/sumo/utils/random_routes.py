@@ -48,7 +48,7 @@ def __extract_congestion_coeff(
 
 
 def generate_random_routes(
-    net_name: str,
+    netfile: str,
     n_vehicles: Union[int, Tuple[int, int]]=(500, 1000),
     generator: str="uniform",
     n_routefiles: int=1,
@@ -56,7 +56,7 @@ def generate_random_routes(
     seed: float=None,
     path: str=None,
     # 
-    vehicles_per_lane_per_hour: int=90,  # Try upping this to 90 (was 60)
+    vehicles_per_lane_per_hour: int=120, # 90,  # Try upping this to 90 (was 60) ---- 30
     number_of_lanes: int=None,
     number_of_hours: int=1,
     # 
@@ -68,7 +68,7 @@ def generate_random_routes(
     """This function generates a *.rou.xml file for vehicles in the given road network.
 
     Args:
-        net_name (str): Filename of the SUMO *.net.xml file.
+        netfile (str): Filename of the SUMO *.net.xml file.
         n_vehicles (Union[int, Tuple[int, int]]): Number of vehicles to be used in the
             simulation.
         generator (str): A token that specifies the random distribution that will be
@@ -116,7 +116,7 @@ def generate_random_routes(
 
         # Use with the most recent version of randomTrips.py on GitHub.
         tripfile = join(path, "trips.trips.xml")
-        args = ["--net-file", net_name, "--route-file", routefile, "-b", begin_time,
+        args = ["--net-file", netfile, "--route-file", routefile, "-b", begin_time,
                 "-e", end_time, "--length", "--period", HOUR/n_vehicles, #end_time/n_vehicles,
                 "--seed", str(seed), "--output-trip-file", tripfile,
                 "--fringe-factor", 100]#,

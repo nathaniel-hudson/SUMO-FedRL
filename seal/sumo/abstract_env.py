@@ -66,21 +66,21 @@ class AbstractSumoEnv(ABC, MultiAgentEnv):
         """Generate random routes based on the details in the configuration 
            dict provided at initialization.
         """
-        net_name = self.config["net-file"]
+        netfile = self.config["net-file"]
         self.rand_route_args["n_routefiles"] = 1  # NOTE: Issues if > 1.
         if self.use_dynamic_seed:
             self.rand_route_args["seed"] = self.env_seed
             self.env_seed += 1
         
-        generate_random_routes(net_name=net_name, path=self.path, 
+        generate_random_routes(netfile=netfile, path=self.path, 
                                number_of_lanes=self.num_of_lanes, 
                                **self.rand_route_args)
 
         # if road_capacity is not None:
-        #     generate_random_routes(net_name=net_name, path=self.path, 
+        #     generate_random_routes(netfile=netfile, path=self.path, 
         #                            road_capacity=road_capacity, **self.rand_route_args)
         # else:
-        #     generate_random_routes(net_name=net_name, path=self.path, 
+        #     generate_random_routes(netfile=netfile, path=self.path, 
         #                            **self.rand_route_args)
     def close(self) -> None:
         self.kernel.close()
