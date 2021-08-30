@@ -12,7 +12,6 @@ Weights = NewType("Weights", Dict[Any, np.array])
 Policy = NewType("Policy", Dict[Any, np.array])
 
 
-# TODO: Add communication cost trade-off code.
 class FedPolicyTrainer(BaseTrainer):
 
     def __init__(self, fed_step: int, **kwargs) -> None:

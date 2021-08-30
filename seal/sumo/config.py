@@ -8,20 +8,35 @@ DEFUALT_RANKED = True
 # since we are not varying that. This will be used to provide a sense of
 # how many vehicles are needed to accrue congestion in a road network based
 # on its lane capacity.
-VEHICLE_LENGTH = 5.0 
+VEHICLE_LENGTH = 5.0
 
 # N_RANKED_FEATURES = 7
 # N_UNRANKED_FEATURES = N_RANKED_FEATURES - 2
 # LANE_OCCUPANCY, HALTED_LANE_OCCUPANCY, SPEED_RATIO, PHASE_STATE_MODE, PHASE_STATE_STD, \
 #     LOCAL_RANK, GLOBAL_RANK = range(N_RANKED_FEATURES)
 
+'''
+Include this bit later. For now we ignore it. It's irrelevant since the TLS 's' state
+is never used, but still, for "correctness" it should be included.
+
+NOTE: ***Or*** we could remove the nonessential phase states from the space to simplify
+the training? Just a thought. There's no point for them for the time being.
+'''
+# N_RANKED_FEATURES = 15
+# N_UNRANKED_FEATURES = N_RANKED_FEATURES - 4
+# LANE_OCCUPANCY, HALTED_LANE_OCCUPANCY, SPEED_RATIO, \
+#     PHASE_STATE_r, PHASE_STATE_y, PHASE_STATE_g, PHASE_STATE_G, \
+#     PHASE_STATE_s, PHASE_STATE_u, PHASE_STATE_o, PHASE_STATE_O, \
+#     LOCAL_RANK, GLOBAL_RANK, LOCAL_HALT_RANK, GLOBAL_HALT_RANK \
+#     = range(N_RANKED_FEATURES)
+
+# TODO: Remove this, it's temporary, the above needs to be included.
 N_RANKED_FEATURES = 14
 N_UNRANKED_FEATURES = N_RANKED_FEATURES - 4
-
 LANE_OCCUPANCY, HALTED_LANE_OCCUPANCY, SPEED_RATIO, \
-PHASE_STATE_r, PHASE_STATE_y, PHASE_STATE_g, PHASE_STATE_G, PHASE_STATE_u, \
-PHASE_STATE_o, PHASE_STATE_O, \
-LOCAL_RANK, GLOBAL_RANK, LOCAL_HALT_RANK, GLOBAL_HALT_RANK \
+    PHASE_STATE_r, PHASE_STATE_y, PHASE_STATE_g, PHASE_STATE_G, \
+    PHASE_STATE_u, PHASE_STATE_o, PHASE_STATE_O, \
+    LOCAL_RANK, GLOBAL_RANK, LOCAL_HALT_RANK, GLOBAL_HALT_RANK \
     = range(N_RANKED_FEATURES)
 
 HALTING_SPEED = 0.1

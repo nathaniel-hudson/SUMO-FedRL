@@ -5,7 +5,6 @@ from seal.trainer.util import *
 from typing import Any, Dict, Tuple
 
 
-# TODO: Add communication cost trade-off code.
 class SinglePolicyTrainer(BaseTrainer):
 
     POLICY_KEY: str = "sarl_policy"

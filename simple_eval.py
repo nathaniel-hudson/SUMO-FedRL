@@ -3,6 +3,7 @@ import ray
 import seal.trainer.util as util
 
 from netfiles import *
+from seal.sumo.config import *
 from seal.sumo.env import SumoEnv
 from os.path import join
 from ray.rllib.agents.ppo import PPOTrainer
@@ -12,8 +13,12 @@ from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy
 # The list of netfiles we wish to train on.
 # NETFILES = [GRID_3x3, GRID_5x5, GRID_7x7, GRID_9x9]
 # NETFILES = [GRID_9x9]
-NETFILES = [GRID_3x3, GRID_5x5, DOUBLE_LOOP]
 # NETFILES = [DOUBLE_LOOP]
+NETFILES = {
+    "grid_3x3": GRID_3x3,
+    "grid_5x5": GRID_5x5,
+    "double_loop": DOUBLE_LOOP
+}
 
 # These are dummy model weights used with laughably small amounts of training. However
 # these Pickle (.pkl) files contain the model weights of the policy that will be used
@@ -23,38 +28,6 @@ RANKED_WEIGHTS_PKL = join("example_weights", "new-state-space", "FedRL",
                           "complex_inter", "ranked.pkl")
 UNRANKED_WEIGHTS_PKL = join("example_weights", "new-state-space", "FedRL",
                             "complex_inter", "unranked.pkl")
-
-
-# def get_netfile(code: str) -> str:
-#     """This is just a convenient function that returns the netfile path based on a code.
-#        Valid netfile codes include the following: 'complex', 'single', and 'two'.
-# 
-#     Args:
-#         code (str): The code corresponding to a valid netfile path
-# 
-#     Raises:
-#         ValueError: Occurs if an invalid code is provided
-# 
-#     Returns:
-#         str: Path to the netfile based on the passed-in code.
-#     """
-#     if code == "boston":
-#         return join("configs", "boston_inter", "boston.net.xml")
-#     elif code == "complex":
-#         return join("configs", "complex_inter", "complex_inter.net.xml")
-#     elif code == "single":
-#         return join("configs", "single_inter", "single_inter.net.xml")
-#     elif code == "two":
-#         return join("configs", "two_inter", "two_inter.net.xml")
-#     elif code == "spider":
-#         return join("configs", "random_inters", "spider", "spider.net.xml")
-#     elif code == "grid":
-#         return join("configs", "random_inters", "grid", "grid.net.xml")
-#     elif code == "random":
-#         return join("configs", "random_inters", "random", "random.net.xml")
-#     else:
-#         raise ValueError("Parameter `code` must be in ['boston', 'complex', "
-#                          "'single', 'two'].")
 
 
 def load_policy(weights_pkl, env_config) -> PPOTrainer:
@@ -74,8 +47,8 @@ def load_policy(weights_pkl, env_config) -> PPOTrainer:
     multiagent = {
         "policies": {idx: (None, temp_env.observation_space, temp_env.action_space, {})
                      for idx in tls_ids + [util.GLOBAL_POLICY_VAR]},
-        # This is NEEDED for evaluation.
         "policy_mapping_fn": util.eval_policy_mapping_fn
+        # NOTE: The above "policy_mapping_fn" is NEEDED for evaluation.
     }
     policy = PPOTrainer(env=SumoEnv, config={
         "env_config": env_config,
@@ -95,6 +68,7 @@ def load_policy(weights_pkl, env_config) -> PPOTrainer:
 
 # =========================================================================== #
 
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import seaborn as sns
@@ -105,15 +79,48 @@ if __name__ == "__main__":
     weights_pkl = RANKED_WEIGHTS_PKL if ranked \
         else UNRANKED_WEIGHTS_PKL
 
-    # Initialize the dictionary object to record the evaluation data (i.e., 
+    # Initialize the dictionary object to record the evaluation data (i.e.,
     # `tls_rewards`) and then begin the evaluation by looping over each of the netfiles.
     tls_rewards = defaultdict(list)
-    for netfile in NETFILES:
+    feature_pairs = [
+        ("lane_occupancy", LANE_OCCUPANCY),
+        ("halted_occupancy", HALTED_LANE_OCCUPANCY),
+        ("speed_ratio", SPEED_RATIO),
+        ("phase_state_r", PHASE_STATE_r),
+        ("phase_state_y", PHASE_STATE_y),
+        ("phase_state_g", PHASE_STATE_g),
+        ("phase_state_G", PHASE_STATE_G),
+        ("phase_state_u", PHASE_STATE_u),
+        ("phase_state_o", PHASE_STATE_o),
+        ("phase_state_O", PHASE_STATE_O),
+        ("local_rank", LOCAL_RANK),
+        ("global_rank", GLOBAL_RANK),
+        ("local_halt_rank", LOCAL_HALT_RANK),
+        ("global_halt_rank", GLOBAL_HALT_RANK)
+    ]
+    # state_features = {
+    #     "lane_occupancy": [],
+    #     "halted_occupancy": [],
+    #     "speed_ratio": [],
+    #     "phase_state_r": [],
+    #     "phase_state_y": [],
+    #     "phase_state_g": [],
+    #     "phase_state_G": [],
+    #     "phase_state_u": [],
+    #     "phase_state_o": [],
+    #     "phase_state_O": [],
+    #     "local_rank": [],
+    #     "global_rank": [],
+    #     "local_halt_rank": [],
+    #     "global_halt_rank": []
+    # }
+    feature_data = defaultdict(list)
+    for netfile_label, netfile_path in NETFILES.items():
         ray.init()
-        print(f">>> Performing evaluation using '{netfile}' net-file.")
+        print(f">>> Performing evaluation using '{netfile_label}' net-file.")
         env_config = util.get_env_config(**{
             "gui": False,
-            "net-file": netfile,
+            "net-file": netfile_path,
             "rand_routes_on_reset": True,
             "ranked": ranked
         })
@@ -130,17 +137,28 @@ if __name__ == "__main__":
             for tls, r in rewards.items():
                 tls_rewards["tls_id"].append(tls)
                 tls_rewards["reward"].append(r)
-                tls_rewards["netfile"].append(netfile)
+                tls_rewards["netfile"].append(netfile_label)
                 tls_rewards["step"].append(step)
                 tls_rewards["n_vehicles"].append(n_vehicles)
             done = next(iter(dones.values()))
             step += 1
+            for feature_label, feature_index in feature_pairs:
+                for tls in obs:
+                    feature_data["feature"].append(feature_label)
+                    feature_data["value"].append(obs[tls][feature_index])
+                    feature_data["netfile"].append(netfile_label)
+                    feature_data["tls"].append(tls)
         env.close()
         ray.shutdown()
 
     # Plot the results.
+    sns.displot(data=feature_data, kind="ecdf", hue="netfile", x="value",
+                col="feature", col_wrap=len(feature_pairs)//2)
+    plt.show()
+
     sns.displot(data=tls_rewards, kind="ecdf", hue="netfile", x="reward")
     plt.show()
 
-    sns.relplot(data=tls_rewards, kind="line", hue="netfile", x="step", y="n_vehicles", ci=None)
+    sns.relplot(data=tls_rewards, kind="line", hue="netfile",
+                x="step", y="n_vehicles", ci=None)
     plt.show()

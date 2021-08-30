@@ -7,30 +7,14 @@ A key emphasis of this work is to study how *deep reinforcement learning* can be
 * `--no-turnarounds`: No turnarounds (U-turns). By default, `netgenerate` will produce road networks where U-turns are allowed at all intersections. This greatly complicates congestion and makes catastrophic congestion more likely. On top of that, U-turns are not entirely common and `randomTrips.py` produces route files with far too many U-turns. As such, we remove them as legal flows entirely.
 * `-j=traffic_light`: Intersections must be equipped with traffic lights.
 
-## Road Networks
-
-### 2x2 Grid Network
-> `netgenerate --grid --grid.number=2 --grid.length=100 --no-turnarounds -j=traffic_light -L=3 --output=grid.net.xml`
-
-### 3x3 Grid Network
-> `netgenerate --grid --grid.number=3 --grid.length=200 --no-turnarounds -j=traffic_light -L=2 --output=grid.net.xml`
-
-### 5x5 Grid Network
-> `netgenerate --grid --grid.number=5 --grid.length=100 --no-turnarounds -j=traffic_light --rand.random-lanenumber=true -L=4 --output=grid.net.xml`
-
-### 7x7 Grid Network
-> `netgenerate --grid --grid.number=7 --grid.length=100 --no-turnarounds -j=traffic_light --rand.random-lanenumber=true -L=4 --output=grid.net.xml`
-
-### 9x9 Grid Network
-> `netgenerate --grid --grid.number=9 --grid.length=100 --no-turnarounds -j=traffic_light --rand.random-lanenumber=true -L=4 --output=grid.net.xml`
-
 ***
 
-### Small Random Network
-...
+## Road Networks
 
-### Medium Random Network
-...
+### 3x3 Grid Network
+> `netgenerate --grid --grid.number=3 --grid.length=150 --no-turnarounds -j=traffic_light -L=2 --output=grid.net.xml`
 
-### Large Random Network
-...
+### 5x5 Grid Network
+> `netgenerate --grid --grid.number=5 --grid.length=150 --no-turnarounds -j=traffic_light --rand.random-lanenumber=true -L=4 --output=grid.net.xml`
+
+***

@@ -92,12 +92,10 @@ class TrafficLight:
             tree = ET.parse(f)
             logic = tree.find(f"tlLogic[@id='{self.id}']")
             states = [phase.attrib["state"] for phase in logic]
-
             if force_all_red:
-                all_reds = len(states[0]) * "r"
+                all_reds = len(states[0]) * STATE_r_STR
                 if all_reds not in states:
                     states.append(all_reds)
-
             return states
 
     def get_observation(self) -> np.ndarray:
@@ -106,80 +104,64 @@ class TrafficLight:
         obs = [0 for _ in range(n_features)]
 
         # Extract the lane-specific features.
-        max_lane_speeds = vehicle_speeds = 0
-        # NOTE: OLD.
-        # lane_lengths = vehicle_lengths = halted_lengths = 0
-        # for l in traci.trafficlight.getControlledLanes(self.id):
-        #     lane_lengths += traci.lane.getLength(l)
-        #     max_speed = traci.lane.getMaxSpeed(l)
-        #     for v in traci.lane.getLastStepVehicleIDs(l):
-        #         speed = traci.vehicle.getSpeed(v)
-        #         vehicle_speeds += speed
-        #         max_lane_speeds += max_speed
-        #         vehicle_lengths += traci.vehicle.getLength(v)
-        #         if speed < HALTING_SPEED:
-        #             halted_lengths += traci.vehicle.getLength(v)
-
-        # NOTE: NEW.
-        lane_lengths = sum(traci.lane.getLength(l)
-                           for l in traci.trafficlight.getControlledLanes(self.id))
-        vehicle_lengths = sum(sum(traci.vehicle.getLength(v)
-                                  for v in traci.lane.getLastStepVehicleIDs(l))
-                              for l in traci.trafficlight.getControlledLanes(self.id))
-        halted_lengths = sum(sum(traci.vehicle.getLength(v)
-                                 for v in traci.lane.getLastStepVehicleIDs(l)
-                                 if traci.vehicle.getLength(v) < HALTING_SPEED)
-                             for l in traci.trafficlight.getControlledLanes(self.id))
-
-        obs[LANE_OCCUPANCY] = min(vehicle_lengths/lane_lengths, 1.0)
-        obs[HALTED_LANE_OCCUPANCY] = min(halted_lengths/lane_lengths, 1.0)
-
-        # TODO: Split into auxiliary functions...
-
-        try:
-            # We need to "clip" average speed because drivers sometimes exceed the
-            # speed limit.
-            obs[SPEED_RATIO] = min(1.0, vehicle_speeds / max_lane_speeds)
-        except ZeroDivisionError:
-            # This happens when 0 vehicles are on lanes controlled by the traffic light.
-            obs[SPEED_RATIO] = 0.0
+        obs[LANE_OCCUPANCY] = self.__get_lane_occupancy()
+        obs[HALTED_LANE_OCCUPANCY] = self.__get_halted_lane_occupancy()
+        obs[SPEED_RATIO] = self.__get_speed_ratio()
 
         # Extract descriptive statistics features for the current traffic light state.
         curr_tls_state = traci.trafficlight.getRedYellowGreenState(self.id)
         for light in curr_tls_state:
-            if light == "r":
+            if light == STATE_r_STR:
                 obs[PHASE_STATE_r] += 1/len(curr_tls_state)
-            elif light == "y":
+            elif light == STATE_y_STR:
                 obs[PHASE_STATE_y] += 1/len(curr_tls_state)
-            elif light == "g":
+            elif light == STATE_g_STR:
                 obs[PHASE_STATE_g] += 1/len(curr_tls_state)
-            elif light == "G":
+            elif light == STATE_G_STR:
                 obs[PHASE_STATE_G] += 1/len(curr_tls_state)
-            elif light == "u":
+            # elif light == STATE_s_STR:
+            #     obs[PHASE_STATE_s] += 1/len(curr_tls_state)
+            elif light == STATE_u_STR:
                 obs[PHASE_STATE_u] += 1/len(curr_tls_state)
-            elif light == "o":
+            elif light == STATE_o_STR:
                 obs[PHASE_STATE_o] += 1/len(curr_tls_state)
-            elif light == "O":
+            elif light == STATE_O_STR:
                 obs[PHASE_STATE_O] += 1/len(curr_tls_state)
 
         return np.array(obs)
 
     def get_num_of_controlled_vehicles(self) -> int:
-        # for lane in traci.trafficlight.getControlledLanes(self.id):
-        #     if traci.lane.getLastStepVehicleNumber(lane) > 2:
-        #         ids = traci.lane.getLastStepVehicleIDs(lane)
-        #         lengths = [traci.vehicle.getLength(idx) for idx in ids]
-        #         print(f">>>> `TrafficLight.get_num_of_controlled_vehicles(): "
-        #               f"vehicle lengths -> {lengths}")
-        #         exit(0)
         return sum(traci.lane.getLastStepVehicleNumber(lane)
                    for lane in traci.trafficlight.getControlledLanes(self.id))
 
     def __get_lane_occupancy(self) -> float:
-        pass
+        lane_lengths = sum(traci.lane.getLength(l)
+                           for l in traci.trafficlight.getControlledLanes(self.id))
+        vehicle_lengths = sum(sum(traci.vehicle.getLength(v)
+                                  for v in traci.lane.getLastStepVehicleIDs(l))
+                              for l in traci.trafficlight.getControlledLanes(self.id))
+        return min(vehicle_lengths/lane_lengths, 1.0)
 
     def __get_halted_lane_occupancy(self) -> float:
-        pass
+        lane_lengths = sum(traci.lane.getLength(l)
+                           for l in traci.trafficlight.getControlledLanes(self.id))
+        halted_lengths = sum(sum(traci.vehicle.getLength(v)
+                                 for v in traci.lane.getLastStepVehicleIDs(l)
+                                 if traci.vehicle.getSpeed(v) < HALTING_SPEED)
+                             for l in traci.trafficlight.getControlledLanes(self.id))
+        return min(halted_lengths/lane_lengths, 1.0)
 
     def __get_speed_ratio(self) -> float:
-        pass
+        max_lane_speeds = vehicle_speeds = 0
+        for l in traci.trafficlight.getControlledLanes(self.id):
+            for v in traci.lane.getLastStepVehicleIDs(l):
+                speed_limit = traci.lane.getMaxSpeed(l)
+                vehicle_speeds += min(traci.vehicle.getSpeed(v), speed_limit)
+                max_lane_speeds += speed_limit
+        # We need to "clip" average speed because drivers sometimes exceed the
+        # speed limit. If there were 0 vehicles on controlled lanes by the traffic light,
+        # then the case is caught by the ZeroDivisionError and returns 0.
+        try:
+            return min(1.0, vehicle_speeds / max_lane_speeds)
+        except ZeroDivisionError:
+            return 0.0

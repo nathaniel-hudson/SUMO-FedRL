@@ -7,7 +7,6 @@ from seal.trainer.util import *
 from typing import Any, Dict, Tuple
 
 
-# TODO: Add communication cost trade-off code.
 class MultiPolicyTrainer(BaseTrainer):
 
     def __init__(self, **kwargs):

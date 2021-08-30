@@ -16,9 +16,9 @@ from seal.trainer.defaults import *
 from seal.trainer.util import *
 from seal.sumo.abstract_env import AbstractSumoEnv
 
+RAY_TRAINER_SEED = 54321
 
-# TODO: To avoid confusion with RlLib's `Trainer` class, let's rename this to
-#       `sealTrainer`.
+
 class BaseTrainer(ABC):
 
     communication_callback_cls: DefaultCallbacks
@@ -180,9 +180,21 @@ class BaseTrainer(ABC):
             },
             "num_gpus": self.num_gpus,
             "num_workers": self.num_workers,
-            "seed": 54321,  # TODO: PARAMETERIZE THIS.
-            #
-            "callbacks": self.communication_callback_cls,  # CommunicationCallback,
+            "seed": RAY_TRAINER_SEED,
+            "callbacks": self.communication_callback_cls,
+        }
+
+    def env_config_fn(self) -> Dict[str, Any]:
+        return {
+            "gui": self.gui,
+            "net-file": self.net_file,
+            "rand_routes_on_reset": self.rand_routes_on_reset,
+            "ranked": self.ranked,
+            "use_dynamic_seed": True,
+            "rand_route_args": {
+                "seed": 0,
+                "vehicles_per_lane_per_hour": 90
+            }
         }
 
     # ------------------------------------------------------------------------------ #
@@ -235,15 +247,6 @@ class BaseTrainer(ABC):
     def get_weights_filename(self) -> str:
         ranked = "ranked" if self.ranked else "unranked"
         return f"{ranked}"
-
-    def env_config_fn(self) -> Dict[str, Any]:
-        return {
-            "gui": self.gui,
-            "net-file": self.net_file,
-            "rand_routes_on_reset": self.rand_routes_on_reset,
-            "ranked": self.ranked,
-            # TODO: Add the random route generation arguments here.
-        }
 
     def set_rand_route_seed(self, seed) -> None:
         self.env

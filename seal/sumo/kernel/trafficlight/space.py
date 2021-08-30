@@ -4,7 +4,6 @@ from seal.sumo.config import NUM_TLS_STATES, N_RANKED_FEATURES, N_UNRANKED_FEATU
 from gym.spaces import *
 from typing import Any
 
-__SHAPE = (1,)
 
 def trafficlight_space(ranked: bool=False) -> Tuple:
     """This function generates the Tuple state space to support RL in seal. State spaces
@@ -19,28 +18,5 @@ def trafficlight_space(ranked: bool=False) -> Tuple:
     Returns:
         Tuple: Tuple OpenAI gym state space containing all the features.
     """
-    # Sub-state spaces for each feature of interest.
-    congestion = Box(low=0.0, high=1.0, shape=__SHAPE, dtype=SPACE_DTYPE)
-    num_halt_vehicles = Box(low=0.0, high=1.0, shape=__SHAPE, dtype=SPACE_DTYPE)
-    avg_speed = Box(low=0.0, high=1.0, shape=__SHAPE, dtype=SPACE_DTYPE)
-    curr_state_mode = Box(low=0.0, high=1.0, shape=__SHAPE, dtype=SPACE_DTYPE)
-    curr_state_std = Box(low=0.0, high=1.0, shape=__SHAPE, dtype=SPACE_DTYPE)
-
-    # Merge the spaces into a single list, then add ranking features (if necessary).
-    space_list = [
-        congestion,
-        num_halt_vehicles,
-        avg_speed,
-        curr_state_mode,
-        curr_state_std
-    ]
-    if ranked:
-        space_list.extend([
-            Box(low=0.0, high=1.0, shape=__SHAPE, dtype=SPACE_DTYPE),
-            Box(low=0.0, high=1.0, shape=__SHAPE, dtype=SPACE_DTYPE)
-        ])
-
-    # Convert the sub-state spaces for each feature to a tuple and return it as a Space.
-    # return Tuple(tuple(space_list))
     n_features = N_RANKED_FEATURES if ranked else N_UNRANKED_FEATURES
     return Box(low=0.0, high=1.0, shape=(n_features,), dtype=SPACE_DTYPE)

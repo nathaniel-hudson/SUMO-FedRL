@@ -50,7 +50,6 @@ class SumoEnv(AbstractSumoEnv):
         if action_dict is not None:
             taken_action = self._do_action(action_dict)
         self.kernel.step()
-
         obs = self._observe()
         reward = {
             tls.id: self._get_reward(obs[tls.id])
@@ -76,7 +75,7 @@ class SumoEnv(AbstractSumoEnv):
         taken_action = actions.copy()
         for tls in self.kernel.tls_hub:
             if self.action_timer.must_change(tls.index) or \
-            (actions[tls.id] == 1 and self.action_timer.can_change(tls.index)):
+                    (actions[tls.id] == 1 and self.action_timer.can_change(tls.index)):
                 tls.next_phase()
                 self.action_timer.restart(tls.index)
             else:
@@ -98,7 +97,7 @@ class SumoEnv(AbstractSumoEnv):
         float
             The reward for this step
         """
-        return -(obs[LANE_OCCUPANCY] + obs[HALTED_LANE_OCCUPANCY])
+        return -1 * (obs[LANE_OCCUPANCY] + obs[HALTED_LANE_OCCUPANCY])**2
 
     def _observe(self) -> Dict[Any, np.ndarray]:
         """Get the observations across all the trafficlights, indexed by trafficlight id.
@@ -110,39 +109,47 @@ class SumoEnv(AbstractSumoEnv):
         """
         obs = {tls.id: tls.get_observation() for tls in self.kernel.tls_hub}
         if self.ranked:
-            self._get_ranks(obs)
+            self._get_ranks(obs, halted=False)
+            self._get_ranks(obs, halted=True)
         return obs
 
-    def _get_ranks(self, obs: Dict) -> None:
+    def _get_ranks(self, obs: Dict, halted: bool=False) -> None:
         """Appends global and local ranks to the observations in an inplace fashion.
 
         Args:
             obs (Dict): Observation provided by a trafficlight.
         """
-        pairs = [(tls_id, tls_state[LANE_OCCUPANCY])
-                 for tls_id, tls_state in obs.items()]
+        if halted:
+            pairs = [(tls, tls_state[HALTED_LANE_OCCUPANCY])
+                     for tls, tls_state in obs.items()]
+            local_index = LOCAL_HALT_RANK
+            global_index = GLOBAL_HALT_RANK
+        else:
+            pairs = [(tls, tls_state[LANE_OCCUPANCY])
+                     for tls, tls_state in obs.items()]
+            local_index = LOCAL_RANK
+            global_index = GLOBAL_RANK
         pairs = sorted(pairs, key=lambda x: x[1], reverse=True)
         graph = self.kernel.tls_hub.tls_graph  # Adjacency list representation.
 
         # Calculate the GLOBAL ranks for each tls in the road network.
-        for global_rank, (tls_id, _) in enumerate(pairs):
+        for global_rank, (tls, _) in enumerate(pairs):
             try:
-                obs[tls_id][GLOBAL_RANK] = 1 - (global_rank / (len(graph)-1))
+                obs[tls][global_index] = 1 - (global_rank / (len(graph)-1))
             except ZeroDivisionError:
-                obs[tls_id][GLOBAL_RANK] = 1
+                obs[tls][global_index] = 1
 
         # Calculate LOCAL ranks based on global ranks from above.
-        for tls_id in graph:
+        for tls in graph:
             local_rank = 0
-            for neighbor in graph[tls_id]:
-                if obs[tls_id][GLOBAL_RANK] > obs[neighbor][GLOBAL_RANK]:
+            for neighbor in graph[tls]:
+                if obs[tls][global_index] > obs[neighbor][global_index]:
                     local_rank += 1
             try:
                 # We do *not* subtract the denominator by 1 (as we do with global
-                # rank) because `len(graph[tls_id])` does not include `tls_id` as a
+                # rank) because `len(graph[tls])` does not include `tls` as a
                 # node in the sub-network when it should be included. This means that
                 # +1 node cancels out the -1 node.
-                obs[tls_id][LOCAL_RANK] = 1 - \
-                    (local_rank / len(graph[tls_id]))
+                obs[tls][local_index] = 1 - (local_rank/len(graph[tls]))
             except ZeroDivisionError:
-                obs[tls_id][LOCAL_RANK] = 1
+                obs[tls][local_index] = 1
