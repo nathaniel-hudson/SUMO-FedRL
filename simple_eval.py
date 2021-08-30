@@ -98,22 +98,6 @@ if __name__ == "__main__":
         ("local_halt_rank", LOCAL_HALT_RANK),
         ("global_halt_rank", GLOBAL_HALT_RANK)
     ]
-    # state_features = {
-    #     "lane_occupancy": [],
-    #     "halted_occupancy": [],
-    #     "speed_ratio": [],
-    #     "phase_state_r": [],
-    #     "phase_state_y": [],
-    #     "phase_state_g": [],
-    #     "phase_state_G": [],
-    #     "phase_state_u": [],
-    #     "phase_state_o": [],
-    #     "phase_state_O": [],
-    #     "local_rank": [],
-    #     "global_rank": [],
-    #     "local_halt_rank": [],
-    #     "global_halt_rank": []
-    # }
     feature_data = defaultdict(list)
     for netfile_label, netfile_path in NETFILES.items():
         ray.init()

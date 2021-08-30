@@ -36,8 +36,8 @@ class BaseTrainer(ABC):
     out_weights_dir: str
     policy: str
     policy_mapping_fn: Callable
-    policy_type: Any  # TODO: Change this.
-    trainer_type: Any  # TODO: Change this.
+    policy_type: ray.rllib.policy.Policy 
+    trainer_type: ray.rllib.agents.trainer.Trainer
 
     def __init__(
         self,
@@ -174,6 +174,7 @@ class BaseTrainer(ABC):
             "framework": "torch",
             "log_level": self.log_level,
             "lr": self.learning_rate,
+            "metrics_smoothing_episodes": 1,
             "multiagent": {
                 "policies": self.policies,
                 "policy_mapping_fn": self.policy_mapping_fn

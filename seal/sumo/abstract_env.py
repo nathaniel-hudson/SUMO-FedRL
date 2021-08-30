@@ -79,7 +79,7 @@ class AbstractSumoEnv(ABC, MultiAgentEnv):
     def close(self) -> None:
         self.kernel.close()
 
-    def seed(self, seed) -> None:
+    def seed(self) -> None:
         random.seed(self.env_seed)
         np.random.seed(self.env_seed)
 

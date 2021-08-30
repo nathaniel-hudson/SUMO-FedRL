@@ -12,9 +12,9 @@ A key emphasis of this work is to study how *deep reinforcement learning* can be
 ## Road Networks
 
 ### 3x3 Grid Network
-> `netgenerate --grid --grid.number=3 --grid.length=150 --no-turnarounds -j=traffic_light -L=2 --output=grid.net.xml`
+> `netgenerate --grid --grid.number=3 --grid.length=150 --no-turnarounds -j=traffic_light -L=2 --output=grid-3x3.net.xml`
 
 ### 5x5 Grid Network
-> `netgenerate --grid --grid.number=5 --grid.length=150 --no-turnarounds -j=traffic_light --rand.random-lanenumber=true -L=4 --output=grid.net.xml`
+> `netgenerate --grid --grid.number=5 --grid.length=150 --no-turnarounds -j=traffic_light -L=2 --output=grid-5x5.net.xml`
 
 ***

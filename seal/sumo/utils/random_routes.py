@@ -10,15 +10,15 @@ HOUR = 3600
 DEFAULT_END_TIME = HOUR / 8  # (equivalent to 30 minutes)
 
 
-def __extract_number_of_vehicles(n_vehicles: Union[int, Tuple[int, int]]) -> int:
-    if isinstance(n_vehicles, int):
-        assert n_vehicles > 0
-    if isinstance(n_vehicles, tuple):
-        assert len(n_vehicles) == 2, \
-            "`n_vehicles` must be of len 2 if provided a tuple."
-        a, b = n_vehicles
+def __extract_vplph(vplph: Union[int, Tuple[int, int]]) -> int:
+    if isinstance(vplph, int):
+        assert vplph > 0
+    if isinstance(vplph, tuple):
+        assert len(vplph) == 2, \
+            "`vplph` must be of len 2 if provided a tuple."
+        a, b = vplph
         assert a < b, \
-            "`n_vehicles` must be a valid and sorted range."
+            "`vplph` must be a valid and sorted range."
         n_vehicles = random.randint(a, b)
     return n_vehicles
 
@@ -51,7 +51,7 @@ def generate_random_routes(
     netfile: str,
     number_of_lanes: int,
     generator: str="uniform",
-    vehicles_per_lane_per_hour: int=90,
+    vehicles_per_lane_per_hour: Union[int, Tuple[int, int]]=(45, 90),
     number_of_hours: int=1,
     n_routefiles: int=1,
     end_time: Union[int, Tuple[int, int]]=DEFAULT_END_TIME,
@@ -78,7 +78,7 @@ def generate_random_routes(
 
     random.seed(seed)
     end_time = __extract_end_time(end_time)
-
+    vehicles_per_lane_per_hour = __extract_vplph(vehicles_per_lane_per_hour)
     n_vehicles = vehicles_per_lane_per_hour * \
         number_of_lanes * \
         number_of_hours
@@ -98,7 +98,6 @@ def generate_random_routes(
                 "-e", end_time, "--length", "--period", HOUR/n_vehicles,
                 "--seed", str(seed), "--output-trip-file", tripfile,
                 "--fringe-factor", 100]  # ,
-        # '--trip-attributes="carFollowModel=\"IDM\" tau=\"1.0\""']
         opts = random_trips.get_options(args=args)
 
         routes.append(routefile)
