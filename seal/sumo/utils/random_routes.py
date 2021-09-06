@@ -7,7 +7,7 @@ from seal.sumo.utils import random_trips
 
 VALID_DISTRIBUTIONS = ["arcsine", "uniform", "zipf"]
 HOUR = 3600
-DEFAULT_END_TIME = HOUR / 8  # (equivalent to 30 minutes)
+DEFAULT_END_TIME = HOUR / 16  # (equivalent to 7.5 minutes)
 
 
 def __extract_vplph(vplph: Union[int, Tuple[int, int]]) -> int:
@@ -19,8 +19,8 @@ def __extract_vplph(vplph: Union[int, Tuple[int, int]]) -> int:
         a, b = vplph
         assert a < b, \
             "`vplph` must be a valid and sorted range."
-        n_vehicles = random.randint(a, b)
-    return n_vehicles
+        vplph = random.randint(a, b)
+    return vplph
 
 
 def __extract_end_time(end_time: Union[int, Tuple[int, int]]) -> int:
@@ -51,7 +51,7 @@ def generate_random_routes(
     netfile: str,
     number_of_lanes: int,
     generator: str="uniform",
-    vehicles_per_lane_per_hour: Union[int, Tuple[int, int]]=(45, 90),
+    vehicles_per_lane_per_hour: Union[int, Tuple[int, int]]=60,
     number_of_hours: int=1,
     n_routefiles: int=1,
     end_time: Union[int, Tuple[int, int]]=DEFAULT_END_TIME,

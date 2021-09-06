@@ -103,7 +103,7 @@ if __name__ == "__main__":
         ray.init()
         print(f">>> Performing evaluation using '{netfile_label}' net-file.")
         env_config = util.get_env_config(**{
-            "gui": False,
+            "gui": True,
             "net-file": netfile_path,
             "rand_routes_on_reset": True,
             "ranked": ranked

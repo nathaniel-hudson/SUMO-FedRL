@@ -41,7 +41,7 @@ class BaseTrainer(ABC):
 
     def __init__(
         self,
-        checkpoint_freq: int=25,
+        checkpoint_freq: int=5,
         env: AbstractSumoEnv=None,
         gamma: float=0.95,
         learning_rate: float=0.001,
@@ -132,16 +132,11 @@ class BaseTrainer(ABC):
             self._result = self.ray_trainer.train()
             self.on_data_recording_step()
             self.on_logging_step()
-            # TODO: Seeding step using `r` for random route generation.
             if r % self.checkpoint_freq == 0:
                 self.ray_trainer.save(self.model_path)
-        # Get the global test policy weights and then save them to a PICKLE file object.
-        # This will then be used to reload the test policy's weights for evaluation
-        # in both the synthetic simulations and real-world implementation.
-        weights = self.on_make_final_policy()
-        ranked_str = "ranked" if self.ranked else "unranked"
-        with open(os.path.join(self.out_weights_dir, f"{ranked_str}.pkl"), "wb") as f:
-            pickle.dump(weights, f)
+            self.save_test_policy()
+        # Set the global test policy that will be used for evaluation.
+        weights = self.save_test_policy()
         self.ray_trainer.get_policy(GLOBAL_POLICY_VAR).set_weights(weights)
         # Get the data from the training process and output it for visualization to see
         # how training performed over time.
@@ -174,7 +169,7 @@ class BaseTrainer(ABC):
             "framework": "torch",
             "log_level": self.log_level,
             "lr": self.learning_rate,
-            "metrics_smoothing_episodes": 1,
+            # "metrics_smoothing_episodes": 1,
             "multiagent": {
                 "policies": self.policies,
                 "policy_mapping_fn": self.policy_mapping_fn
@@ -183,6 +178,11 @@ class BaseTrainer(ABC):
             "num_workers": self.num_workers,
             "seed": RAY_TRAINER_SEED,
             "callbacks": self.communication_callback_cls,
+            # "train_batch_size": 100,
+            # "rollout_fragment_length": 100,
+            # "batch_mode": "complete_episodes",
+            # "horizon": 450, # NOTE: Will terminate the episode early (faster training).
+            #                 #       This value represents an hour / 8.
         }
 
     def env_config_fn(self) -> Dict[str, Any]:
@@ -192,11 +192,22 @@ class BaseTrainer(ABC):
             "rand_routes_on_reset": self.rand_routes_on_reset,
             "ranked": self.ranked,
             "use_dynamic_seed": True,
+            # "horizon": 450,
             "rand_route_args": {
                 "seed": 0,
-                "vehicles_per_lane_per_hour": 90
+                "vehicles_per_lane_per_hour": 60
             }
         }
+
+    def save_test_policy(self) -> Weights:
+        # Get the global test policy weights and then save them to a PICKLE file object.
+        # This will then be used to reload the test policy's weights for evaluation
+        # in both the synthetic simulations and real-world implementation.
+        weights = self.on_make_final_policy()
+        ranked_str = "ranked" if self.ranked else "unranked"
+        with open(os.path.join(self.out_weights_dir, f"{ranked_str}.pkl"), "wb") as f:
+            pickle.dump(weights, f)
+        return weights
 
     # ------------------------------------------------------------------------------ #
 
@@ -216,8 +227,9 @@ class BaseTrainer(ABC):
         return DataFrame.from_dict(self.training_data)
 
     def on_logging_step(self) -> None:
-        status = "[Ep. #{}] Mean reward: {:6.2f}, Mean length: {:4.2f}, Saved {} ({})."
+        status = "[{}Ep. #{}] Mean reward: {:6.2f}, Mean length: {:4.2f}, Saved {} ({})."
         print(status.format(
+            "" if self.trainer_name is None else f"{self.trainer_name} -- ",
             self._round+1,
             self._result["episode_reward_mean"],
             self._result["episode_len_mean"],

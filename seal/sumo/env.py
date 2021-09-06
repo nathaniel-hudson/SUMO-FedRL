@@ -50,12 +50,13 @@ class SumoEnv(AbstractSumoEnv):
         if action_dict is not None:
             taken_action = self._do_action(action_dict)
         self.kernel.step()
+        self.step_counter += 1
         obs = self._observe()
         reward = {
             tls.id: self._get_reward(obs[tls.id])
             for tls in self.kernel.tls_hub
         }
-        done = {"__all__": self.kernel.done()}
+        done = {"__all__": self.__get_done()}
         info = {tls.id: {"is_ranked": self.ranked,
                          "veh2tls_comms": tls.get_num_of_controlled_vehicles()}
                 for tls in self.kernel.tls_hub}
@@ -82,6 +83,14 @@ class SumoEnv(AbstractSumoEnv):
                 self.action_timer.incr(tls.index)
                 taken_action[tls.index] = 0
         return taken_action
+
+    def __get_done(self) -> bool:
+        if self.horizon is None:
+            return self.kernel.done()
+        elif self.step_counter >= self.horizon:
+            return True
+        else:
+            return self.kernel.done()
 
     def _get_reward(self, obs: np.ndarray) -> float:
         """Negative reward function based on the number of halting vehicles, waiting time,
@@ -111,6 +120,13 @@ class SumoEnv(AbstractSumoEnv):
         if self.ranked:
             self._get_ranks(obs, halted=False)
             self._get_ranks(obs, halted=True)
+        # Clean the observation of NaN and (+/-) Inf values.
+        for tls in obs:
+            for feature in obs[tls]:
+                if feature == np.nan or feature == float('-inf'):
+                    obs[tls][feature] = 0.0
+                elif feature == float('inf'):
+                    obs[tls][feature] = 1.0
         return obs
 
     def _get_ranks(self, obs: Dict, halted: bool=False) -> None:
