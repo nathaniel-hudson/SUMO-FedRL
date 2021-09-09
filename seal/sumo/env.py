@@ -122,11 +122,12 @@ class SumoEnv(AbstractSumoEnv):
             self._get_ranks(obs, halted=True)
         # Clean the observation of NaN and (+/-) Inf values.
         for tls in obs:
-            for feature in obs[tls]:
+            for i in range(len(obs[tls])):
+                feature = obs[tls][i]
                 if feature == np.nan or feature == float('-inf'):
-                    obs[tls][feature] = 0.0
+                    obs[tls][i] = 0.0
                 elif feature == float('inf'):
-                    obs[tls][feature] = 1.0
+                    obs[tls][i] = 1.0
         return obs
 
     def _get_ranks(self, obs: Dict, halted: bool=False) -> None:

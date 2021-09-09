@@ -25,6 +25,7 @@ if __name__ == "__main__":
         DOUBLE_LOOP
     ]
 
+    status = ">>> Training with `{}`! (netfile='{}')"
     for net_file in net_files:
         for ranked in [False]:
             ## NOTE: When I tried running this, it stopped with FedPolicyTrainer and gave
@@ -32,14 +33,14 @@ if __name__ == "__main__":
             ## I'm not sure if this is because of federated averaging or if it's from
             ## the observations.
             intersection = net_file.split(os.sep)[-1]
-            print(f">>> Training with `FedPolicyTrainer`! (netfile='{intersection}')")
+            print(status.format("FedPolicyTrainer", intersection))
             FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked).\
                 train(n_episodes)
 
-            print(">>> Training with `MultiPolicyTrainer`!")
+            print(status.format("MultiPolicyTrainer", intersection))
             MultiPolicyTrainer(net_file=net_file, ranked=ranked).\
                 train(n_episodes)
 
-            print(">>> Training with `SinglePolicyTrainer`!")
+            print(status.format("SinglePolicyTrainer", intersection))
             SinglePolicyTrainer(net_file=net_file, ranked=ranked).\
                 train(n_episodes)

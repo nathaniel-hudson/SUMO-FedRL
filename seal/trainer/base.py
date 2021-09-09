@@ -143,7 +143,12 @@ class BaseTrainer(ABC):
         dataframe = self.on_tear_down()
         if save_on_end:
             path = os.path.join(self.out_data_dir, f"{self.get_filename()}.csv")
-            dataframe.to_csv(path)
+            try:
+                dataframe.to_csv(path)
+            except FileNotFoundError:
+                new_dir = os.path.join(path.split(os.sep[:-1]))
+                os.makedirs(new_dir)
+                dataframe.to_csv(path)
         return dataframe
 
     # ------------------------------------------------------------------------------ #
@@ -169,7 +174,6 @@ class BaseTrainer(ABC):
             "framework": "torch",
             "log_level": self.log_level,
             "lr": self.learning_rate,
-            # "metrics_smoothing_episodes": 1,
             "multiagent": {
                 "policies": self.policies,
                 "policy_mapping_fn": self.policy_mapping_fn
@@ -195,7 +199,7 @@ class BaseTrainer(ABC):
             # "horizon": 450,
             "rand_route_args": {
                 "seed": 0,
-                "vehicles_per_lane_per_hour": 60
+                "vehicles_per_lane_per_hour": 75
             }
         }
 
@@ -212,7 +216,7 @@ class BaseTrainer(ABC):
     # ------------------------------------------------------------------------------ #
 
     def on_setup(self) -> None:
-        ray.init()
+        ray.init(include_dashboard=False)
         self.ray_trainer = self.trainer_type(env=self.env,
                                              config=self.init_config())
         self.model_path = os.path.join(
