@@ -25,22 +25,22 @@ if __name__ == "__main__":
         DOUBLE_LOOP
     ]
 
-    status = ">>> Training with `{}`! (netfile='{}')"
+    status = ">>> Training with `{}`! (netfile='{}', ranked={})"
     for net_file in net_files:
-        for ranked in [False]:
+        for ranked in [True, False]:
             ## NOTE: When I tried running this, it stopped with FedPolicyTrainer and gave
             ## the following warning: "WARNING:root:Nan or Inf found in input tensor".
             ## I'm not sure if this is because of federated averaging or if it's from
             ## the observations.
             intersection = net_file.split(os.sep)[-1]
-            print(status.format("FedPolicyTrainer", intersection))
+            print(status.format("FedPolicyTrainer", intersection, ranked))
             FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked).\
                 train(n_episodes)
 
-            print(status.format("MultiPolicyTrainer", intersection))
-            MultiPolicyTrainer(net_file=net_file, ranked=ranked).\
-                train(n_episodes)
+            # print(status.format("MultiPolicyTrainer", intersection))
+            # MultiPolicyTrainer(net_file=net_file, ranked=ranked).\
+            #     train(n_episodes)
 
-            print(status.format("SinglePolicyTrainer", intersection))
-            SinglePolicyTrainer(net_file=net_file, ranked=ranked).\
-                train(n_episodes)
+            # print(status.format("SinglePolicyTrainer", intersection))
+            # SinglePolicyTrainer(net_file=net_file, ranked=ranked).\
+            #     train(n_episodes)

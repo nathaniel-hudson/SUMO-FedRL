@@ -91,24 +91,41 @@ class FedPolicyTrainer(BaseTrainer):
             for agent_id in dummy_env._observe()
         }
 
-    def fedavg(self, policy_dict: Dict[str, Policy], C: float = 1.0) -> Weights:
-        # Step 1: Compute the coefficients for each policy in the system based on reward.
+    def fedavg(
+        self, 
+        policy_dict: Dict[str, Policy], 
+        weight_by_reward: bool=True
+    ) -> Weights:
+        # STEP 1: Compute the coefficients for each policy in the system based on reward.
         weight_keys = next(iter(policy_dict.values())).get_weights().keys()
         total_reward = abs(sum(self.reward_tracker.values()))
-        if total_reward > 0:
-            coeffs = {
-                policy: (total_reward + self.reward_tracker[policy]) / total_reward
+        if weight_by_reward:
+            unnormalized_coeffs = {
+                policy: total_reward / (self.reward_tracker[policy] - 1)
                 for policy in policy_dict
             }
+            try:
+                coeffs = {
+                    policy: unnormalized_coeffs[policy] / sum(unnormalized_coeffs.values())
+                    for policy in policy_dict
+                }
+            except ZeroDivisionError:
+                coeffs = {
+                    policy: 1 / len(policy_dict) 
+                    for policy in policy_dict
+                }
         else:
-            coeffs = {policy: 1/len(policy_dict) for policy in policy_dict}
-        # Step 2: Compute the reward-based averaged policy weights by weight key.
+            coeffs = {
+                policy: 1 / len(policy_dict) 
+                for policy in policy_dict
+            }
+        # STEP 2: Compute the reward-based averaged policy weights by weight key.
         new_weights = {}
         for key in weight_keys:
             weights = {policy_id: np.array(policy.get_weights()[key])
                        for policy_id, policy in policy_dict.items()}
             new_weights[key] = sum(coeffs[policy_id] * weights[policy_id]
                                    for policy_id in policy_dict)
-        # Step 3: Reset the reward trackers for each of the policies.
+        # STEP 3: Reset the reward trackers for each of the policies.
         self.__reset_reward_tracker()
         return new_weights
