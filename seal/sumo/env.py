@@ -57,10 +57,13 @@ class SumoEnv(AbstractSumoEnv):
             for tls in self.kernel.tls_hub
         }
         done = {"__all__": self.__get_done()}
-        info = {tls.id: {"is_ranked": self.ranked,
-                         "veh2tls_comms": tls.get_num_of_controlled_vehicles()}
-                for tls in self.kernel.tls_hub}
-
+        info = {
+            tls.id: {
+                "is_ranked": self.ranked,
+                "veh2tls_comms": tls.get_num_of_controlled_vehicles()
+            }
+            for tls in self.kernel.tls_hub
+        }
         return obs, reward, done, info
 
     def _do_action(self, actions: Dict[Any, int]) -> List[int]:

@@ -14,33 +14,55 @@ from seal.trainer.multi_agent import MultiPolicyTrainer
 from seal.trainer.single_agent import SinglePolicyTrainer
 from os.path import join
 
+OUT_PREFIX = "dummy"
 random_routes_config = {}
+trainer_kwargs = {
+    # Non-Algorithm Trainer Arguments (i.e., not related to PPO).
+    "horizon": 120,
+    "timesteps_per_iteration":  120,
+    "batch_mode": "truncate_episodes",
+    "rollout_fragment_length": 120,
+    "train_batch_size": 120,
+
+    # PPO Trainer Arguments.
+    "sgd_minibatch_size": 30,
+    # "use_lstm": True,
+}
+
 
 if __name__ == "__main__":
-    n_episodes = 50
+    n_episodes = 10
     fed_step =  5
-    net_files = [
+    NET_FILES = [
         GRID_3x3,
         GRID_5x5,
         DOUBLE_LOOP
     ]
+    RANKED = [
+        True, 
+        False
+    ]
 
     status = ">>> Training with `{}`! (netfile='{}', ranked={})"
-    for net_file in net_files:
-        for ranked in [True, False]:
+    for net_file in NET_FILES:
+        for ranked in RANKED:
             ## NOTE: When I tried running this, it stopped with FedPolicyTrainer and gave
             ## the following warning: "WARNING:root:Nan or Inf found in input tensor".
             ## I'm not sure if this is because of federated averaging or if it's from
             ## the observations.
             intersection = net_file.split(os.sep)[-1]
-            print(status.format("FedPolicyTrainer", intersection, ranked))
-            FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked).\
+
+            # print(status.format("FedPolicyTrainer", intersection, ranked))
+            # FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked, 
+            #                  out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
+            #     train(n_episodes)
+
+            print(status.format("MultiPolicyTrainer", intersection, ranked))
+            MultiPolicyTrainer(net_file=net_file, ranked=ranked,  
+                               out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
                 train(n_episodes)
 
-            # print(status.format("MultiPolicyTrainer", intersection))
-            # MultiPolicyTrainer(net_file=net_file, ranked=ranked).\
-            #     train(n_episodes)
-
-            # print(status.format("SinglePolicyTrainer", intersection))
-            # SinglePolicyTrainer(net_file=net_file, ranked=ranked).\
-            #     train(n_episodes)
+            print(status.format("SinglePolicyTrainer", intersection, ranked))
+            SinglePolicyTrainer(net_file=net_file, ranked=ranked,  
+                                out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
+                train(n_episodes)

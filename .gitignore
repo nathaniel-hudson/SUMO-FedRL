@@ -6,3 +6,4 @@ configs/two_inter/traffic.rou.alt.xml
 *.rou.alt.xml
 *.rou.xml
 *.trips.xml
+*.csv

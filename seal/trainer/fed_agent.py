@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 from collections import defaultdict
 from seal.sumo.env import SumoEnv
@@ -6,6 +7,7 @@ from typing import Any, Dict, List, NewType
 from seal.trainer.base import BaseTrainer
 from seal.trainer.callback import FedRLCommCallback
 from seal.trainer.util import *
+from time import ctime
 from typing import Any, Dict, Tuple
 
 Weights = NewType("Weights", Dict[Any, np.array])
@@ -129,3 +131,24 @@ class FedPolicyTrainer(BaseTrainer):
         # STEP 3: Reset the reward trackers for each of the policies.
         self.__reset_reward_tracker()
         return new_weights
+
+    # ============================================================ #
+
+    def on_logging_step(self) -> None:
+        if self.fed_step is None:
+            aggregate_this_round = False
+        elif self._round != 0 and self._round % self.fed_step == 0:
+            aggregate_this_round = True
+        else:
+            aggregate_this_round = False
+        status = "{}Ep. #{} | ranked={} | fed_round={} | Mean reward: {:6.2f} | Mean length: {:4.2f} | Saved {} ({})"
+        print(status.format(
+            "" if self.trainer_name is None else f"[{self.trainer_name}] ",
+            self._round+1,
+            self.ranked,
+            aggregate_this_round,
+            self._result["episode_reward_mean"],
+            self._result["episode_len_mean"],
+            self.model_path.split(os.sep)[-1],
+            ctime()
+        ))

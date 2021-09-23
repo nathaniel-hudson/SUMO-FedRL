@@ -2,10 +2,6 @@
 RESOURCES:
     + https://docs.ray.io/en/master/_modules/ray/rllib/evaluation/episode.html
     + https://github.com/ray-project/ray/blob/master/rllib/examples/custom_metrics_and_callbacks.py
-
-comm_cost:
-    {"edge2tls_action": {"tls_1": 182, "tls_2": 182,  ...},
-     "edge2tls_policy": {"tls_1":   7, "tls_2":   7,  ...}}
 '''
 
 from collections import defaultdict
@@ -26,8 +22,35 @@ VEH2TLS_COMM = "veh_to_tls_info_comms"
 COMM_TYPES = set([EDGE2TLS_POLICY, TLS2EDGE_POLICY, EDGE2TLS_ACTION, EDGE2TLS_RANK,
                   TLS2EDGE_OBS, VEH2TLS_COMM])
 
+FEATURE_DIVIDER = "___"
 
-class SinglePolicyCommCallback(DefaultCallbacks):
+
+## ============================================================================== ##
+
+class BaseCommCallback(DefaultCallbacks):
+
+    def on_episode_start(self, *, worker: RolloutWorker, base_env: BaseEnv,
+                         policies: Dict[str, Policy], episode: MultiAgentEpisode,
+                         env_index: int, **kwargs) -> None:
+        self.comm_cost = defaultdict(int)
+        episode.user_data["comm_cost"] = defaultdict(int)
+        episode.hist_data["comm_cost"] = defaultdict(int)
+
+    def on_episode_end(self, *, worker: RolloutWorker, base_env: BaseEnv,
+                       policies: Dict[str, Policy], episode: MultiAgentEpisode,
+                       env_index: int, **kwargs) -> None:
+        # self.iteration_reward = episode.total_reward
+        for key in self.comm_cost:
+            new_key = FEATURE_DIVIDER.join(sub_key for sub_key in key)
+            episode.custom_metrics[new_key] = self.comm_cost[key]
+
+    def on_train_result(self, *, trainer, result: dict, **kwargs) -> None:
+        result["callback_ok"] = True
+        # result["reward_this_iteration"] = self.iteration_reward
+
+## ============================================================================== ##
+
+class SinglePolicyCommCallback(BaseCommCallback):
     '''
     TRAINER:
         * edge2tls_policy += 0
@@ -38,14 +61,6 @@ class SinglePolicyCommCallback(DefaultCallbacks):
         * tls2edge_obs    += 1
         * veh2tls         += 1 (per vehicle)
     '''
-
-    def on_episode_start(self, *, worker: RolloutWorker, base_env: BaseEnv,
-                         policies: Dict[str, Policy], episode: MultiAgentEpisode,
-                         env_index: int, **kwargs) -> None:
-        self.comm_cost = defaultdict(int)
-        episode.user_data["comm_cost"] = defaultdict(int)
-        episode.hist_data["comm_cost"] = defaultdict(int)
-
     def on_episode_step(self, *, worker: RolloutWorker, base_env: BaseEnv,
                         episode: MultiAgentEpisode, env_index: int, **kwargs) -> None:
         # For some reason, the results of this function return a set of tuples of
@@ -62,21 +77,9 @@ class SinglePolicyCommCallback(DefaultCallbacks):
             self.comm_cost[TLS2EDGE_OBS, idx] += 1
             self.comm_cost[VEH2TLS_COMM, idx] += info_dict["veh2tls_comms"]
 
-    def on_episode_end(self, *, worker: RolloutWorker, base_env: BaseEnv,
-                       policies: Dict[str, Policy], episode: MultiAgentEpisode,
-                       env_index: int, **kwargs) -> None:
-        for key in self.comm_cost:
-            new_key = "___".join(sub_key for sub_key in key)
-            episode.custom_metrics[new_key] = self.comm_cost[key]
-
-    def on_train_result(self, *, trainer, result: dict, **kwargs) -> None:
-        result["callback_ok"] = True
-
-
 ## ============================================================================== ##
 
-
-class MultiPolicyCommCallback(DefaultCallbacks):
+class MultiPolicyCommCallback(BaseCommCallback):
     '''
     TRAINER:
         * edge2tls_policy += 0
@@ -87,14 +90,6 @@ class MultiPolicyCommCallback(DefaultCallbacks):
         * tls2edge_obs    += 0
         * veh2tls         += 1 (per vehicle)
     '''
-
-    def on_episode_start(self, *, worker: RolloutWorker, base_env: BaseEnv,
-                         policies: Dict[str, Policy], episode: MultiAgentEpisode,
-                         env_index: int, **kwargs) -> None:
-        self.comm_cost = defaultdict(int)
-        episode.user_data["comm_cost"] = defaultdict(int)
-        episode.hist_data["comm_cost"] = defaultdict(int)
-
     def on_episode_step(self, *, worker: RolloutWorker, base_env: BaseEnv,
                         episode: MultiAgentEpisode, env_index: int, **kwargs) -> None:
         # For some reason, the results of this function return a set of tuples of
@@ -111,21 +106,10 @@ class MultiPolicyCommCallback(DefaultCallbacks):
             self.comm_cost[TLS2EDGE_OBS, idx] += 0
             self.comm_cost[VEH2TLS_COMM, idx] += info_dict["veh2tls_comms"]
 
-    def on_episode_end(self, *, worker: RolloutWorker, base_env: BaseEnv,
-                       policies: Dict[str, Policy], episode: MultiAgentEpisode,
-                       env_index: int, **kwargs) -> None:
-        for key in self.comm_cost:
-            new_key = "___".join(sub_key for sub_key in key)
-            episode.custom_metrics[new_key] = self.comm_cost[key]
-
-    def on_train_result(self, *, trainer, result: dict, **kwargs) -> None:
-        result["callback_ok"] = True
-
-
 ## ============================================================================== ##
 
 
-class FedRLCommCallback(DefaultCallbacks):
+class FedRLCommCallback(BaseCommCallback):
     '''
     TRAINER:
         * edge2tls_policy += 1 (each fed round)
@@ -136,13 +120,6 @@ class FedRLCommCallback(DefaultCallbacks):
         * tls2edge_obs    += 0
         * veh2tls         += 1 (per vehicle)
     '''
-
-    def on_episode_start(self, *, worker: RolloutWorker, base_env: BaseEnv,
-                         policies: Dict[str, Policy], episode: MultiAgentEpisode,
-                         env_index: int, **kwargs) -> None:
-        self.comm_cost = defaultdict(int)
-        episode.user_data["comm_cost"] = defaultdict(int)
-        episode.hist_data["comm_cost"] = defaultdict(int)
 
     def on_episode_step(self, *, worker: RolloutWorker, base_env: BaseEnv,
                         episode: MultiAgentEpisode, env_index: int, **kwargs) -> None:
@@ -160,13 +137,3 @@ class FedRLCommCallback(DefaultCallbacks):
                 else 0
             self.comm_cost[TLS2EDGE_OBS, idx] += 0
             self.comm_cost[VEH2TLS_COMM, idx] += info_dict["veh2tls_comms"]
-
-    def on_episode_end(self, *, worker: RolloutWorker, base_env: BaseEnv,
-                       policies: Dict[str, Policy], episode: MultiAgentEpisode,
-                       env_index: int, **kwargs) -> None:
-        for key in self.comm_cost:
-            new_key = "___".join(sub_key for sub_key in key)
-            episode.custom_metrics[new_key] = self.comm_cost[key]
-
-    def on_train_result(self, *, trainer, result: dict, **kwargs) -> None:
-        result["callback_ok"] = True

@@ -52,6 +52,8 @@ class BaseTrainer(ABC):
         root_dir: List[str]=["out"],
         sub_dir: str=None,
         policy: str="ppo",
+        out_prefix: str=None,
+        trainer_kwargs: dict=None,
         **kwargs
     ) -> None:
         assert 0 <= gamma <= 1
@@ -83,6 +85,8 @@ class BaseTrainer(ABC):
         self.rand_routes_config = kwargs.get("rand_routes_config",
                                              defaults.RAND_ROUTES_CONFIG)
 
+    
+        self.out_prefix = out_prefix
         self.net_dir = self.net_file.split(os.sep)[-1].split(".")[0]
         self.out_checkpoint_dir = os.path.join(
             self.out_checkpoint_dir, self.net_dir)
@@ -103,6 +107,7 @@ class BaseTrainer(ABC):
         self.idx = None
         self.policy_config = None
         self.policy_mapping_fn = None
+        self.trainer_kwargs = trainer_kwargs
 
     # ------------------------------------------------------------------------------ #
 
@@ -169,7 +174,7 @@ class BaseTrainer(ABC):
     # ------------------------------------------------------------------------------ #
 
     def init_config(self) -> Dict[str, Any]:
-        return {
+        config = {
             "env_config": self.env_config_fn(),
             "framework": "torch",
             "log_level": self.log_level,
@@ -188,6 +193,9 @@ class BaseTrainer(ABC):
             # "horizon": 450, # NOTE: Will terminate the episode early (faster training).
             #                 #       This value represents an hour / 8.
         }
+        if self.trainer_kwargs is not None:
+            config.update(self.trainer_kwargs)
+        return config
 
     def env_config_fn(self) -> Dict[str, Any]:
         return {
@@ -209,6 +217,8 @@ class BaseTrainer(ABC):
         # in both the synthetic simulations and real-world implementation.
         weights = self.on_make_final_policy()
         ranked_str = "ranked" if self.ranked else "unranked"
+        if self.out_prefix is not None:
+            ranked_str = f"{self.out_prefix}_{ranked_str}"
         with open(os.path.join(self.out_weights_dir, f"{ranked_str}.pkl"), "wb") as f:
             pickle.dump(weights, f)
         return weights
@@ -219,22 +229,22 @@ class BaseTrainer(ABC):
         ray.init(include_dashboard=False)
         self.ray_trainer = self.trainer_type(env=self.env,
                                              config=self.init_config())
-        self.model_path = os.path.join(
-            self.out_checkpoint_dir, self.get_filename())
+        out_dir = self.out_checkpoint_dir
+        self.model_path = os.path.join(out_dir, self.get_filename())
         self.training_data = defaultdict(list)
 
     def on_tear_down(self) -> DataFrame:
         self.ray_trainer.save(self.model_path)
         self.ray_trainer.stop()
         ray.shutdown()
-        self.ray_trainer.workers.local_worker().env.close()
         return DataFrame.from_dict(self.training_data)
 
     def on_logging_step(self) -> None:
-        status = "[{}Ep. #{}] Mean reward: {:6.2f}, Mean length: {:4.2f}, Saved {} ({})."
+        status = "{}Ep. #{} | ranked={} | Mean reward: {:6.2f} | Mean length: {:4.2f} | Saved {} ({})"
         print(status.format(
-            "" if self.trainer_name is None else f"{self.trainer_name} -- ",
+            "" if self.trainer_name is None else f"[{self.trainer_name}] ",
             self._round+1,
+            self.ranked,
             self._result["episode_reward_mean"],
             self._result["episode_len_mean"],
             self.model_path.split(os.sep)[-1],
@@ -258,6 +268,8 @@ class BaseTrainer(ABC):
         if self.trainer_name is None:
             raise ValueError("`trainer_name` cannot be None.")
         ranked = "ranked" if self.ranked else "unranked"
+        if self.out_prefix is not None:
+            ranked = f"{self.out_prefix}_{ranked}"
         return f"{ranked}"
         # return f"{ranked}_{self.idx}"
 
