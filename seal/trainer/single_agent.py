@@ -1,6 +1,6 @@
 from seal.sumo.env import SumoEnv
 from seal.trainer.base import BaseTrainer
-from seal.trainer.callback import SinglePolicyCommCallback
+from seal.trainer.communication.single_callback import SinglePolicyCommCallback
 from seal.trainer.util import *
 from typing import Any, Dict, Tuple
 

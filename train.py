@@ -18,11 +18,11 @@ OUT_PREFIX = "dummy"
 random_routes_config = {}
 trainer_kwargs = {
     # Non-Algorithm Trainer Arguments (i.e., not related to PPO).
-    "horizon": 120,
-    "timesteps_per_iteration":  120,
+    "horizon": 240,
+    "timesteps_per_iteration":  240,
     "batch_mode": "truncate_episodes",
-    "rollout_fragment_length": 120,
-    "train_batch_size": 120,
+    "rollout_fragment_length": 240,
+    "train_batch_size": 240,
 
     # PPO Trainer Arguments.
     "sgd_minibatch_size": 30,
@@ -31,8 +31,8 @@ trainer_kwargs = {
 
 
 if __name__ == "__main__":
-    n_episodes = 10
-    fed_step =  5
+    n_episodes = 20
+    fed_step =  1
     NET_FILES = [
         GRID_3x3,
         GRID_5x5,
@@ -52,10 +52,10 @@ if __name__ == "__main__":
             ## the observations.
             intersection = net_file.split(os.sep)[-1]
 
-            # print(status.format("FedPolicyTrainer", intersection, ranked))
-            # FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked, 
-            #                  out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
-            #     train(n_episodes)
+            print(status.format("FedPolicyTrainer", intersection, ranked))
+            FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked, 
+                             out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
+                train(n_episodes)
 
             print(status.format("MultiPolicyTrainer", intersection, ranked))
             MultiPolicyTrainer(net_file=net_file, ranked=ranked,  

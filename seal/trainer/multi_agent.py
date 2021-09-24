@@ -2,7 +2,7 @@ import numpy as np
 
 from seal.sumo.env import SumoEnv
 from seal.trainer.base import BaseTrainer
-from seal.trainer.callback import MultiPolicyCommCallback
+from seal.trainer.communication.multi_callback import MultiPolicyCommCallback
 from seal.trainer.util import *
 from typing import Any, Dict, Tuple
 
