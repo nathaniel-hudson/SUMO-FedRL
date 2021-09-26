@@ -13,8 +13,6 @@ from seal.trainer.communication import *
 from typing import Dict
 
 
-## ============================================================================== ##
-
 class BaseCommCallback(DefaultCallbacks):
 
     def on_episode_start(self, *, worker: RolloutWorker, base_env: BaseEnv,
@@ -38,19 +36,9 @@ class BaseCommCallback(DefaultCallbacks):
                 episode.hist_data[new_key] = []
             episode.hist_data[new_key].append(self.comm_cost[key])
 
+        # Reset the episode's data.
+        episode.user_data["comm_cost"] = defaultdict(int)
+
     def on_train_result(self, *, trainer, result: dict, **kwargs) -> None:
         result["callback_ok"] = True
         # result["reward_this_iteration"] = self.iteration_reward
-
-## ============================================================================== ##
-
-
-
-## ============================================================================== ##
-
-
-
-## ============================================================================== ##
-
-
-
