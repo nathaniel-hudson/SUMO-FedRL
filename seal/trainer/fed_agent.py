@@ -62,13 +62,13 @@ class FedPolicyTrainer(BaseTrainer):
             self.training_data["fed_round"].append(aggregate_this_round)
 
             # NOTE: Consider removing this later.
-            if policy != GLOBAL_POLICY_VAR:
-                total_reward += parsed_data.policy_reward(policy)
-                self.training_data["policy_reward"].append(parsed_data.policy_reward(policy))
-                self.training_data["num_vehicles"].append(parsed_data.num_vehicles(policy))
-            else:
-                self.training_data["policy_reward"].append("N/A")
-                self.training_data["num_vehicles"].append("N/A")
+            # if policy != GLOBAL_POLICY_VAR:
+            #     total_reward += parsed_data.policy_reward(policy)
+            #     self.training_data["policy_reward"].append(parsed_data.policy_reward(policy))
+            #     self.training_data["num_vehicles"].append(parsed_data.num_vehicles(policy))
+            # else:
+            #     self.training_data["policy_reward"].append("N/A")
+            #     self.training_data["num_vehicles"].append("N/A")
 
 
             for key, value in self._result.items():

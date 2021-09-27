@@ -24,10 +24,7 @@ class DataParser:
             float: Policy reward during the specified iteration of the results.
         """
         policy_key = f"policy_{policy_id}_reward"
-        # print(f"\n\n\nresults.keys():\n{self.result_data.keys()}\n\n\n")
-
-        print(self.result_data["hist_stats"])
-
+        # print(self.result_data["hist_stats"])
         reward = self.result_data["hist_stats"][policy_key][iteration]
         return reward
 
@@ -59,17 +56,29 @@ class DataParser:
             raise ValueError("Somehow, an error occurred when trying to get "
                              "communication cost.")
 
-    def policy_comm_cost(self, policy_id: str, comm_type: str, iteration: int=-1) -> int:
+    def policy_comm_cost(
+        self, 
+        policy_id: str, 
+        comm_type: str, 
+        iteration: int=None
+    ) -> int:
         policy_key = f"policy_{policy_id}_comm={comm_type}"
-        comm_cost = self.result_data["hist_stats"][policy_key][iteration]
+        if iteration is None:
+            i = self.results_data["episodes_this_iter"]
+            comm_cost = sum(self.result_data["hist_stats"][policy_key][-i:])
+        else:
+            comm_cost = self.result_data["hist_stats"][policy_key][iteration]
         return comm_cost
 
-    def num_vehicles(self, policy_id: str, iteration=-1) -> int:
-        
-        print(self.result_data["hist_stats"])
-
+    def num_vehicles(self, policy_id: str, iteration=None) -> int:
+        # print(self.result_data["hist_stats"])
         policy_key = f"policy_{policy_id}_comm={VEH2TLS_COMM}"
-        n_vehicles = self.result_data["hist_stats"][policy_key][iteration]
+        if iteration is None:
+            # print(f"Values of `self.results_data`:\n{self.result_data}")
+            i = self.result_data["episodes_this_iter"]
+            n_vehicles = sum(self.result_data["hist_stats"][policy_key][-i:])
+        else:
+            n_vehicles = self.result_data["hist_stats"][policy_key][iteration]
         return n_vehicles
 
     ## -------------------------------------------------------------------------------- ##
