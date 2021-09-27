@@ -25,6 +25,9 @@ class DataParser:
         """
         policy_key = f"policy_{policy_id}_reward"
         # print(f"\n\n\nresults.keys():\n{self.result_data.keys()}\n\n\n")
+
+        print(self.result_data["hist_stats"])
+
         reward = self.result_data["hist_stats"][policy_key][iteration]
         return reward
 
@@ -62,6 +65,9 @@ class DataParser:
         return comm_cost
 
     def num_vehicles(self, policy_id: str, iteration=-1) -> int:
+        
+        print(self.result_data["hist_stats"])
+
         policy_key = f"policy_{policy_id}_comm={VEH2TLS_COMM}"
         n_vehicles = self.result_data["hist_stats"][policy_key][iteration]
         return n_vehicles

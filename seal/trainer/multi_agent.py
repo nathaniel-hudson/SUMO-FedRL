@@ -3,6 +3,7 @@ import numpy as np
 from seal.sumo.env import SumoEnv
 from seal.trainer.base import BaseTrainer
 from seal.trainer.communication.multi_callback import MultiPolicyCommCallback
+from seal.trainer.data.parser import DataParser
 from seal.trainer.util import *
 from typing import Any, Dict, Tuple
 
@@ -43,10 +44,22 @@ class MultiPolicyTrainer(BaseTrainer):
         return new_weights
 
     def on_data_recording_step(self) -> None:
+        parsed_data = DataParser(self._result)
+        total_reward = 0
         for policy in self.policies:
             self.training_data["round"].append(self._round)
             self.training_data["trainer"].append("MARL")
             self.training_data["policy"].append(policy)
+
+            # NOTE: Consider removing this later.
+            if policy != GLOBAL_POLICY_VAR:
+                total_reward += parsed_data.policy_reward(policy)
+                self.training_data["policy_reward"].append(parsed_data.policy_reward(policy))
+                self.training_data["num_vehicles"].append(parsed_data.num_vehicles(policy))
+            else:
+                self.training_data["policy_reward"].append("N/A")
+                self.training_data["num_vehicles"].append("N/A")
+
             for key, value in self._result.items():
                 if isinstance(value, dict):
                     if policy in value:
