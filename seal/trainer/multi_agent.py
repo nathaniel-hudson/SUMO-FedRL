@@ -50,6 +50,8 @@ class MultiPolicyTrainer(BaseTrainer):
             self.training_data["round"].append(self._round)
             self.training_data["trainer"].append("MARL")
             self.training_data["policy"].append(policy)
+            self.training_data["fed_round"].append(False)
+            self.training_data["ranked"].append(self.ranked)
 
             # NOTE: Consider removing this later.
             # if policy != GLOBAL_POLICY_VAR:

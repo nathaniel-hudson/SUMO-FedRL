@@ -30,16 +30,16 @@ trainer_kwargs = {
 
 
 if __name__ == "__main__":
-    n_episodes = 50
+    n_episodes = 10 # 50
     fed_step =  1
     NET_FILES = [
         GRID_3x3,
-        GRID_5x5,
-        DOUBLE_LOOP
+        # GRID_5x5,
+        # DOUBLE_LOOP
     ]
     RANKED = [
         True, 
-        False
+        # False
     ]
 
     status = ">>> Training with `{}`! (netfile='{}', ranked={})"
@@ -56,12 +56,12 @@ if __name__ == "__main__":
                              out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
                 train(n_episodes)
 
-            print(status.format("MultiPolicyTrainer", intersection, ranked))
-            MultiPolicyTrainer(net_file=net_file, ranked=ranked,  
-                               out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
-                train(n_episodes)
+            # print(status.format("MultiPolicyTrainer", intersection, ranked))
+            # MultiPolicyTrainer(net_file=net_file, ranked=ranked,  
+            #                    out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
+            #     train(n_episodes)
 
-            print(status.format("SinglePolicyTrainer", intersection, ranked))
-            SinglePolicyTrainer(net_file=net_file, ranked=ranked,  
-                                out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
-                train(n_episodes)
+            # print(status.format("SinglePolicyTrainer", intersection, ranked))
+            # SinglePolicyTrainer(net_file=net_file, ranked=ranked,  
+            #                     out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
+            #     train(n_episodes)

@@ -147,13 +147,15 @@ class BaseTrainer(ABC):
         # how training performed over time.
         dataframe = self.on_tear_down()
         if save_on_end:
-            path = os.path.join(self.out_data_dir, f"{self.get_filename()}.csv")
+            path = os.path.join(self.out_data_dir, self.get_filename())
             try:
-                dataframe.to_csv(path)
+                dataframe.to_csv(f"{path}.csv")
+                dataframe.to_excel(f"{path}.xlsx")
             except FileNotFoundError:
                 new_dir = os.path.join(path.split(os.sep[:-1]))
                 os.makedirs(new_dir)
-                dataframe.to_csv(path)
+                dataframe.to_csv(f"{path}.csv")
+                dataframe.to_excel(f"{path}.xlsx")
         return dataframe
 
     # ------------------------------------------------------------------------------ #

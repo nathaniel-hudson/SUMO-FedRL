@@ -16,6 +16,8 @@ Weights = NewType("Weights", Dict[Any, np.array])
 Policy = NewType("Policy", Dict[Any, np.array])
 
 
+MIN_REWARD = -4
+
 class FedPolicyTrainer(BaseTrainer):
 
     def __init__(self, fed_step: int, **kwargs) -> None:
@@ -45,13 +47,7 @@ class FedPolicyTrainer(BaseTrainer):
         return self.fedavg(policy_dict)
 
     def on_data_recording_step(self) -> None:
-        if self.fed_step is None:
-            aggregate_this_round = False
-        elif self._round != 0 and self._round % self.fed_step == 0:
-            aggregate_this_round = True
-        else:
-            aggregate_this_round = False
-
+        aggregate_this_round = self._is_aggregating_step()
         parsed_data = DataParser(self._result)
         total_reward = 0
         for policy in self.policies:
@@ -60,6 +56,7 @@ class FedPolicyTrainer(BaseTrainer):
             self.training_data["trainer"].append("FedRL")
             self.training_data["policy"].append(policy)
             self.training_data["fed_round"].append(aggregate_this_round)
+            self.training_data["ranked"].append(self.ranked)
 
             # NOTE: Consider removing this later.
             # if policy != GLOBAL_POLICY_VAR:
@@ -87,7 +84,7 @@ class FedPolicyTrainer(BaseTrainer):
                 self.episode_data[policy]["num_vehicles"] += parsed_data.num_vehicles(policy)
                 # 
                 self.reward_tracker[policy] += \
-                    self._result["policy_reward_mean"].get(policy, 0)
+                    self._result["policy_reward_mean"].get(policy, MIN_REWARD)
 
         # Aggregate the weights via the Federated Averaging algorithm.
         if aggregate_this_round:
@@ -145,12 +142,7 @@ class FedPolicyTrainer(BaseTrainer):
     # ============================================================ #
 
     def on_logging_step(self) -> None:
-        if self.fed_step is None:
-            aggregate_this_round = False
-        elif self._round != 0 and self._round % self.fed_step == 0:
-            aggregate_this_round = True
-        else:
-            aggregate_this_round = False
+        aggregate_this_round = self._is_aggregating_step()
         status = "{}Ep. #{} | ranked={} | fed_round={} | Mean reward: {:6.2f} | " \
                  "Mean length: {:4.2f} | Saved {} ({})"
         print(status.format(
@@ -163,3 +155,11 @@ class FedPolicyTrainer(BaseTrainer):
             self.model_path.split(os.sep)[-1],
             ctime()
         ))
+
+    def _is_aggregating_step(self) -> bool:
+        if self.fed_step is None:
+            return True
+        elif (self._round + 1) % self.fed_step == 0:
+            return True
+        else:
+            return False

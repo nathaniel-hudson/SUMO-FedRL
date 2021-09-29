@@ -1,12 +1,11 @@
-
-
+from copy import deepcopy
 from seal.trainer.communication import COMM_TYPES, VEH2TLS_COMM
 
 
 class DataParser:
 
     def __init__(self, result_data) -> None:
-        self.result_data = result_data
+        self.result_data = deepcopy(result_data)
 
     def episode_reward(self, iteration: int=-1) -> float:
         reward = self.result_data["hist_stats"]["episode_reward"][iteration]

@@ -20,7 +20,6 @@ class BaseCommCallback(DefaultCallbacks):
                          env_index: int, **kwargs) -> None:
         self.comm_cost = defaultdict(int)
         episode.user_data["comm_cost"] = defaultdict(int)
-        # episode.hist_data["comm_cost"] = defaultdict(list)
 
     def on_episode_end(self, *, worker: RolloutWorker, base_env: BaseEnv,
                        policies: Dict[str, Policy], episode: MultiAgentEpisode,
@@ -30,8 +29,8 @@ class BaseCommCallback(DefaultCallbacks):
             comm_type, policy_id = key
             comm_type = comm_type.replace("_", "-")
             new_key = f"policy_{policy_id}_comm={comm_type}"
-            # new_key = FEATURE_DIVIDER.join(sub_key for sub_key in key)
             episode.custom_metrics[new_key] = self.comm_cost[key]
+            
             if new_key not in episode.hist_data:
                 episode.hist_data[new_key] = []
             episode.hist_data[new_key].append(self.comm_cost[key])
