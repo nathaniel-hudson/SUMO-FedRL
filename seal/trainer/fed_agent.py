@@ -50,6 +50,42 @@ class FedPolicyTrainer(BaseTrainer):
         aggregate_this_round = self._is_aggregating_step()
         parsed_data = DataParser(self._result)
         total_reward = 0
+
+
+        # Record the data for training process evaluation.
+        self.training_data["round"].append(self._round)
+        self.training_data["trainer"].append("FedRL")
+        # self.training_data["policy"].append(policy)
+        self.training_data["fed_round"].append(aggregate_this_round)
+        self.training_data["ranked"].append(self.ranked)
+
+        for key, value in self._result.items():
+            self.training_data[key].append(value)
+
+        # Track the reward for this policy during this training step. This is only
+        # used for the FedAvg subroutine in the AGGREGATION step.
+        for policy in self.policies:
+            if policy != GLOBAL_POLICY_VAR:
+                self.episode_data[policy]["reward"] += parsed_data.policy_reward(policy) 
+                self.episode_data[policy]["num_vehicles"] += parsed_data.num_vehicles(policy)
+                # 
+                self.reward_tracker[policy] += \
+                    self._result["policy_reward_mean"].get(policy, MIN_REWARD)
+
+        # Aggregate the weights via the Federated Averaging algorithm.
+        if aggregate_this_round:
+            policy_dict = {policy_id: self.ray_trainer.get_policy(policy_id)
+                           for policy_id in self.policies
+                           if policy_id != GLOBAL_POLICY_VAR}
+            new_params = self.fedavg(policy_dict)
+            for policy_id in self.policies:
+                self.ray_trainer.get_policy(policy_id).set_weights(new_params)
+
+
+    def on_data_recording_step_v1(self) -> None:
+        aggregate_this_round = self._is_aggregating_step()
+        parsed_data = DataParser(self._result)
+        total_reward = 0
         for policy in self.policies:
             # Record the data for training process evaluation.
             self.training_data["round"].append(self._round)
@@ -57,16 +93,6 @@ class FedPolicyTrainer(BaseTrainer):
             self.training_data["policy"].append(policy)
             self.training_data["fed_round"].append(aggregate_this_round)
             self.training_data["ranked"].append(self.ranked)
-
-            # NOTE: Consider removing this later.
-            # if policy != GLOBAL_POLICY_VAR:
-            #     total_reward += parsed_data.policy_reward(policy)
-            #     self.training_data["policy_reward"].append(parsed_data.policy_reward(policy))
-            #     self.training_data["num_vehicles"].append(parsed_data.num_vehicles(policy))
-            # else:
-            #     self.training_data["policy_reward"].append("N/A")
-            #     self.training_data["num_vehicles"].append("N/A")
-
 
             for key, value in self._result.items():
                 if isinstance(value, dict):
@@ -94,6 +120,8 @@ class FedPolicyTrainer(BaseTrainer):
             new_params = self.fedavg(policy_dict)
             for policy_id in self.policies:
                 self.ray_trainer.get_policy(policy_id).set_weights(new_params)
+
+
 
     def on_policy_setup(self) -> Dict[str, Tuple[Any]]:
         dummy_env = self.env(config=self.env_config_fn())

@@ -8,7 +8,7 @@ from typing import Any, Dict, Tuple
 
 class SinglePolicyTrainer(BaseTrainer):
 
-    POLICY_KEY: str = "sarl_policy"
+    POLICY_KEY: str = "sarl-policy"
 
     def __init__(self, **kwargs):
         name = "SARL"

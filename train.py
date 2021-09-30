@@ -14,7 +14,7 @@ from seal.trainer.multi_agent import MultiPolicyTrainer
 from seal.trainer.single_agent import SinglePolicyTrainer
 from os.path import join
 
-OUT_PREFIX = "new"
+OUT_PREFIX = "v2"
 random_routes_config = {}
 trainer_kwargs = {
     # Non-Algorithm Trainer Arguments (i.e., not related to PPO).
@@ -30,7 +30,7 @@ trainer_kwargs = {
 
 
 if __name__ == "__main__":
-    n_episodes = 10 # 50
+    n_episodes = 2 # 50
     fed_step =  1
     NET_FILES = [
         GRID_3x3,
