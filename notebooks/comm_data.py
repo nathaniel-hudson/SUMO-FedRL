@@ -53,7 +53,7 @@ class PreprocessedCommData(object):
             return len(trafficlight_ids)
         
         
-        REWARD_KEY = "policy_sarl_policy_reward"
+        REWARD_KEY = "policy_sarl-policy_reward"
         pre = defaultdict(list)
         n_trafficlights = get_num_of_trafficlights()
         loop_count = 0
@@ -80,6 +80,7 @@ class PreprocessedCommData(object):
                             pre["ranked"].append(row["ranked"])
                         else:
                             pre["ranked"].append(ranked)
+                        pre["weight_aggr_fn"].append(row["weight_aggr_fn"])
                         pre["episode_reward_mean"].append(row["episode_reward_mean"])
                         pre["policy_reward"].append(rewards_this_iter[rewards_index // len(COMM_TYPES)])
                         rewards_index += 1
@@ -102,6 +103,7 @@ class PreprocessedCommData(object):
                 pre["total_comm_cost"].append(total_comm_cost)
 
         preprocessed_data = DataFrame.from_dict(pre)
+        preprocessed_data.fillna("N/A", inplace=True)
         return preprocessed_data
 
 
@@ -135,6 +137,7 @@ class PreprocessedCommData(object):
                             pre["ranked"].append(row["ranked"])
                         else:
                             pre["ranked"].append(ranked)
+                        pre["weight_aggr_fn"].append(row["weight_aggr_fn"])
                         pre["episode_reward_mean"].append(row["episode_reward_mean"])
                         pre["policy_reward"].append(policy_reward)
                         
@@ -156,4 +159,5 @@ class PreprocessedCommData(object):
                 pre["total_comm_cost"].append(total_comm_cost)
 
         preprocessed_data = DataFrame.from_dict(pre)
+        preprocessed_data.fillna("N/A", inplace=True)
         return preprocessed_data

@@ -52,6 +52,7 @@ class MultiPolicyTrainer(BaseTrainer):
             self.training_data["policy"].append(policy)
             self.training_data["fed_round"].append(False)
             self.training_data["ranked"].append(self.ranked)
+            self.training_data["weight_aggr_fn"].append(None)
 
             # NOTE: Consider removing this later.
             # if policy != GLOBAL_POLICY_VAR:

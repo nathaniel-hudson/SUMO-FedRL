@@ -14,7 +14,7 @@ from seal.trainer.multi_agent import MultiPolicyTrainer
 from seal.trainer.single_agent import SinglePolicyTrainer
 from os.path import join
 
-OUT_PREFIX = "v2"
+OUT_PREFIX = "v3"
 random_routes_config = {}
 trainer_kwargs = {
     # Non-Algorithm Trainer Arguments (i.e., not related to PPO).
@@ -30,16 +30,16 @@ trainer_kwargs = {
 
 
 if __name__ == "__main__":
-    n_episodes = 2 # 50
+    n_episodes = 50
     fed_step =  1
     NET_FILES = [
         GRID_3x3,
-        # GRID_5x5,
-        # DOUBLE_LOOP
+        GRID_5x5,
+        DOUBLE_LOOP
     ]
     RANKED = [
         True, 
-        # False
+        False
     ]
 
     status = ">>> Training with `{}`! (netfile='{}', ranked={})"
@@ -51,17 +51,28 @@ if __name__ == "__main__":
             ## the observations.
             intersection = net_file.split(os.sep)[-1]
 
-            print(status.format("FedPolicyTrainer", intersection, ranked))
+            print(status.format("FedPolicyTrainer (aggr='traffic')", intersection, ranked))
+            traffic_aggr_prefix = f"{OUT_PREFIX}_traffic-aggr"
             FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked, 
-                             out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
+                             out_prefix=traffic_aggr_prefix, 
+                             trainer_kwargs=trainer_kwargs,
+                             weight_fn="traffic").\
                 train(n_episodes)
 
-            # print(status.format("MultiPolicyTrainer", intersection, ranked))
-            # MultiPolicyTrainer(net_file=net_file, ranked=ranked,  
-            #                    out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
-            #     train(n_episodes)
+            print(status.format("FedPolicyTrainer (aggr='neg_reward')", intersection, ranked))
+            traffic_aggr_prefix = f"{OUT_PREFIX}_neg-reward-aggr"
+            FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked, 
+                             out_prefix=traffic_aggr_prefix, 
+                             trainer_kwargs=trainer_kwargs,
+                             weight_fn="neg_reward").\
+                train(n_episodes)
 
-            # print(status.format("SinglePolicyTrainer", intersection, ranked))
-            # SinglePolicyTrainer(net_file=net_file, ranked=ranked,  
-            #                     out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
-            #     train(n_episodes)
+            print(status.format("MultiPolicyTrainer", intersection, ranked))
+            MultiPolicyTrainer(net_file=net_file, ranked=ranked,  
+                               out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
+                train(n_episodes)
+
+            print(status.format("SinglePolicyTrainer", intersection, ranked))
+            SinglePolicyTrainer(net_file=net_file, ranked=ranked,  
+                                out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
+                train(n_episodes)

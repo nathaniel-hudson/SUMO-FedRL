@@ -17,6 +17,14 @@ Policy = NewType("Policy", Dict[Any, np.array])
 
 
 MIN_REWARD = -4
+DEFAULT_AGGR_FN = "traffic"
+
+WEIGHT_FUNCTIONS = {
+        "naive":      naive_weight_function,
+        "neg_reward": neg_reward_weight_function, # BAD
+        "pos_reward": pos_reward_weight_function, # Experimental
+        "traffic":    traffic_weight_function     # Experimental
+    }
 
 class FedPolicyTrainer(BaseTrainer):
 
@@ -35,6 +43,8 @@ class FedPolicyTrainer(BaseTrainer):
         self.communication_callback_cls = FedRLCommCallback
         self.reward_tracker = defaultdict(float)
         self.episode_data = defaultdict(lambda: defaultdict(float))
+        self.weight_fn = kwargs.get("weight_fn", DEFAULT_AGGR_FN)
+        assert self.weight_fn in WEIGHT_FUNCTIONS
 
     def __reset_reward_tracker(self) -> None:
         for policy in self.reward_tracker:
@@ -58,6 +68,7 @@ class FedPolicyTrainer(BaseTrainer):
         # self.training_data["policy"].append(policy)
         self.training_data["fed_round"].append(aggregate_this_round)
         self.training_data["ranked"].append(self.ranked)
+        self.training_data["weight_aggr_fn"].append(self.weight_fn)
 
         for key, value in self._result.items():
             self.training_data[key].append(value)
@@ -93,6 +104,7 @@ class FedPolicyTrainer(BaseTrainer):
             self.training_data["policy"].append(policy)
             self.training_data["fed_round"].append(aggregate_this_round)
             self.training_data["ranked"].append(self.ranked)
+            self.training_data["weight_aggr_fn"].append(self.weight_fn)
 
             for key, value in self._result.items():
                 if isinstance(value, dict):
@@ -139,23 +151,16 @@ class FedPolicyTrainer(BaseTrainer):
 
     def fedavg(
         self, 
-        policy_dict: Dict[str, Policy], 
-        weight_fn: str="traffic"
+        policy_dict: Dict[str, Policy] 
+        # weight_fn: str="traffic"
     ) -> Weights:
-        weight_functions = {
-            "naive":      naive_weight_function,
-            "neg_reward": neg_reward_weight_function, # BAD
-            "pos_reward": pos_reward_weight_function, # Experimental
-            "traffic":    traffic_weight_function     # Experimental
-        }
-        assert weight_fn in weight_functions
-        weight_fn = weight_functions[weight_fn]
+        # STEP 1: Grab the aggregation function specified at initialization.
+        weight_fn = WEIGHT_FUNCTIONS[self.weight_fn]
 
-        # STEP 1: Compute the coefficients for each policy in the system based on reward.
+        # STEP 2: Compute the coefficients for each policy in the system based on reward.
         coeffs = weight_fn(self.episode_data)
-        # coeffs = weight_fn(self.reward_tracker)
         
-        # STEP 2: Compute the reward-based averaged policy weights by weight key.
+        # STEP 3: Compute the reward-based averaged policy weights by weight key.
         new_params = {}
         param_keys = next(iter(policy_dict.values())).get_weights().keys()
         for key in param_keys:
@@ -163,7 +168,8 @@ class FedPolicyTrainer(BaseTrainer):
                        for policy_id, policy in policy_dict.items()}
             new_params[key] = sum(coeffs[policy_id] * weights[policy_id]
                                    for policy_id in policy_dict)
-        # STEP 3: Reset the reward trackers for each of the policies.
+
+        # STEP 4: Reset the reward trackers for each of the policies.
         self.__reset_reward_tracker()
         return new_params
 
