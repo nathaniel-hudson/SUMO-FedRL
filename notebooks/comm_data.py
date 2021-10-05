@@ -129,6 +129,7 @@ class PreprocessedCommData(object):
                     policy_rewards = hist_stats[reward_key][-episodes_this_iter:]
                     
                     for policy_reward, comm_cost in zip(policy_rewards, comm_costs):
+                        # pre["intersection"].append(row["intersection"])
                         pre["round"].append(row["round"])
                         pre["timesteps_total"].append(row["timesteps_total"])
                         pre["trainer"].append(row["trainer"])

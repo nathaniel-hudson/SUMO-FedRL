@@ -59,12 +59,12 @@ if __name__ == "__main__":
                              weight_fn="traffic").\
                 train(n_episodes)
 
-            print(status.format("FedPolicyTrainer (aggr='neg_reward')", intersection, ranked))
-            traffic_aggr_prefix = f"{OUT_PREFIX}_neg-reward-aggr"
+            print(status.format("FedPolicyTrainer (aggr='pos_reward')", intersection, ranked))
+            traffic_aggr_prefix = f"{OUT_PREFIX}_pos-reward-aggr"
             FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked, 
                              out_prefix=traffic_aggr_prefix, 
                              trainer_kwargs=trainer_kwargs,
-                             weight_fn="neg_reward").\
+                             weight_fn="pos_reward").\
                 train(n_episodes)
 
             print(status.format("MultiPolicyTrainer", intersection, ranked))
