@@ -42,7 +42,12 @@ class PreprocessedCommData(object):
     ) -> DataFrame:
         assert not all([path, data])
         if path is not None:
-            data = pd.read_csv(path)
+            if ".csv" in path:
+                data = pd.read_csv(path)
+            elif ".xlsx" in path:
+                data = pd.read_excel(path)
+            elif ".json" in path:
+                data = pd.read_json(path)
 
         if return_type == "brief":
             return PreprocessedCommData.__brief(data, intersection, ranked)
@@ -101,41 +106,9 @@ class PreprocessedCommData(object):
 
         df = DataFrame.from_dict(standard_features)
         
-        df.query("trainer == 'FedRL' and intersection == 'grid-3x3' and ranked == False and comm_type == 'edge-to-tls-rank-comms'").head()
+        print(df.query("trainer == 'FedRL' and intersection == 'grid-3x3' and ranked == False and comm_type == 'edge-to-tls-rank-comms'")["comm_cost"].describe())
 
         return df
-            
-
-        # last_row = data.iloc[-1]
-        # is_sarl = last_row["trainer"] == "SARL"
-        # hist_stats = ast.literal_eval(last_row["hist_stats"])
-        # policy_features = defaultdict(list)
-        # for comm_type in COMM_TYPES:
-        #     for comm_key in hist_stats:
-        #         if f"={comm_type}" not in comm_key:
-        #             continue
-
-        #         policy = comm_key.split("_")[1]
-        #         reward_key = "policy_sarl-policy_reward" if is_sarl else f"policy_{policy}_reward"
-        #         comm_costs = hist_stats[comm_key]
-        #         policy_rewards = hist_stats[reward_key]
-
-        #         if comm_type == "edge-to-tls-rank-comms" and last_row["ranked"] == False:
-        #             print(f"comm_costs:\n{comm_costs}\n")
-
-        #         total_comm_cost = 0
-        #         for _round, (cost, reward) in enumerate(zip(comm_costs, policy_rewards)):
-        #             policy_features["round"].append(_round)
-        #             policy_features["comm_cost"].append(cost)
-        #             policy_features["comm_type"].append(comm_type)
-        #             policy_features["policy_reward"].append(reward)
-        #             total_comm_cost += cost
-        #         for _ in range(len(comm_costs)):
-        #             policy_features["total_comm_cost"].append(total_comm_cost)
-
-        # standard_df = DataFrame.from_dict(standard_features)
-        # policy_df = DataFrame.from_dict(policy_features)
-        # return standard_df.merge(policy_df, on="round")
 
 
     def __full(data: DataFrame, intersection: str, ranked: bool) -> DataFrame:
