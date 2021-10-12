@@ -33,32 +33,38 @@ if __name__ == "__main__":
     n_episodes = 50
     fed_step =  1
     NET_FILES = [
-        GRID_3x3,
-        GRID_5x5,
+        # GRID_3x3,
+        # GRID_5x5,
         DOUBLE_LOOP
     ]
     RANKED = [
-        True, 
+        # True, 
         False
     ]
 
     status = ">>> Training with `{}`! (netfile='{}', ranked={})"
     for net_file in NET_FILES:
         for ranked in RANKED:
-            ## NOTE: When I tried running this, it stopped with FedPolicyTrainer and gave
-            ## the following warning: "WARNING:root:Nan or Inf found in input tensor".
-            ## I'm not sure if this is because of federated averaging or if it's from
-            ## the observations.
             intersection = net_file.split(os.sep)[-1]
 
-            print(status.format("FedPolicyTrainer (aggr='traffic')", intersection, ranked))
-            traffic_aggr_prefix = f"{OUT_PREFIX}_traffic-aggr"
+            # print(status.format("FedPolicyTrainer (aggr='traffic')", intersection, ranked))
+            # traffic_aggr_prefix = f"{OUT_PREFIX}_traffic-aggr"
+            # FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked, 
+            #                  out_prefix=traffic_aggr_prefix, 
+            #                  trainer_kwargs=trainer_kwargs,
+            #                  weight_fn="traffic").\
+            #     train(n_episodes)
+
+            print(status.format("FedPolicyTrainer (aggr='neg_reward')", intersection, ranked))
+            traffic_aggr_prefix = f"{OUT_PREFIX}_neg-reward-aggr"
             FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked, 
                              out_prefix=traffic_aggr_prefix, 
                              trainer_kwargs=trainer_kwargs,
-                             weight_fn="traffic").\
+                             weight_fn="neg_reward").\
                 train(n_episodes)
 
+
+            '''
             print(status.format("FedPolicyTrainer (aggr='pos_reward')", intersection, ranked))
             traffic_aggr_prefix = f"{OUT_PREFIX}_pos-reward-aggr"
             FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked, 
@@ -66,13 +72,14 @@ if __name__ == "__main__":
                              trainer_kwargs=trainer_kwargs,
                              weight_fn="pos_reward").\
                 train(n_episodes)
+            '''
 
-            print(status.format("MultiPolicyTrainer", intersection, ranked))
-            MultiPolicyTrainer(net_file=net_file, ranked=ranked,  
-                               out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
-                train(n_episodes)
+            # print(status.format("MultiPolicyTrainer", intersection, ranked))
+            # MultiPolicyTrainer(net_file=net_file, ranked=ranked,  
+            #                    out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
+            #     train(n_episodes)
 
-            print(status.format("SinglePolicyTrainer", intersection, ranked))
-            SinglePolicyTrainer(net_file=net_file, ranked=ranked,  
-                                out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
-                train(n_episodes)
+            # print(status.format("SinglePolicyTrainer", intersection, ranked))
+            # SinglePolicyTrainer(net_file=net_file, ranked=ranked,  
+            #                     out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
+            #     train(n_episodes)

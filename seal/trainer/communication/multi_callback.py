@@ -26,5 +26,5 @@ class MultiPolicyCommCallback(BaseCommCallback):
             self.comm_cost[TLS2EDGE_POLICY, idx] += 0
             self.comm_cost[EDGE2TLS_ACTION, idx] += 0
             self.comm_cost[EDGE2TLS_RANK, idx] += int(info_dict["is_ranked"])
-            self.comm_cost[TLS2EDGE_OBS, idx] += 0
+            self.comm_cost[TLS2EDGE_OBS, idx] += int(info_dict["is_ranked"])
             self.comm_cost[VEH2TLS_COMM, idx] += info_dict["veh2tls_comms"]

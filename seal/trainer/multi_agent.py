@@ -44,33 +44,13 @@ class MultiPolicyTrainer(BaseTrainer):
         return new_weights
 
     def on_data_recording_step(self) -> None:
-        parsed_data = DataParser(self._result)
-        total_reward = 0
-        for policy in self.policies:
-            self.training_data["round"].append(self._round)
-            self.training_data["trainer"].append("MARL")
-            self.training_data["policy"].append(policy)
-            self.training_data["fed_round"].append(False)
-            self.training_data["ranked"].append(self.ranked)
-            self.training_data["weight_aggr_fn"].append(None)
-
-            # NOTE: Consider removing this later.
-            # if policy != GLOBAL_POLICY_VAR:
-            #     total_reward += parsed_data.policy_reward(policy)
-            #     self.training_data["policy_reward"].append(parsed_data.policy_reward(policy))
-            #     self.training_data["num_vehicles"].append(parsed_data.num_vehicles(policy))
-            # else:
-            #     self.training_data["policy_reward"].append("N/A")
-            #     self.training_data["num_vehicles"].append("N/A")
-
-            for key, value in self._result.items():
-                if isinstance(value, dict):
-                    if policy in value:
-                        self.training_data[key].append(value[policy])
-                    else:
-                        self.training_data[key].append(value)
-                else:
-                    self.training_data[key].append(value)
+        self.training_data["round"].append(self._round)
+        self.training_data["trainer"].append("MARL")
+        self.training_data["fed_round"].append(False)
+        self.training_data["ranked"].append(self.ranked)
+        self.training_data["weight_aggr_fn"].append(None)
+        for key, value in self._result.items():
+            self.training_data[key].append(value)
 
     def on_policy_setup(self) -> Dict[str, Tuple[Any]]:
         dummy_env = self.env(config=self.env_config_fn())
@@ -83,3 +63,4 @@ class MultiPolicyTrainer(BaseTrainer):
                        self.policy_config)
             for agent_id in dummy_env._observe()
         }
+
