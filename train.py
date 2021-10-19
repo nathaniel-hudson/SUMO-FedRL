@@ -33,13 +33,13 @@ if __name__ == "__main__":
     n_episodes = 50
     fed_step =  1
     NET_FILES = [
+        DOUBLE_LOOP,
         # GRID_3x3,
-        # GRID_5x5,
-        DOUBLE_LOOP
+        # GRID_5x5
     ]
     RANKED = [
-        # True, 
-        False
+        True, 
+        # False
     ]
 
     status = ">>> Training with `{}`! (netfile='{}', ranked={})"
@@ -62,6 +62,22 @@ if __name__ == "__main__":
                              trainer_kwargs=trainer_kwargs,
                              weight_fn="neg_reward").\
                 train(n_episodes)
+
+            # print(status.format("FedPolicyTrainer (aggr='pos_reward')", intersection, ranked))
+            # traffic_aggr_prefix = f"{OUT_PREFIX}_pos-reward-aggr"
+            # FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked, 
+            #                  out_prefix=traffic_aggr_prefix, 
+            #                  trainer_kwargs=trainer_kwargs,
+            #                  weight_fn="pos_reward").\
+            #     train(n_episodes)
+
+            # print(status.format("FedPolicyTrainer (aggr='naive')", intersection, ranked))
+            # traffic_aggr_prefix = f"{OUT_PREFIX}_naive-aggr"
+            # FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked, 
+            #                  out_prefix=traffic_aggr_prefix, 
+            #                  trainer_kwargs=trainer_kwargs,
+            #                  weight_fn="naive").\
+            #     train(n_episodes)
 
 
             '''

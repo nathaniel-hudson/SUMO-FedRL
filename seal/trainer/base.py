@@ -151,11 +151,13 @@ class BaseTrainer(ABC):
             try:
                 dataframe.to_csv(f"{path}.csv")
                 dataframe.to_excel(f"{path}.xlsx")
+                dataframe.to_json(f"{path}.json")
             except FileNotFoundError:
                 new_dir = os.path.join(path.split(os.sep[:-1]))
                 os.makedirs(new_dir)
                 dataframe.to_csv(f"{path}.csv")
                 dataframe.to_excel(f"{path}.xlsx")
+                dataframe.to_json(f"{path}.json")
         return dataframe
 
     # ------------------------------------------------------------------------------ #
