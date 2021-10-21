@@ -24,6 +24,8 @@ NETFILES = {
 # these Pickle (.pkl) files contain the model weights of the policy that will be used
 # for evaluation. We will set this policy's weights to one of these based on whether
 # we want the ranked or unranked policy.
+weights_path_base = ("example_weights", "new-state-space")
+
 RANKED_WEIGHTS_PKL = join("example_weights", "new-state-space", "FedRL",
                           "complex_inter", "ranked.pkl")
 UNRANKED_WEIGHTS_PKL = join("example_weights", "new-state-space", "FedRL",
