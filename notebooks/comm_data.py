@@ -22,7 +22,7 @@ def read_file(path: str) -> DataFrame:
         raise ValueError("Unsupported filetype extension for 'path'.")
 
 
-def preprocess_v2(path: str, intersection: str) -> DataFrame:
+def preprocess(path: str, intersection: str) -> DataFrame:
     data = read_file(path)
     features = defaultdict(list)
     # is_sarl = next(iter(data["trainer"])) == "SARL"
@@ -39,7 +39,7 @@ def preprocess_v2(path: str, intersection: str) -> DataFrame:
         for key in ast.literal_eval(next(iter(data["hist_stats"])))
         if ("policy_" in key) and ("_comm" in key)
     ])
-            
+
 
     def __add_standard_features(row: pd.Series) -> None:
         features["trainer"].append(row["trainer"])
@@ -54,8 +54,8 @@ def preprocess_v2(path: str, intersection: str) -> DataFrame:
 
 
     def __add_comm_costs(
-        hist_stats: dict, 
-        comm_key: str, 
+        hist_stats: dict,
+        comm_key: str,
         comm_type: str
     ) -> float:
         if "policy" in comm_type and trainer == "FedRL":
@@ -90,6 +90,16 @@ def preprocess_v2(path: str, intersection: str) -> DataFrame:
     except:
         for key in features:
             print(key, len(features[key]))
-        
+
     preprocessed_data.fillna("N/A", inplace=True)
+    preprocessed_data["intersection"].replace({
+        "double":   "Double",
+        "grid-3x3": "Grid-3x3",
+        "grid-5x5": "Grid-5x5"
+    }, inplace=True)
+    preprocessed_data["trainer"].replace({
+        "FedRL": "Federated",
+        "MARL":  "Decentralized",
+        "SARL":  "Centralized"
+    }, inplace=True)
     return preprocessed_data

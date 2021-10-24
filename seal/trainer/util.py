@@ -18,6 +18,7 @@ def get_env_config(**kwargs):
         "net-file": kwargs.get("net-file", DEFAULT_NET_FILE),
         "rand_routes_on_reset": kwargs.get("rand_routes_on_reset", DEFAULT_RAND_ROUTES_ON_RESET),
         "ranked": kwargs.get("ranked", DEFAULT_RANKED),
+        "horizon": kwargs.get("horizon", None)
     }
     return config
 
