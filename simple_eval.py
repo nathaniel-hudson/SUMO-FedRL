@@ -102,7 +102,6 @@ def run_trial(
     gui: bool=False,
     mc_run: int=None
 ) -> None:
-    ray.init(include_dashboard=False)
     env_config = util.get_env_config(**{
         "gui": gui,
         "net-file": netfile_path,
@@ -164,7 +163,6 @@ def run_trial(
                     if mc_run is not None:
                         feature_data["mc_run"].append(mc_run)
     env.close()
-    ray.shutdown()
 
 
 # =========================================================================== #
@@ -180,6 +178,7 @@ if __name__ == "__main__":
     feature_data = defaultdict(list)
     tls_rewards = defaultdict(list)
 
+    ray.init(include_dashboard=False)
     for trainer in ["FedRL", "MARL", "SARL"]:
         for trainer_intersection in ["double", "grid-3x3", "grid-5x5"]:
             for ranked in [True, False]:
@@ -194,7 +193,7 @@ if __name__ == "__main__":
                 for netfile_label, netfile_path in NETFILES.items():
                     print(f">>> Performing evaluation using '{netfile_label}' "
                           f"net-file ({ranked_str}).")
-                    for mc_run in range(5):
+                    for mc_run in range(10):
                         run_trial(
                             netfile_path,
                             ranked,
@@ -205,6 +204,7 @@ if __name__ == "__main__":
                             gui=False,
                             mc_run=mc_run
                         )
+    ray.shutdown()
 
     # Plot the results.
     # sns.displot(data=feature_data, kind="ecdf", hue="netfile", x="value",
