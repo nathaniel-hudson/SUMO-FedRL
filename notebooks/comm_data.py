@@ -40,11 +40,10 @@ def preprocess(path: str, intersection: str) -> DataFrame:
         if ("policy_" in key) and ("_comm" in key)
     ])
 
-
     def __add_standard_features(row: pd.Series) -> None:
         features["trainer"].append(row["trainer"])
         features["iteration"].append(row["training_iteration"])
-        features["episode"].append(row["training_iteration"])
+        # features["episode"].append(row["training_iteration"])
         features["round"].append(row["round"])
         features["intersection"].append(intersection)
         features["timesteps_total"].append(row["timesteps_total"])
@@ -52,38 +51,47 @@ def preprocess(path: str, intersection: str) -> DataFrame:
         features["weight_aggr_fn"].append(row["weight_aggr_fn"])
         features["episode_reward_mean"].append(row["episode_reward_mean"])
 
-
     def __add_comm_costs(
         hist_stats: dict,
         comm_key: str,
-        comm_type: str
+        comm_type: str,
+        episodes_this_iter: int,
+        episode_index: int
     ) -> float:
         if "policy" in comm_type and trainer == "FedRL":
-            features[comm_type].append(1)
-            return 1
+            if episode_index == episodes_this_iter-1:
+                features[comm_type].append(1)
+                return 1
+            else:
+                features[comm_type].append(0)
+                return 0
         elif ranked and comm_type == TLS2EDGE_OBS:
-            comm_costs = hist_stats[comm_key][-episodes_this_iter:]
-            comm_costs = sum(episode_len_mean for _ in comm_costs)
-            features[comm_type].append(comm_costs)
-            return comm_costs
+            comm_cost = hist_stats[comm_key][-episodes_this_iter:][episode_index]
+            features[comm_type].append(comm_cost)
+            return comm_cost
         else:
-            comm_costs = hist_stats[comm_key][-episodes_this_iter:]
-            comm_costs = sum(comm_costs)
-            features[comm_type].append(comm_costs)
-            return comm_costs
-
+            comm_cost = hist_stats[comm_key][-episodes_this_iter:][episode_index]
+            features[comm_type].append(comm_cost)
+            return comm_cost
 
     for _, row in data.iterrows():
         hist_stats = ast.literal_eval(row["hist_stats"])
         episodes_this_iter = row["episodes_this_iter"]
-        for tls in trafficlights:
-            total_comm_cost = 0
-            for comm_type in COMM_TYPES:
-                comm_key = f"policy_{tls}_comm={comm_type}"
-                reward_key = f"policy_{tls}_reward"
-                total_comm_cost += __add_comm_costs(hist_stats, comm_key, comm_type)
-            __add_standard_features(row)
-            features["total_comm_cost"].append(total_comm_cost)
+        episodes_total = row["episodes_total"]
+        episodes = range(episodes_total-episodes_this_iter, episodes_total)
+        for (ep_index, ep) in enumerate(episodes):
+            for tls in trafficlights:
+                total_comm_cost = 0
+                for comm_type in COMM_TYPES:
+                    comm_key = f"policy_{tls}_comm={comm_type}"
+                    reward_key = f"policy_{tls}_reward"
+                    total_comm_cost += __add_comm_costs(
+                        hist_stats, comm_key, comm_type, episodes_this_iter, ep_index
+                    )
+                __add_standard_features(row)
+                features["episode"].append(ep)
+                features["total_comm_cost"].append(total_comm_cost)
+                features["tls"].append(tls)
 
     try:
         preprocessed_data = DataFrame.from_dict(features)
