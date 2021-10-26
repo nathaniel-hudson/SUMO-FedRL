@@ -5,57 +5,30 @@ from mocap_optitrack.msg import Velocity_Arr
 from std_msgs.msg import UInt16
 from std_msgs.msg import String
 import os
+# print(os.getcwd())
 #libraries for RL
 import numpy as np
 import pickle
 import ray
 import seal.util as util
-from seal.testbed.testbed_env import TestbedEnv
 from os.path import join
 from ray.rllib.agents.ppo import PPOTrainer
 from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy
 import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import defaultdict
+from seal.testbed.rosmanager import ROSManager
+from seal.testbed.testbed_env import TestbedEnv
 
-RANKED_WEIGHTS_PKL = join("example_weights", "FedRL",
-						  "complex_inter", "ranked.pkl")
-
+# RANKED_WEIGHTS_PKL = join("example_weights", "FedRL",
+# 						  "double", "v3_unranked.pkl")
+# RANKED_WEIGHTS_PKL = "ranked.pkl"
+UNRANKED_WEIGHTS_PKL = join("example_weights", "SARL",
+						  "grid-5x5", "v3_unranked.pkl")
 ROAD_NETWORK_FILE = "defined_network.txt"
+RES_FILE = "FedRL_v3_ranked_res.txt"
 
-class TrafficManager(object):
-	def __init__(self):
-		self.info = None
-		self.ctrl = 0
-
-		self.loop_rate = rospy.Rate(10)
-
-		#publisher
-		self.pub = rospy.Publisher('/signal_states', UInt16, queue_size=10)
-
-		#subscriber
-		self.sub = rospy.Subscriber("/traffic_info", String, self.callback)
-
-	def callback(self, msg):
-		self.info = msg.data
-
-	def get_network(self, file):
-		tls_ids = []
-		with open(file, 'r') as f:
-			for data in f:
-				tls_ids.append(data.split(' ')[0])
-		return tls_ids
-
-	def rl_agent(self):
-		rospy.loginfo("agent says Hi!")
-		policy = self.load_policy(weights_pkl, env_config)
-		while not rospy.is_shutdown():
-			if self.info != None:
-				self.ctrl = 1
-			self.pub.publish(self.ctrl)
-			self.loop_rate.sleep()
-
-	def load_policy(self, weights_pkl, env_config) -> PPOTrainer:
+def load_policy(weights_pkl, env_config) -> PPOTrainer:
 		"""Return a Ray RlLib PPOTrainer class with the multiagent policy setup specifically
 		   for the netfile we are performing evaluation on. Further, this will apply the
 		   weights from prior training to the testing/evaluating policy network.
@@ -68,11 +41,10 @@ class TrafficManager(object):
 			PPOTrainer: Trainer object with the test policy network for evaluation.
 		"""
 		temp_env = TestbedEnv(env_config)
-		tls_ids = self.get_network(ROAD_NETWORK_FILE)
-		# tls_ids = [tls.id for tls in temp_env.kernel.tls_hub]
+		lights = temp_env.pynode.get_network(ROAD_NETWORK_FILE)
 		multiagent = {
-			"policies": {idx: (None, temp_env.observation_space, temp_env.action_space, {})
-						 for idx in tls_ids + [util.GLOBAL_POLICY_VAR]},
+			"policies": {str(idx): (None, temp_env.observation_space, temp_env.action_space, {})
+						 for idx in lights + [util.GLOBAL_POLICY_VAR]},
 			# This is NEEDED for evaluation.
 			"policy_mapping_fn": util.eval_policy_mapping_fn
 		}
@@ -88,33 +60,83 @@ class TrafficManager(object):
 		})
 		with open(weights_pkl, "rb") as f:
 			weights = pickle.load(f)
+		print(weights)
 		policy.get_policy(util.GLOBAL_POLICY_VAR).set_weights(weights)
 		return policy
 
-
 if __name__ == '__main__':
-	rospy.init_node("n", anonymous = True)
-	pynode = TrafficManager()
 
 	# Designate whether we wish to use the ranked policy and state space or not.
-	ranked = True
+	ranked = False
 	weights_pkl = RANKED_WEIGHTS_PKL if ranked else UNRANKED_WEIGHTS_PKL
-
 	# # Initialize the dictionary object to record the evaluation data (i.e., `tls_rewards`)
 	# # and then begin the evaluation by looping over each of the netfiles.
 	tls_rewards = defaultdict(list)     #tls_rewrds is essentially a dictionary.
-
+	
 	ray.init()
 	print("evaluation in testbed setup.")
 
-	env_config = util.get_env_config(**{
+	env_config = {
 	    "gui": False,
-	    "net-file": None,
+	    "net-file": ROAD_NETWORK_FILE,
 	    "rand_routes_on_reset": False,
-	    "ranked": ranked
-	})
-	pynode.rl_agent()
+	    "ranked": ranked,
+	}
 
+	# rospy.init_node("n", anonymous = True)
+	# pynode = ROSManager()
+	# lights = pynode.get_network(ROAD_NETWORK_FILE)	#got a list of trafffic lights (IDs)
+	# pynode.init_publishers(lights)					#initialized publishers for each light_ids
+	# rospy.loginfo("agent says Hi!")
+
+	policy = load_policy(weights_pkl, env_config)
+	env = TestbedEnv(env_config)
+	obs, done = env.reset(), False
+	step = 1
+	# res_file = "results_"+weights_pkl+".txt"
+	# print(res_file)
+	while not rospy.is_shutdown():
+		rospy.sleep(1)
+		actions = {agent_id: policy.compute_action(agent_obs, policy_id=util.GLOBAL_POLICY_VAR)
+					for agent_id, agent_obs in obs.items()}
+		obs, rewards, dones, info = env.step(actions)
+		for tls, r in rewards.items():
+			tls_rewards["step"].append(step)
+			tls_rewards["tls_id"].append(tls)
+			tls_rewards["reward"].append(r)
+			# tls_rewards["netfile"].append(ROAD_NETWORK_FILE)
+
+		print(step, rewards)
+		if step == 400:
+			with open("SARL_5x5_v3_unranked_res.txt", "a") as f:
+				for key, value in tls_rewards.items(): 
+					f.write('%s:%s\n' % (key, value))
+		done = next(iter(dones.values()))
+		step += 1
+	env.close()
+	ray.shutdown()
+
+###
+
+	# Designate whether we wish to use the ranked policy and state space or not.
+	# ranked = True
+	# weights_pkl = RANKED_WEIGHTS_PKL if ranked else UNRANKED_WEIGHTS_PKL
+
+	# # # Initialize the dictionary object to record the evaluation data (i.e., `tls_rewards`)
+	# # # and then begin the evaluation by looping over each of the netfiles.
+	# tls_rewards = defaultdict(list)     #tls_rewrds is essentially a dictionary.
+
+	# ray.init()
+	# print("evaluation in testbed setup.")
+
+	# env_config = util.get_env_config(**{
+	#     "gui": False,
+	#     "net-file": None,
+	#     "rand_routes_on_reset": False,
+	#     "ranked": ranked
+	# })
+	# pynode.rl_agent()
+True
 	#     env = SumoEnv(env_config)
 	#     obs, done = env.reset(), False
 	#     step = 1

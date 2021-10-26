@@ -1,8 +1,12 @@
 import numpy as np
+import rospy
 import time
 import warnings
+
 from typing import Any, Dict, List, Tuple, Union
-from seal.testbed.kernel.trafficlight.hub import TrafficLightHub
+
+#from seal.sumo.kernel.trafficlight.hub import TrafficLightHub
+from seal.testbed.trafficlights import TrafficNetwork
 
 SORT_DEFAULT = True
 VERBOSE_DEFAULT = 0
@@ -10,7 +14,7 @@ VERBOSE_DEFAULT = 0
 
 class TestbedKernel():
 
-    def __init__(self, config: Dict[str, Any]=None, ranked: bool=True):
+    def __init__(self, config, ranked, lights, pynode):
         """Initialize a wrapper for a SUMO simulation by passing a `config` dict object
            that stores the command-line arguments needed for a SUMO simulation.
 
@@ -23,18 +27,8 @@ class TestbedKernel():
 
         # TODO: Create a function that "validates" a config so that
         #       it has everything necessary for a SUMO simulation.
-        self.config = {
-            "gui": config.get("gui", False),
-            "configuration-file": config.get("configuration-file", None),
-            "net-file": config.get("net-file", None),
-            "route-files": config.get("route-files", None),
-            "additional-files": config.get("additional-files", None),
-            "tripinfo-output": config.get("tripinfo-output", None),
-        }
-        self.tls_hub = TrafficLightHub(
-            self.config["net-file"], 
-            ranked=config.get("ranked", True)
-        )
+        self.config = config
+        self.tls_hub = TrafficNetwork(self.config, ranked, lights, pynode) #TODO
 
 
     # def get_command_args(
@@ -71,6 +65,7 @@ class TestbedKernel():
 
     #     return command_args
 
+
     # def update(self, ignore_tls: bool=False) -> None:
     #     """Updates the trafficlight hub objects. For the time being, this is
     #        NOT being used.
@@ -104,14 +99,13 @@ class TestbedKernel():
     #         return False
 
 
-    def close(self) -> None:
+    def close(self):
         """Closes the SUMO simulation through TraCI if one is up and running."""
-        pass
-        # if self.is_loaded():
-        #     traci.close()
+        if not rospy.is_shutdown():
+            rospy.signal_shutdown()
 
 
-    def done(self) -> bool:
+    def done(self):
         """Returns whether or not the simulation handled by this Kernel instance is
            finished or not. This is decided if there are still some number of expected
            vehicles that have yet to complete their routes.
@@ -121,17 +115,18 @@ class TestbedKernel():
         bool
             Returns True if the simulation is done, False otherwise.
         """
-        return False
-        # return not traci.simulation.getMinExpectedNumber() > 0
+        return not rospy.is_shutdown()
 
 
-    def start(self) -> None:
+    def start(self):
         """Starts or resets the simulation based on whether or not it has been started
            or not.
         """
-        pass
+        print("ALL SET! LETS GO!")
+        
 
 
-    def step(self) -> None:
+    def step(self):
         """Iterates the simulation to the next simulation step."""
+        # traci.simulationStep()
         pass
