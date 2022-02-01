@@ -129,6 +129,10 @@ def run_trial(
             obs, rewards, dones, info = env.step(actions)
         else:
             obs, rewards, dones, info = env.step(None)
+
+        # TODO: Add some metrics related to standard traffic evaluation here for
+        # the sake of the resubmission.
+
         n_vehicles = env.kernel.get_num_of_vehicles()
         for tls, r in rewards.items():
             tls_rewards["tls_id"].append(tls)
@@ -194,16 +198,14 @@ if __name__ == "__main__":
                     print(f">>> Performing evaluation using '{netfile_label}' "
                           f"net-file ({ranked_str}).")
                     for mc_run in range(10):
-                        run_trial(
-                            netfile_path,
-                            ranked,
-                            tls_rewards=tls_rewards,
-                            feature_data=feature_data,
-                            weights_path=weights_path,
-                            use_policy=True,
-                            gui=False,
-                            mc_run=mc_run
-                        )
+                        run_trial(netfile_path,
+                                  ranked,
+                                  tls_rewards=tls_rewards,
+                                  feature_data=feature_data,
+                                  weights_path=weights_path,
+                                  use_policy=False,
+                                  gui=False,
+                                  mc_run=mc_run)
     ray.shutdown()
 
     # Plot the results.
@@ -217,6 +219,8 @@ if __name__ == "__main__":
     # sns.relplot(data=tls_rewards, kind="line", hue="netfile",
     #             x="step", y="n_vehicles", ci=None)
     # plt.show()
+
+    exit(0) ## NOTE: Terminate before overwriting data.
 
     experiment_data_dir = join("out", "experiments", "digital")
     feature_df = DataFrame.from_dict(feature_data)

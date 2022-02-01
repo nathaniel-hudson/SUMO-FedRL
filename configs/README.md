@@ -17,4 +17,21 @@ A key emphasis of this work is to study how *deep reinforcement learning* can be
 ### 5x5 Grid Network
 > `netgenerate --grid --grid.number=5 --grid.length=150 --no-turnarounds -j=traffic_light -L=2 --output=grid-5x5.net.xml`
 
+
+
 ***
+
+
+# New Road Networks (Post-ICCPS Reviews)
+Moving forward, we will use the following road networks:
+
+## open grid network
+> `netgenerate --grid --grid.number=5 --grid.length=100 --no-turnarounds -j=traffic_light --no-turnarounds --output=grid.net.xml --grid.attach-length=100 -L=3`
+
+## open spider network
+> `netgenerate --spider --spider.arm-number=4 --spider.circle-number=3 --spider.omit-center -j=traffic_light -L=3 --spider.space-radius=150 --no-turnarounds --output=spider.net.xml`
+
+## open random network
+> `netgenerate --rand --rand.iterations=20 --rand.random-lanenumber=true -L=2 -j=traffic_light --no-turnarounds --output=rand.net.xml`
+
+In addition, we will use real-world traffic evaluation metrics, provided in SUMO, to compare the results. Finally, we will use the baseline timed phase traffic light program that is provided by default using the `netgenerate` command.
