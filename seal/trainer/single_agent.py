@@ -37,30 +37,6 @@ class SinglePolicyTrainer(BaseTrainer):
         for key, value in self._result.items():
             self.training_data[key].append(value)
 
-    '''
-    def on_data_recording_step(self) -> None:
-        parsed_data = DataParser(self._result)
-        total_reward = 0
-        # print(f"\n\n\nSinglePolicyTrainer.on_data_recording_step():\n\tself.policies={self.policies}\n")
-        # exit(0)
-        for policy in self.policies:
-            self.training_data["round"].append(self._round)
-            self.training_data["trainer"].append("SARL")
-            self.training_data["policy"].append(policy)
-            self.training_data["fed_round"].append(False)
-            self.training_data["ranked"].append(self.ranked)
-            self.training_data["weight_aggr_fn"].append(None)
-
-            for key, value in self._result.items():
-                if isinstance(value, dict):
-                    if policy in value:
-                        self.training_data[key].append(value[policy])
-                    else:
-                        self.training_data[key].append(value)
-                else:
-                    self.training_data[key].append(value)
-    '''
-
     def on_policy_setup(self) -> Dict[str, Tuple[Any]]:
         dummy_env = self.env(config=self.env_config_fn())
         obs_space = dummy_env.observation_space

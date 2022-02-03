@@ -76,9 +76,12 @@ class AbstractSumoEnv(ABC, MultiAgentEnv):
         if self.use_dynamic_seed:
             self.rand_route_args["seed"] = self.env_seed
             self.env_seed += 1
-        generate_random_routes(netfile=netfile, path=self.path,
-                               number_of_lanes=self.num_of_lanes,
-                               **self.rand_route_args)
+        generate_random_routes(
+            netfile=netfile,
+            path=self.path,
+            number_of_lanes=self.num_of_lanes,
+            **self.rand_route_args
+        )
 
     def close(self) -> None:
         self.kernel.close()

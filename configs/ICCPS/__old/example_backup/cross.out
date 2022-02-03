@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on Thu Nov 12 15:37:36 2020 by Eclipse SUMO Version 1.6.0
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="configs/example/traffic.net.xml"/>
+        <route-files value="configs/example/traffic.rou.xml"/>
+        <additional-files value="configs/example/traffic.det.xml"/>
+    </input>
+
+    <output>
+        <tripinfo-output value="configs/example/tripinfo.xml"/>
+    </output>
+
+</configuration>
+-->
+
+<detector xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/det_e1_file.xsd">
+    <interval begin="0.00" end="30.00" id="0" nVehContrib="3" flow="360.00" occupancy="3.05" speed="8.90" harmonicMeanSpeed="8.84" length="2.70" nVehEntered="3"/>
+    <interval begin="30.00" end="60.00" id="0" nVehContrib="2" flow="240.00" occupancy="65.66" speed="5.41" harmonicMeanSpeed="5.28" length="2.70" nVehEntered="3"/>
+    <interval begin="60.00" end="90.00" id="0" nVehContrib="4" flow="480.00" occupancy="78.66" speed="1.94" harmonicMeanSpeed="0.26" length="2.70" nVehEntered="3"/>
+    <interval begin="90.00" end="120.00" id="0" nVehContrib="2" flow="240.00" occupancy="54.98" speed="1.16" harmonicMeanSpeed="0.33" length="2.70" nVehEntered="2"/>
+    <interval begin="120.00" end="150.00" id="0" nVehContrib="0" flow="0.00" occupancy="0.00" speed="-1.00" harmonicMeanSpeed="-1.00" length="-1.00" nVehEntered="0"/>
+    <interval begin="150.00" end="180.00" id="0" nVehContrib="0" flow="0.00" occupancy="0.00" speed="-1.00" harmonicMeanSpeed="-1.00" length="-1.00" nVehEntered="0"/>
+    <interval begin="180.00" end="210.00" id="0" nVehContrib="0" flow="0.00" occupancy="0.00" speed="-1.00" harmonicMeanSpeed="-1.00" length="-1.00" nVehEntered="0"/>
+    <interval begin="210.00" end="215.00" id="0" nVehContrib="0" flow="0.00" occupancy="0.00" speed="-1.00" harmonicMeanSpeed="-1.00" length="-1.00" nVehEntered="0"/>
+</detector>

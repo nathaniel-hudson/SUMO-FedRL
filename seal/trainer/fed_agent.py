@@ -1,6 +1,7 @@
 import numpy as np
 import os
 
+from seal.logging import *
 from collections import defaultdict
 from seal.sumo.env import SumoEnv
 from typing import Any, Dict, List, NewType
@@ -20,11 +21,12 @@ MIN_REWARD = -4
 DEFAULT_AGGR_FN = "traffic"
 
 WEIGHT_FUNCTIONS = {
-        "naive":      naive_weight_function,
-        "neg_reward": neg_reward_weight_function, # BAD
-        "pos_reward": pos_reward_weight_function, # Experimental
-        "traffic":    traffic_weight_function     # Experimental
-    }
+    "naive":      naive_weight_function,
+    "neg_reward": neg_reward_weight_function,  # BAD
+    "pos_reward": pos_reward_weight_function,  # Experimental
+    "traffic":    traffic_weight_function     # Experimental
+}
+
 
 class FedPolicyTrainer(BaseTrainer):
 
@@ -74,9 +76,11 @@ class FedPolicyTrainer(BaseTrainer):
         parsed_data = DataParser(self._result)
         for policy in self.policies:
             if policy != GLOBAL_POLICY_VAR:
-                self.episode_data[policy]["reward"] += parsed_data.policy_reward(policy) 
-                self.episode_data[policy]["num_vehicles"] += parsed_data.num_vehicles(policy)
-                # 
+                self.episode_data[policy]["reward"] += parsed_data.policy_reward(
+                    policy)
+                self.episode_data[policy]["num_vehicles"] += parsed_data.num_vehicles(
+                    policy)
+                #
                 self.reward_tracker[policy] += \
                     self._result["policy_reward_mean"].get(policy, MIN_REWARD)
 
@@ -88,7 +92,6 @@ class FedPolicyTrainer(BaseTrainer):
             new_params = self.fedavg(policy_dict)
             for policy_id in self.policies:
                 self.ray_trainer.get_policy(policy_id).set_weights(new_params)
-
 
     '''
     def on_data_recording_step_v1(self) -> None:
@@ -116,9 +119,9 @@ class FedPolicyTrainer(BaseTrainer):
             # Track the reward for this policy during this training step. This is only
             # used for the FedAvg subroutine in the AGGREGATION step.
             if policy != GLOBAL_POLICY_VAR:
-                self.episode_data[policy]["reward"] += parsed_data.policy_reward(policy) 
+                self.episode_data[policy]["reward"] += parsed_data.policy_reward(policy)
                 self.episode_data[policy]["num_vehicles"] += parsed_data.num_vehicles(policy)
-                # 
+                #
                 self.reward_tracker[policy] += \
                     self._result["policy_reward_mean"].get(policy, MIN_REWARD)
 
@@ -131,7 +134,6 @@ class FedPolicyTrainer(BaseTrainer):
             for policy_id in self.policies:
                 self.ray_trainer.get_policy(policy_id).set_weights(new_params)
     '''
-
 
     def on_policy_setup(self) -> Dict[str, Tuple[Any]]:
         dummy_env = self.env(config=self.env_config_fn())
@@ -148,8 +150,8 @@ class FedPolicyTrainer(BaseTrainer):
         }
 
     def fedavg(
-        self, 
-        policy_dict: Dict[str, Policy] 
+        self,
+        policy_dict: Dict[str, Policy]
         # weight_fn: str="traffic"
     ) -> Weights:
         # STEP 1: Grab the aggregation function specified at initialization.
@@ -157,7 +159,7 @@ class FedPolicyTrainer(BaseTrainer):
 
         # STEP 2: Compute the coefficients for each policy in the system based on reward.
         coeffs = weight_fn(self.episode_data)
-        
+
         # STEP 3: Compute the reward-based averaged policy weights by weight key.
         new_params = {}
         param_keys = next(iter(policy_dict.values())).get_weights().keys()
@@ -165,7 +167,7 @@ class FedPolicyTrainer(BaseTrainer):
             weights = {policy_id: np.array(policy.get_weights()[key])
                        for policy_id, policy in policy_dict.items()}
             new_params[key] = sum(coeffs[policy_id] * weights[policy_id]
-                                   for policy_id in policy_dict)
+                                  for policy_id in policy_dict)
 
         # STEP 4: Reset the reward trackers for each of the policies.
         self.__reset_reward_tracker()
@@ -177,7 +179,7 @@ class FedPolicyTrainer(BaseTrainer):
         aggregate_this_round = self._is_aggregating_step()
         status = "{}Ep. #{} | ranked={} | fed_round={} | Mean reward: {:6.2f} | " \
                  "Mean length: {:4.2f} | Saved {} ({})"
-        print(status.format(
+        logging.info(status.format(
             "" if self.trainer_name is None else f"[{self.trainer_name}] ",
             self._round+1,
             self.ranked,

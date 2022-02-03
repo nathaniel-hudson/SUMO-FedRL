@@ -10,3 +10,6 @@ Required:
 
 Recommended:
     + gputil
+numpy~=1.22.1
+pandas~=1.4.0
+ray~=1.9.2

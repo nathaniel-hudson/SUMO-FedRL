@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on Fri Nov 13 00:19:00 2020 by Eclipse SUMO sumo Version 7090c177
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="configs/example/traffic.net.xml"/>
+        <route-files value="configs/example/traffic.rou.xml"/>
+        <additional-files value="configs/example/traffic.det.xml"/>
+    </input>
+
+    <output>
+        <tripinfo-output value="configs/example/tripinfo.xml"/>
+    </output>
+
+</configuration>
+-->
+
+<detector xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/det_e1_file.xsd">
+    <interval begin="0.00" end="30.00" id="0" nVehContrib="0" flow="0.00" occupancy="0.00" speed="-1.00" harmonicMeanSpeed="-1.00" length="-1.00" nVehEntered="0"/>
+    <interval begin="30.00" end="60.00" id="0" nVehContrib="1" flow="120.00" occupancy="1.32" speed="12.59" harmonicMeanSpeed="12.59" length="5.00" nVehEntered="1"/>
+    <interval begin="60.00" end="90.00" id="0" nVehContrib="0" flow="0.00" occupancy="0.00" speed="-1.00" harmonicMeanSpeed="-1.00" length="-1.00" nVehEntered="0"/>
+</detector>

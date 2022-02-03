@@ -32,6 +32,7 @@ import optparse
 if "SUMO_HOME" in os.environ:
     sys.path.append(os.path.join(os.environ["SUMO_HOME"], "tools"))
 import sumolib  # noqa
+from seal.logging import *
 from sumolib.miscutils import euclidean  # noqa
 from sumolib.geomhelper import naviDegree, minAngleDegreeDiff  # noqa
 
@@ -49,13 +50,13 @@ verbosity = 0
 
 
 def my_log(*msg: str) -> None:
-    """This function just wraps the standard `print()` function so that it follows the
-       verbosity rules. This is mostly to avoid exhaustive warning messages caused by this
-       script document.
+    """This function just wraps the  `logging.info()` function so that it follows the
+       verbosity rules. This is mostly to avoid exhaustive warning messages caused by
+       this script document.
     """
     global verbosity
     if verbosity > 0:
-        print(msg)
+        logging.info(msg)
 
 
 def get_options(args=None):
@@ -116,7 +117,7 @@ def get_options(args=None):
     optParser.add_option("--angle-factor", type="float", dest="angle_weight",
                          default=1.0, help="maximum weight factor for angle")
     optParser.add_option("--fringe-factor", type="float", dest="fringe_factor",
-                         default=1.0, help="multiply weight of fringe edges by <FLOAT> (default 1")
+                         default=1.0, help="multiply weight of fringe edges by <FLOAT> (default 1)")
     optParser.add_option("--fringe-threshold", type="float", dest="fringe_threshold",
                          default=0.0, help="only consider edges with speed above <FLOAT> as fringe edges (default 0)")
     optParser.add_option("--allow-fringe", dest="allow_fringe", action="store_true",

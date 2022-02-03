@@ -3,6 +3,7 @@ import os
 import pickle
 import ray
 
+from logging.seal import *
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from pandas import DataFrame
@@ -36,24 +37,24 @@ class BaseTrainer(ABC):
     out_weights_dir: str
     policy: str
     policy_mapping_fn: Callable
-    policy_type: ray.rllib.policy.Policy 
+    policy_type: ray.rllib.policy.Policy
     trainer_type: ray.rllib.agents.trainer.Trainer
 
     def __init__(
         self,
-        checkpoint_freq: int=5,
-        env: AbstractSumoEnv=None,
-        gamma: float=0.95,
-        learning_rate: float=0.001,
-        log_level: str="ERROR",
-        model_name: str=None,
-        num_gpus: int=0,
-        num_workers: int=0,
-        root_dir: List[str]=["out"],
-        sub_dir: str=None,
-        policy: str="ppo",
-        out_prefix: str=None,
-        trainer_kwargs: dict=None,
+        checkpoint_freq: int = 5,
+        env: AbstractSumoEnv = None,
+        gamma: float = 0.95,
+        learning_rate: float = 0.001,
+        log_level: str = "ERROR",
+        model_name: str = None,
+        num_gpus: int = 0,
+        num_workers: int = 0,
+        root_dir: List[str] = ["out"],
+        sub_dir: str = None,
+        policy: str = "ppo",
+        out_prefix: str = None,
+        trainer_kwargs: dict = None,
         **kwargs
     ) -> None:
         assert 0 <= gamma <= 1
@@ -85,7 +86,6 @@ class BaseTrainer(ABC):
         self.rand_routes_config = kwargs.get("rand_routes_config",
                                              defaults.RAND_ROUTES_CONFIG)
 
-    
         self.out_prefix = out_prefix
         self.net_dir = self.net_file.split(os.sep)[-1].split(".")[0]
         self.out_checkpoint_dir = os.path.join(
@@ -120,7 +120,7 @@ class BaseTrainer(ABC):
 
     # ------------------------------------------------------------------------------ #
 
-    def train(self, num_rounds: int, save_on_end: bool=True, **kwargs) -> DataFrame:
+    def train(self, num_rounds: int, save_on_end: bool = True, **kwargs) -> DataFrame:
         if kwargs.get("checkpoint", None) is not None:
             self.load(kwargs["checkpoint"])
         else:
@@ -209,10 +209,10 @@ class BaseTrainer(ABC):
             "ranked": self.ranked,
             "use_dynamic_seed": True,
             # "horizon": 450,
-            "rand_route_args": {
-                "seed": 0,
-                "vehicles_per_lane_per_hour": 75
-            }
+            # "rand_route_args": {
+            #     "seed": 0,
+            #     "vehicles_per_lane_per_hour": 360
+            # }
         }
 
     def save_test_policy(self) -> Weights:
@@ -245,7 +245,7 @@ class BaseTrainer(ABC):
 
     def on_logging_step(self) -> None:
         status = "{}Ep. #{} | ranked={} | Mean reward: {:6.2f} | Mean length: {:4.2f} | Saved {} ({})"
-        print(status.format(
+        logging.info(status.format(
             "" if self.trainer_name is None else f"[{self.trainer_name}] ",
             self._round+1,
             self.ranked,

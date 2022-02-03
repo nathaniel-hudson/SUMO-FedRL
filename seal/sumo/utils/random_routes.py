@@ -7,7 +7,7 @@ from seal.sumo.utils import random_trips
 
 VALID_DISTRIBUTIONS = ["arcsine", "uniform", "zipf"]
 HOUR = 3600
-DEFAULT_END_TIME = HOUR / 16  # (equivalent to 7.5 minutes)
+DEFAULT_END_TIME = HOUR / 10  # (equivalent to 10 minutes)
 
 
 def __extract_vplph(vplph: Union[int, Tuple[int, int]]) -> int:
@@ -50,13 +50,12 @@ def __extract_congestion_coeff(
 def generate_random_routes(
     netfile: str,
     number_of_lanes: int,
-    generator: str="uniform",
-    vehicles_per_lane_per_hour: Union[int, Tuple[int, int]]=60,
-    number_of_hours: int=1,
-    n_routefiles: int=1,
-    end_time: Union[int, Tuple[int, int]]=DEFAULT_END_TIME,
-    seed: float=None,
-    path: str=None,
+    generator: str = "uniform",
+    vehicles_per_lane_per_hour: int = 360,
+    n_routefiles: int = 1,
+    end_time: int = DEFAULT_END_TIME,
+    seed: float = None,
+    path: str = None,
     # 90,  # Try upping this to 90 (was 60) ---- 30
 ) -> List[str]:
     """This function generates a *.rou.xml file for vehicles in the given road network.
@@ -75,15 +74,17 @@ def generate_random_routes(
         List[str]: A list containing the names of the randomly-generated route files.
     """
     assert generator.lower() in VALID_DISTRIBUTIONS
+    assert vehicles_per_lane_per_hour > 0
+    assert end_time > 0
 
     random.seed(seed)
-    end_time = __extract_end_time(end_time)
-    vehicles_per_lane_per_hour = __extract_vplph(vehicles_per_lane_per_hour)
+    # end_time = __extract_end_time(end_time)
+    # vehicles_per_lane_per_hour = __extract_vplph(vehicles_per_lane_per_hour)
+    number_of_hours = 1
     n_vehicles = vehicles_per_lane_per_hour * \
         number_of_lanes * \
         number_of_hours
 
-    begin_time = 0
     routes = []
     for i in range(n_routefiles):
         routefile = "traffic.rou.xml" \
@@ -93,13 +94,20 @@ def generate_random_routes(
             routefile = join(path, routefile)
 
         # Use with the most recent version of randomTrips.py on GitHub.
+        begin_time = 0
         tripfile = join(path, "trips.trips.xml")
-        args = ["--net-file", netfile, "--route-file", routefile, "-b", begin_time,
-                "-e", end_time, "--length", "--period", HOUR/n_vehicles,
-                "--seed", str(seed), "--output-trip-file", tripfile,
-                "--fringe-factor", 100]  # ,
+        args = [
+            "--net-file", netfile,
+            "--route-file", routefile,
+            "--begin", begin_time,
+            "--end", end_time,
+            # "--length",
+            "--period", (HOUR - begin_time) / n_vehicles,
+            "--seed", str(seed),
+            "--output-trip-file", tripfile,
+            "--fringe-factor", 100
+        ]
         opts = random_trips.get_options(args=args)
-
         routes.append(routefile)
         random_trips.main(opts)
 

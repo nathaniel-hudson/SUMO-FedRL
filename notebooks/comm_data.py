@@ -1,14 +1,15 @@
+from seal.trainer.communication import *
 import ast
 import numpy as np
 import pandas as pd
 import sys
 
+from seal.logging import *
 from collections import defaultdict
 from pandas import DataFrame
 from typing import Any
 
 sys.path.append("..")
-from seal.trainer.communication import *
 
 
 def read_file(path: str) -> DataFrame:
@@ -97,7 +98,7 @@ def preprocess(path: str, intersection: str) -> DataFrame:
         preprocessed_data = DataFrame.from_dict(features)
     except:
         for key in features:
-            print(key, len(features[key]))
+            logging.info(key, len(features[key]))
 
     preprocessed_data.fillna("N/A", inplace=True)
     preprocessed_data["intersection"].replace({

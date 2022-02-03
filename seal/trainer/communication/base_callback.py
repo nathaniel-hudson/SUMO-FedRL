@@ -24,13 +24,12 @@ class BaseCommCallback(DefaultCallbacks):
     def on_episode_end(self, *, worker: RolloutWorker, base_env: BaseEnv,
                        policies: Dict[str, Policy], episode: MultiAgentEpisode,
                        env_index: int, **kwargs) -> None:
-        # self.iteration_reward = episode.total_reward
         for key in self.comm_cost:
             comm_type, policy_id = key
             comm_type = comm_type.replace("_", "-")
             new_key = f"policy_{policy_id}_comm={comm_type}"
             episode.custom_metrics[new_key] = self.comm_cost[key]
-            
+
             if new_key not in episode.hist_data:
                 episode.hist_data[new_key] = []
             episode.hist_data[new_key].append(self.comm_cost[key])

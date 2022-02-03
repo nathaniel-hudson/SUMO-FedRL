@@ -31,9 +31,9 @@ class TrafficLight:
         index: int,
         tls_id: int,
         netfile: str,
-        sort_phases: bool=SORT_DEFAULT,
-        force_all_red: bool=False,
-        ranked: bool=True
+        sort_phases: bool = SORT_DEFAULT,
+        force_all_red: bool = False,
+        ranked: bool = True
     ) -> None:
         # The `index` data member is for the consistently simple indexing for actions
         # that are represented via lists. This is important for the `stable-baselines`
@@ -75,7 +75,7 @@ class TrafficLight:
     def get_program(
         self,
         road_netfile: str,
-        force_all_red: bool=False
+        force_all_red: bool = False
     ) -> List[str]:
         """Get the possible traffic light phases for the specific traffic light via the
            given `tls_id`.
@@ -164,4 +164,4 @@ class TrafficLight:
         try:
             return min(1.0, vehicle_speeds / max_lane_speeds)
         except ZeroDivisionError:
-            return 0.0
+            return 1.0
