@@ -30,7 +30,7 @@ SINGLE_LOOP_DEPR = join(
 
 '''Network files for the first resubmission.'''
 V2_GRID = join(
-    "configs", "SMARTCOMP", "grid.net.xml"
+    "configs", "SMARTCOMP", "grid1.net.xml"
 )
 V2_SPIDER = join(
     "configs", "SMARTCOMP", "spider.net.xml"

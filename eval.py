@@ -25,12 +25,14 @@ ICCPS_NETFILES = {
 }
 
 NETFILES = {
+    # "spider": V2_SPIDER
     "grid": V2_GRID
 }
 
 ICCPS_WEIGHTS_PATH_PREFIX = ("example_weights", "ICCPS", "Final")
 SMARTCOMP_PATH_PREFIX = ("example_weights", "SMARTCOMP")
-WEIGHTS_PATH_PREFIX = SMARTCOMP_PATH_PREFIX  # alias
+WEIGHTS_PATH_PREFIX = ICCPS_WEIGHTS_PATH_PREFIX
+# WEIGHTS_PATH_PREFIX = SMARTCOMP_PATH_PREFIX  # alias
 
 FEATURE_PAIRS = [
     ("lane_occupancy", LANE_OCCUPANCY),
@@ -128,15 +130,15 @@ def run_trial(
     step = 1
     while not done:
         if use_policy:
-            # NOTE: The `policy_id` argument matters here. If it's incorrect, you'll get
-            #       random behavior.
+            # The `policy_id` argument matters here. If it's incorrect, 
+            # you'll get random behavior.
             actions = {
                 agent_id: policy.compute_action(agent_obs, policy_id=agent_id)
                 for agent_id, agent_obs in obs.items()
             }
-            obs, rewards, dones, info = env.step(actions)
+            obs, rewards, dones, _ = env.step(actions)
         else:
-            obs, rewards, dones, info = env.step(None)
+            obs, rewards, dones, _ = env.step(None)
 
         # TODO: Add some metrics related to standard traffic evaluation here for
         # the sake of the resubmission.
@@ -206,7 +208,7 @@ if __name__ == "__main__":
                 for netfile_label, netfile_path in NETFILES.items():
                     logging.info(f"Performing evaluation using '{netfile_label}' "
                                  f"net-file ({ranked_str}).")
-                    for mc_run in range(10):
+                    for mc_run in range(1): #(10):
                         start = time.perf_counter()
                         run_trial(netfile_path,
                                   ranked,

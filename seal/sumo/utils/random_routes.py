@@ -8,6 +8,7 @@ from seal.sumo.utils import random_trips
 VALID_DISTRIBUTIONS = ["arcsine", "uniform", "zipf"]
 HOUR = 3600
 DEFAULT_END_TIME = HOUR / 10  # (equivalent to 10 minutes)
+DEFAULT_VPLPH = 360
 
 
 def __extract_vplph(vplph: Union[int, Tuple[int, int]]) -> int:
@@ -51,7 +52,7 @@ def generate_random_routes(
     netfile: str,
     number_of_lanes: int,
     generator: str = "uniform",
-    vehicles_per_lane_per_hour: int = 360,
+    vehicles_per_lane_per_hour: int = DEFAULT_VPLPH,
     n_routefiles: int = 1,
     end_time: int = DEFAULT_END_TIME,
     seed: float = None,

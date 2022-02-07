@@ -43,7 +43,8 @@ class SumoKernel():
     def get_command_args(
         self,
         verbose=VERBOSE_DEFAULT,
-        no_step_log: bool=True
+        no_step_log: bool=True,
+        output_log_stats: bool=True
     ) -> List[str]:
         """This generates a list of strings that are used by the TraCI API to start a
            SUMO simulation given the provided parameters that are stored in the `config`
@@ -73,6 +74,12 @@ class SumoKernel():
                 args = [args]
             command_args.append(f"--{cmd}")
             command_args.append(",".join(arg for arg in args))
+
+        if output_log_stats:
+            command_args.extend([
+                "--duration-log.statistics",
+                "--log", ".tmp_experiment-log-statistics.txt"
+            ])
 
         return command_args
 

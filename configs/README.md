@@ -26,7 +26,7 @@ A key emphasis of this work is to study how *deep reinforcement learning* can be
 Moving forward, we will use the following road networks:
 
 ## open grid network
-> `netgenerate --grid --grid.number=5 --grid.length=100 --no-turnarounds -j=traffic_light --no-turnarounds --output=grid.net.xml --grid.attach-length=100 -L=3`
+> `netgenerate --grid --grid.number=4 --grid.length=200 --no-turnarounds -j=traffic_light --output=grid-turns.net.xml --grid.attach-length=100 -L=3 --no-left-connections`
 
 ## open spider network (radial, or star, road pattern)
 > `netgenerate --spider --spider.arm-number=4 --spider.circle-number=3 --spider.omit-center -j=traffic_light -L=3 --spider.space-radius=150 --no-turnarounds --output=spider.net.xml`
