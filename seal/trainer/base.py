@@ -3,10 +3,10 @@ import os
 import pickle
 import ray
 
-from logging.seal import *
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from pandas import DataFrame
+from seal.logging import *
 from ray.rllib.agents import (a3c, dqn, ppo)
 from ray.rllib.agents.callbacks import DefaultCallbacks
 from time import ctime
@@ -41,21 +41,21 @@ class BaseTrainer(ABC):
     trainer_type: ray.rllib.agents.trainer.Trainer
 
     def __init__(
-        self,
-        checkpoint_freq: int = 5,
-        env: AbstractSumoEnv = None,
-        gamma: float = 0.95,
-        learning_rate: float = 0.001,
-        log_level: str = "ERROR",
-        model_name: str = None,
-        num_gpus: int = 0,
-        num_workers: int = 0,
-        root_dir: List[str] = ["out"],
-        sub_dir: str = None,
-        policy: str = "ppo",
-        out_prefix: str = None,
-        trainer_kwargs: dict = None,
-        **kwargs
+            self,
+            checkpoint_freq: int = 5,
+            env: AbstractSumoEnv = None,
+            gamma: float = 0.95,
+            learning_rate: float = 0.001,
+            log_level: str = "ERROR",
+            model_name: str = None,
+            num_gpus: int = 0,
+            num_workers: int = 0,
+            root_dir: List[str] = ["out"],
+            sub_dir: str = None,
+            policy: str = "ppo",
+            out_prefix: str = None,
+            trainer_kwargs: dict = None,
+            **kwargs
     ) -> None:
         assert 0 <= gamma <= 1
         self.communication_callback_cls = None
@@ -109,7 +109,7 @@ class BaseTrainer(ABC):
         self.policy_mapping_fn = None
         self.trainer_kwargs = trainer_kwargs
 
-    # ------------------------------------------------------------------------------ #
+    # ------------------------------------------------------------------------- #
 
     def load(self, checkpoint: str) -> None:
         if type(self) is BaseTrainer:
@@ -118,7 +118,7 @@ class BaseTrainer(ABC):
         self.on_setup()
         self.ray_trainer.restore(checkpoint)
 
-    # ------------------------------------------------------------------------------ #
+    # ------------------------------------------------------------------------- #
 
     def train(self, num_rounds: int, save_on_end: bool = True, **kwargs) -> DataFrame:
         if kwargs.get("checkpoint", None) is not None:
@@ -160,7 +160,7 @@ class BaseTrainer(ABC):
                 dataframe.to_json(f"{path}.json")
         return dataframe
 
-    # ------------------------------------------------------------------------------ #
+    # ------------------------------------------------------------------------- #
 
     def __load_policy_type(self) -> None:
         if self.policy == "a3c":
@@ -175,7 +175,7 @@ class BaseTrainer(ABC):
         else:
             raise NotImplemented(f"Do not support policies for `{policy}`.")
 
-    # ------------------------------------------------------------------------------ #
+    # ------------------------------------------------------------------------- #
 
     def init_config(self) -> Dict[str, Any]:
         config = {
@@ -227,7 +227,7 @@ class BaseTrainer(ABC):
             pickle.dump(weights, f)
         return weights
 
-    # ------------------------------------------------------------------------------ #
+    # ------------------------------------------------------------------------- #
 
     def on_setup(self) -> None:
         ray.init(include_dashboard=False)
@@ -284,7 +284,7 @@ class BaseTrainer(ABC):
     def set_rand_route_seed(self, seed) -> None:
         self.env
 
-    # ------------------------------------------------------------------------------ #
+    # ------------------------------------------------------------------------- #
 
     @abstractmethod
     def on_make_final_policy() -> Weights:

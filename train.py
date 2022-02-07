@@ -18,14 +18,18 @@ from os.path import join
 OUT_PREFIX = "v3"
 random_routes_config = {}
 trainer_kwargs = {
-    # Non-Algorithm Trainer Arguments (i.e., not related to PPO).
-    "horizon": 360,  # 240,
+    # =========================================================== #
+    # Non-Algorithm Trainer Arguments (i.e., not related to PPO). #
+    # =========================================================== #
+    "horizon": 360,  # 240, # NOTE: Maybe disable this?
     # "timesteps_per_iteration":  240,
     # "batch_mode": "truncate_episodes",
     # "rollout_fragment_length": 240,
     # "train_batch_size": 240,
 
-    # PPO Trainer Arguments.
+    # ====================== #
+    # PPO Trainer Arguments. #
+    # ====================== #
     # "sgd_minibatch_size": 30,
 }
 
@@ -39,7 +43,7 @@ if __name__ == "__main__":
         GRID_5x5
     ]
     RANKED = [
-        True,
+        # True,
         False
     ]
 
@@ -49,24 +53,24 @@ if __name__ == "__main__":
             intersection = net_file.split(os.sep)[-1]
 
             # Federated trainer using the 'traffic' aggregation function.
-            logging.info(status.format(
-                "FedPolicyTrainer (aggr='traffic')", intersection, ranked))
-            traffic_aggr_prefix = f"{OUT_PREFIX}_traffic-aggr"
-            FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked,
-                             out_prefix=traffic_aggr_prefix,
-                             trainer_kwargs=trainer_kwargs,
-                             weight_fn="traffic").\
-                train(n_episodes)
+            # logging.info(status.format(
+            #     "FedPolicyTrainer (aggr='traffic')", intersection, ranked))
+            # traffic_aggr_prefix = f"{OUT_PREFIX}_traffic-aggr"
+            # FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked,
+            #                  out_prefix=traffic_aggr_prefix,
+            #                  trainer_kwargs=trainer_kwargs,
+            #                  weight_fn="traffic").\
+            #     train(n_episodes)
 
             # Federated Trainer using the 'negative reward' aggregation function.
-            logging.info(status.format(
-                "FedPolicyTrainer (aggr='neg_reward')", intersection, ranked))
-            traffic_aggr_prefix = f"{OUT_PREFIX}_neg-reward-aggr"
-            FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked,
-                             out_prefix=traffic_aggr_prefix,
-                             trainer_kwargs=trainer_kwargs,
-                             weight_fn="neg_reward").\
-                train(n_episodes)
+            # logging.info(status.format(
+            #     "FedPolicyTrainer (aggr='neg_reward')", intersection, ranked))
+            # traffic_aggr_prefix = f"{OUT_PREFIX}_neg-reward-aggr"
+            # FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked,
+            #                  out_prefix=traffic_aggr_prefix,
+            #                  trainer_kwargs=trainer_kwargs,
+            #                  weight_fn="neg_reward").\
+            #     train(n_episodes)
 
             # Federated Trainer using the 'positive reward' aggregation function.
             logging.info(status.format(

@@ -28,7 +28,7 @@ Moving forward, we will use the following road networks:
 ## open grid network
 > `netgenerate --grid --grid.number=5 --grid.length=100 --no-turnarounds -j=traffic_light --no-turnarounds --output=grid.net.xml --grid.attach-length=100 -L=3`
 
-## open spider network
+## open spider network (radial, or star, road pattern)
 > `netgenerate --spider --spider.arm-number=4 --spider.circle-number=3 --spider.omit-center -j=traffic_light -L=3 --spider.space-radius=150 --no-turnarounds --output=spider.net.xml`
 
 ## open random network

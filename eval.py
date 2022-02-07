@@ -28,6 +28,10 @@ NETFILES = {
     "grid": V2_GRID
 }
 
+ICCPS_WEIGHTS_PATH_PREFIX = ("example_weights", "ICCPS", "Final")
+SMARTCOMP_PATH_PREFIX = ("example_weights", "SMARTCOMP")
+WEIGHTS_PATH_PREFIX = SMARTCOMP_PATH_PREFIX  # alias
+
 FEATURE_PAIRS = [
     ("lane_occupancy", LANE_OCCUPANCY),
     ("halted_occupancy", HALTED_LANE_OCCUPANCY),
@@ -197,7 +201,7 @@ if __name__ == "__main__":
                 else:
                     filename = f"v3_{ranked_str}.pkl"
 
-                weights_path = join("example_weights", "Final", trainer,
+                weights_path = join(*WEIGHTS_PATH_PREFIX, trainer,
                                     trainer_intersection, filename)
                 for netfile_label, netfile_path in NETFILES.items():
                     logging.info(f"Performing evaluation using '{netfile_label}' "
@@ -213,15 +217,16 @@ if __name__ == "__main__":
                                   gui=False,
                                   mc_run=mc_run)
                         runtime = time.perf_counter() - start
-                        logging.info("Trial (run={}/{}, trainer='{}-{}') took {} seconds".format(
-                            mc_run+1, 10, trainer, trainer_intersection, runtime
-                        ))
+                        logging.info(
+                            "Trial (run={}/{}, trainer='{}-{}') took {} seconds".format(
+                                mc_run+1, 10, trainer, trainer_intersection, runtime
+                            ))
                         times.append(runtime)
     ray.shutdown()
     end = time.perf_counter()
 
-    logging.info(
-        f"Experiment trials took {sum(times) / len(times)} seconds on average.")
+    logging.info(f"Experiment trials took {sum(times) / len(times)} "
+                 "seconds on average.")
 
     # Plot the results.
     # sns.displot(data=feature_data, kind="ecdf", hue="netfile", x="value",
