@@ -6,18 +6,17 @@ import seal.trainer.util as util
 from netfiles import *
 from os.path import join
 from pandas import DataFrame
+from seal import TRIPINFO_OUT_FILENAME
 from seal.logging import *
 from seal.sumo.config import *
 from seal.sumo.env import SumoEnv
 from ray.rllib.agents.ppo import PPOTrainer
 from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy
 from typing import Any, Dict
+import xml.etree.ElementTree as ET
 
 
 # The list of netfiles we wish to train on.
-# NETFILES = [GRID_3x3, GRID_5x5, GRID_7x7, GRID_9x9]
-# NETFILES = [GRID_9x9]
-# NETFILES = [DOUBLE_LOOP]
 ICCPS_NETFILES = {
     "grid_3x3": GRID_3x3,
     "grid_5x5": GRID_5x5,
@@ -107,6 +106,7 @@ def run_trial(
         ranked: bool,
         tls_rewards: Dict[str, Any],
         feature_data: Dict[str, Any],
+        tripinfo_data: Dict[str, Any],
         weights_path: str,
         use_policy: bool = True,
         gui: bool = False,
@@ -117,31 +117,25 @@ def run_trial(
         "net-file": netfile_path,
         "rand_routes_on_reset": True,
         "ranked": ranked,
-        "horizon": 360  # NOTE: Lookie here!!!
+        # "horizon": 360  # NOTE: Lookie here!!!
     })
     netfile = netfile_path.split(os.sep)[-1].split(".")[0]
     policy = load_policy(weights_path, env_config)
     policy_id = weights_path.split(os.sep)[-1]
-    trainer = weights_path.split(os.sep)[2]
-    trainer_intersection = weights_path.split(os.sep)[3]
+    intersection = weights_path.split(os.sep)[-2]
+    trainer = weights_path.split(os.sep)[-3]
     trainer_ranked = "ranked" if ranked else "unranked"
     env = SumoEnv(env_config)
     obs, done = env.reset(), False
     step = 1
     while not done:
         if use_policy:
-            # The `policy_id` argument matters here. If it's incorrect, 
-            # you'll get random behavior.
-            actions = {
-                agent_id: policy.compute_action(agent_obs, policy_id=agent_id)
-                for agent_id, agent_obs in obs.items()
-            }
+            # Must have the `policy_id` argument, otherwise you'll get random behavior.
+            actions = {agent_id: policy.compute_action(agent_obs, policy_id=agent_id)
+                       for agent_id, agent_obs in obs.items()}
             obs, rewards, dones, _ = env.step(actions)
         else:
             obs, rewards, dones, _ = env.step(None)
-
-        # TODO: Add some metrics related to standard traffic evaluation here for
-        # the sake of the resubmission.
 
         n_vehicles = env.kernel.get_num_of_vehicles()
         for tls, r in rewards.items():
@@ -151,9 +145,8 @@ def run_trial(
             tls_rewards["step"].append(step)
             tls_rewards["n_vehicles"].append(n_vehicles)
             tls_rewards["policy"].append(policy_id)
-
             tls_rewards["trainer"].append(trainer)
-            tls_rewards["trainer_intersection"].append(trainer_intersection)
+            tls_rewards["trainer_intersection"].append(intersection)
             tls_rewards["trainer_ranked"].append(trainer_ranked)
             if mc_run is not None:
                 tls_rewards["mc_run"].append(mc_run)
@@ -169,14 +162,28 @@ def run_trial(
                     feature_data["tls"].append(tls)
                     feature_data["policy"].append(policy_id)
                     feature_data["ranked"].append(ranked)
-
                     feature_data["trainer"].append(trainer)
-                    feature_data["trainer_intersection"].append(
-                        trainer_intersection)
+                    feature_data["trainer_intersection"].append(intersection)
                     feature_data["trainer_ranked"].append(trainer_ranked)
                     if mc_run is not None:
                         feature_data["mc_run"].append(mc_run)
     env.close()
+
+    # Open the `tripinfo.xml` file to get aggregate trip data.
+    tree = ET.parse(TRIPINFO_OUT_FILENAME)
+    root = tree.getroot()
+    for trip in root.findall("tripinfo"):
+        tripinfo_data["trainer"].append(trainer)
+        tripinfo_data["trainer_intersection"].append(intersection)
+        tripinfo_data["trainer_ranked"].append(trainer_ranked)
+        tripinfo_data["depart_delay"].append(trip.get("departDelay"))
+        tripinfo_data["travel_time"].append(trip.get("duration"))
+        tripinfo_data["route_length"].append(trip.get("routeLength"))
+        tripinfo_data["waiting_time"].append(trip.get("waitingTime"))
+        tripinfo_data["waiting_count"].append(trip.get("waitingCount"))
+        tripinfo_data["reroute_number"].append(trip.get("rerouteNo"))
+        if mc_run is not None:
+            tripinfo_data["mc_run"].append(mc_run)
 
 
 # =========================================================================== #
@@ -190,7 +197,8 @@ if __name__ == "__main__":
     # `tls_rewards`) and then begin the evaluation by looping over each of the netfiles.
     feature_data = defaultdict(list)
     tls_rewards = defaultdict(list)
-
+    tripinfo_data = defaultdict(list)
+    log_template = "Trial (run={}/{}, trainer='{}-{}') took {} seconds"
     times = []
 
     ray.init(include_dashboard=False)
@@ -208,21 +216,21 @@ if __name__ == "__main__":
                 for netfile_label, netfile_path in NETFILES.items():
                     logging.info(f"Performing evaluation using '{netfile_label}' "
                                  f"net-file ({ranked_str}).")
-                    for mc_run in range(1): #(10):
+                    for mc_run in range(1):  # (10):
                         start = time.perf_counter()
                         run_trial(netfile_path,
                                   ranked,
                                   tls_rewards=tls_rewards,
                                   feature_data=feature_data,
+                                  tripinfo_data=tripinfo_data,
                                   weights_path=weights_path,
                                   use_policy=False,
                                   gui=False,
                                   mc_run=mc_run)
                         runtime = time.perf_counter() - start
-                        logging.info(
-                            "Trial (run={}/{}, trainer='{}-{}') took {} seconds".format(
-                                mc_run+1, 10, trainer, trainer_intersection, runtime
-                            ))
+                        logging.info(log_template.format(
+                            mc_run+1, 10, trainer, trainer_intersection, runtime
+                        ))
                         times.append(runtime)
     ray.shutdown()
     end = time.perf_counter()
@@ -249,3 +257,5 @@ if __name__ == "__main__":
     feature_df.to_csv(join(experiment_data_dir, "features.csv"))
     reward_df = DataFrame.from_dict(tls_rewards)
     reward_df.to_csv(join(experiment_data_dir, "rewards.csv"))
+    tripinfo_df = DataFrame.from_dict(tripinfo_data)
+    tripinfo_df.to_csv(join(experiment_data_dir, "tripinfo.csv"))

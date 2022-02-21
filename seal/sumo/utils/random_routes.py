@@ -102,11 +102,11 @@ def generate_random_routes(
             "--route-file", routefile,
             "--begin", begin_time,
             "--end", end_time,
-            # "--length",
             "--period", (HOUR - begin_time) / n_vehicles,
             "--seed", str(seed),
             "--output-trip-file", tripfile,
-            "--fringe-factor", 100
+            "--fringe-factor", 100,
+            "--trip-attributes", "departLane=\"best\""
         ]
         opts = random_trips.get_options(args=args)
         routes.append(routefile)
