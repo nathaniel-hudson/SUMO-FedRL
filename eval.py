@@ -17,15 +17,16 @@ import xml.etree.ElementTree as ET
 
 
 # The list of netfiles we wish to train on.
-ICCPS_NETFILES = {
-    "grid_3x3": GRID_3x3,
-    "grid_5x5": GRID_5x5,
-    "double_loop": DOUBLE_LOOP
-}
+# ICCPS_NETFILES = {
+#     "grid_3x3": GRID_3x3,
+#     "grid_5x5": GRID_5x5,
+#     "grid_7x7": DOUBLE_LOOP
+# }
 
 NETFILES = {
-    # "spider": V2_SPIDER
-    "grid": V2_GRID
+    "grid_3x3": GRID_3x3,
+    "grid_5x5": GRID_5x5,
+    "grid_7x7": GRID_7x7
 }
 
 ICCPS_WEIGHTS_PATH_PREFIX = ("example_weights", "ICCPS", "Final")
@@ -225,7 +226,7 @@ if __name__ == "__main__":
                                   tripinfo_data=tripinfo_data,
                                   weights_path=weights_path,
                                   use_policy=False,
-                                  gui=False,
+                                  gui=True,
                                   mc_run=mc_run)
                         runtime = time.perf_counter() - start
                         logging.info(log_template.format(

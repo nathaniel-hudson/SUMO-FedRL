@@ -15,7 +15,8 @@ from seal.trainer.multi_agent import MultiPolicyTrainer
 from seal.trainer.single_agent import SinglePolicyTrainer
 from os.path import join
 
-OUT_PREFIX = "v3"
+# This prefix is for the resubmission (aiming for SMARTCOMP).
+OUT_PREFIX = "v4"
 random_routes_config = {}
 trainer_kwargs = {
     # =========================================================== #
@@ -37,71 +38,83 @@ trainer_kwargs = {
 if __name__ == "__main__":
     n_episodes = 50
     fed_step = 1
-    NET_FILES = [
-        DOUBLE_LOOP,
-        GRID_3x3,
-        GRID_5x5
-    ]
+    NET_FILES = {
+        "grid_3x3": GRID_3x3,
+        "grid_5x5": GRID_5x5,
+        "grid_7x7": GRID_7x7
+    }
     RANKED = [
-        # True,
+        True,
         False
     ]
 
     status = "Training with `{}`! (netfile='{}', ranked={})"
-    for net_file in NET_FILES:
+    for (intersection, net_file) in NET_FILES.items():
         for ranked in RANKED:
-            intersection = net_file.split(os.sep)[-1]
-
+            """
             # Federated trainer using the 'traffic' aggregation function.
-            # logging.info(status.format(
-            #     "FedPolicyTrainer (aggr='traffic')", intersection, ranked))
-            # traffic_aggr_prefix = f"{OUT_PREFIX}_traffic-aggr"
-            # FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked,
-            #                  out_prefix=traffic_aggr_prefix,
-            #                  trainer_kwargs=trainer_kwargs,
-            #                  weight_fn="traffic").\
-            #     train(n_episodes)
+            logging.info(status.format(
+                "FedPolicyTrainer (aggr='traffic')", intersection, ranked
+            ))
+            traffic_aggr_prefix = f"{OUT_PREFIX}_traffic-aggr"
+            FedPolicyTrainer(
+                fed_step=fed_step, net_file=net_file, ranked=ranked,
+                out_prefix=traffic_aggr_prefix,
+                trainer_kwargs=trainer_kwargs,
+                weight_fn="traffic"
+            ).train(n_episodes)
 
             # Federated Trainer using the 'negative reward' aggregation function.
-            # logging.info(status.format(
-            #     "FedPolicyTrainer (aggr='neg_reward')", intersection, ranked))
-            # traffic_aggr_prefix = f"{OUT_PREFIX}_neg-reward-aggr"
-            # FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked,
-            #                  out_prefix=traffic_aggr_prefix,
-            #                  trainer_kwargs=trainer_kwargs,
-            #                  weight_fn="neg_reward").\
-            #     train(n_episodes)
+            logging.info(status.format(
+                "FedPolicyTrainer (aggr='neg_reward')", intersection, ranked
+            ))
+            traffic_aggr_prefix = f"{OUT_PREFIX}_neg-reward-aggr"
+            FedPolicyTrainer(
+                fed_step=fed_step, net_file=net_file, ranked=ranked,
+                out_prefix=traffic_aggr_prefix,
+                trainer_kwargs=trainer_kwargs,
+                weight_fn="neg_reward"
+            ).train(n_episodes)
+            """
 
             # Federated Trainer using the 'positive reward' aggregation function.
             logging.info(status.format(
-                "FedPolicyTrainer (aggr='pos_reward')", intersection, ranked))
+                "FedPolicyTrainer (aggr='pos_reward')", intersection, ranked
+            ))
             traffic_aggr_prefix = f"{OUT_PREFIX}_pos-reward-aggr"
-            FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked,
-                             out_prefix=traffic_aggr_prefix,
-                             trainer_kwargs=trainer_kwargs,
-                             weight_fn="pos_reward").\
-                train(n_episodes)
+            FedPolicyTrainer(
+                fed_step=fed_step, net_file=net_file, ranked=ranked,
+                out_prefix=traffic_aggr_prefix,
+                trainer_kwargs=trainer_kwargs,
+                weight_fn="pos_reward"
+            ).train(n_episodes)
 
             # Federated Trainer using the 'naive' weighting aggregation function.
             logging.info(status.format(
-                "FedPolicyTrainer (aggr='naive')", intersection, ranked))
+                "FedPolicyTrainer (aggr='naive')", intersection, ranked
+            ))
             traffic_aggr_prefix = f"{OUT_PREFIX}_naive-aggr"
-            FedPolicyTrainer(fed_step=fed_step, net_file=net_file, ranked=ranked,
-                             out_prefix=traffic_aggr_prefix,
-                             trainer_kwargs=trainer_kwargs,
-                             weight_fn="naive").\
-                train(n_episodes)
+            FedPolicyTrainer(
+                fed_step=fed_step, net_file=net_file, ranked=ranked,
+                out_prefix=traffic_aggr_prefix,
+                trainer_kwargs=trainer_kwargs,
+                weight_fn="naive"
+            ).train(n_episodes)
 
             # MultiPolicy Trainer.
             logging.info(status.format(
-                "MultiPolicyTrainer", intersection, ranked))
-            MultiPolicyTrainer(net_file=net_file, ranked=ranked,
-                               out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
-                train(n_episodes)
+                "MultiPolicyTrainer", intersection, ranked
+            ))
+            MultiPolicyTrainer(
+                net_file=net_file, ranked=ranked,
+                out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs
+            ).train(n_episodes)
 
             # SinglePolicy Trainer.
             logging.info(status.format(
-                "SinglePolicyTrainer", intersection, ranked))
-            SinglePolicyTrainer(net_file=net_file, ranked=ranked,
-                                out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs).\
-                train(n_episodes)
+                "SinglePolicyTrainer", intersection, ranked
+            ))
+            SinglePolicyTrainer(
+                net_file=net_file, ranked=ranked,
+                out_prefix=OUT_PREFIX, trainer_kwargs=trainer_kwargs
+            ).train(n_episodes)
