@@ -1,4 +1,4 @@
-# Grid Network
+# Grid Networks
 netgenerate --grid --grid.number=3 --grid.length=200 --no-turnarounds -j=traffic_light --output=grid.net.xml --grid.attach-length=200 -L=3
 
 
