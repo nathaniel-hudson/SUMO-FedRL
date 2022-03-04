@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2022-02-21 21:45:33 by Eclipse SUMO GUI Version 1.12.0
+<!-- generated on 03/03/22 19:50:27 by Eclipse SUMO sumo Version 1.8.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="configs/SMARTCOMP/grid-3x3.net.xml"/>
-        <route-files value="configs/SMARTCOMP/traffic.rou.xml"/>
+        <net-file value="configs\SMARTCOMP\grid-5x5.net.xml"/>
+        <route-files value="configs\SMARTCOMP\traffic.rou.xml"/>
     </input>
 
     <output>
@@ -21,12 +21,7 @@
         <no-step-log value="true"/>
     </report>
 
-    <traci_server>
-        <remote-port value="50431"/>
-    </traci_server>
-
 </configuration>
 -->
 
 <tripinfos xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/tripinfo_file.xsd">
-</tripinfos>

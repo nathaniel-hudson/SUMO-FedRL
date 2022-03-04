@@ -50,7 +50,7 @@ class BaseTrainer(ABC):
             model_name: str = None,
             num_gpus: int = 0,
             num_workers: int = 0,
-            root_dir: List[str] = ["out"],
+            root_dir: List[str] = ["out", "SMARTCOMP"],
             sub_dir: str = None,
             policy: str = "ppo",
             out_prefix: str = None,

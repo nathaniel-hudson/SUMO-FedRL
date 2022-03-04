@@ -30,8 +30,8 @@ NETFILES = {
 }
 
 ICCPS_WEIGHTS_PATH_PREFIX = ("example_weights", "ICCPS", "Final")
-SMARTCOMP_PATH_PREFIX = ("example_weights", "SMARTCOMP")
-WEIGHTS_PATH_PREFIX = ICCPS_WEIGHTS_PATH_PREFIX
+SMARTCOMP_PATH_PREFIX = ("out", "SMARTCOMP", "weights")
+WEIGHTS_PATH_PREFIX = SMARTCOMP_PATH_PREFIX
 # WEIGHTS_PATH_PREFIX = SMARTCOMP_PATH_PREFIX  # alias
 
 FEATURE_PAIRS = [
@@ -204,13 +204,13 @@ if __name__ == "__main__":
 
     ray.init(include_dashboard=False)
     for trainer in ["FedRL", "MARL", "SARL"]:
-        for trainer_intersection in ["double", "grid-3x3", "grid-5x5"]:
-            for ranked in [False]:  # [True, False]:
+        for trainer_intersection in ["grid-3x3", "grid-5x5", "grid-7x7"]:
+            for ranked in [True, False]:
                 ranked_str = "ranked" if ranked else "unranked"
                 if trainer == "FedRL":
-                    filename = f"v3_pos-reward-aggr_{ranked_str}.pkl"
+                    filename = f"v4_pos-reward-aggr_{ranked_str}.pkl"
                 else:
-                    filename = f"v3_{ranked_str}.pkl"
+                    filename = f"v4_{ranked_str}.pkl"
 
                 weights_path = join(*WEIGHTS_PATH_PREFIX, trainer,
                                     trainer_intersection, filename)
@@ -225,8 +225,8 @@ if __name__ == "__main__":
                                   feature_data=feature_data,
                                   tripinfo_data=tripinfo_data,
                                   weights_path=weights_path,
-                                  use_policy=False,
-                                  gui=True,
+                                  use_policy=True,
+                                  gui=False,
                                   mc_run=mc_run)
                         runtime = time.perf_counter() - start
                         logging.info(log_template.format(
@@ -251,9 +251,7 @@ if __name__ == "__main__":
     #             x="step", y="n_vehicles", ci=None)
     # plt.show()
 
-    exit(0)  # NOTE: Terminate before overwriting data.
-
-    experiment_data_dir = join("out", "experiments", "digital")
+    experiment_data_dir = join("out", "experiments", "smartcomp-digital")
     feature_df = DataFrame.from_dict(feature_data)
     feature_df.to_csv(join(experiment_data_dir, "features.csv"))
     reward_df = DataFrame.from_dict(tls_rewards)
