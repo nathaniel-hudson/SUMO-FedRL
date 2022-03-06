@@ -152,8 +152,8 @@ def run_trial(
             if mc_run is not None:
                 tls_rewards["mc_run"].append(mc_run)
 
-        done = next(iter(dones.values()))
         step += 1
+        done = next(iter(dones.values()))
         for feature_label, feature_index in FEATURE_PAIRS:
             for tls in obs:
                 if feature_index in obs[tls]:
