@@ -176,6 +176,7 @@ def run_trial(
     for trip in root.findall("tripinfo"):
         tripinfo_data["trainer"].append(trainer)
         tripinfo_data["trainer_intersection"].append(intersection)
+        tripinfo_data["netfile"].append(netfile)
         tripinfo_data["trainer_ranked"].append(trainer_ranked)
         tripinfo_data["depart_delay"].append(trip.get("departDelay"))
         tripinfo_data["travel_time"].append(trip.get("duration"))

@@ -13,3 +13,6 @@ Recommended:
 numpy~=1.22.1
 pandas~=1.4.0
 ray~=1.9.2
+gym~=0.21.0
+networkx~=2.6.3
+scipy~=1.7.3

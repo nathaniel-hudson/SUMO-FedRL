@@ -16,7 +16,7 @@ INTERSECTION_DIRS = ["double", "grid-3x3", "grid-5x5"]
 # SMARTCOMP 2022 Submission Settings
 OUT_PATH_PREFIX = ("out", "data", "SMARTCOMP")
 TRAINER_DIRS = ["FedRL", "MARL", "SARL"]
-INTERSECTION_DIRS = ["double", "grid-3x3", "grid-5x5"]
+INTERSECTION_DIRS = ["grid-3x3", "grid-5x5", "grid-7x7"]
 
 
 def clean(data: DataFrame) -> DataFrame:
