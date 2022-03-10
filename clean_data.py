@@ -29,11 +29,10 @@ def clean(data: DataFrame) -> DataFrame:
 
 if __name__ == "__main__":
     trainer_dirs = ["FedRL", "MARL", "SARL"]
-    intersection_dirs = ["double", "grid-3x3", "grid-5x5"]
     logging.info("Starting to clean data files.")
     for trainer in TRAINER_DIRS:
         for intersection in INTERSECTION_DIRS:
-            for p in glob(join("out", "data", trainer, intersection, "*.csv")):
+            for p in glob(join("out", "SMARTCOMP", "data", trainer, intersection, "*.csv")):
                 filename = p.split(os.sep)[-1].split(".")[0]
                 out_path = (*OUT_PATH_PREFIX, trainer, intersection)
                 if not os.path.isdir(join(*out_path)):
