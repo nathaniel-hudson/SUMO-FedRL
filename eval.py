@@ -12,8 +12,10 @@ from seal.sumo.config import *
 from seal.sumo.env import SumoEnv
 from ray.rllib.agents.ppo import PPOTrainer
 from ray.rllib.agents.ppo.ppo_torch_policy import PPOTorchPolicy
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 import xml.etree.ElementTree as ET
+import time
+from collections import defaultdict
 
 
 # The list of netfiles we wish to train on.
@@ -105,11 +107,11 @@ def load_policy(weights_pkl: str, env_config: Dict[str, Any]) -> PPOTrainer:
 def run_trial(
         netfile_path: str,
         ranked: bool,
+        trainer: str,
         tls_rewards: Dict[str, Any],
         feature_data: Dict[str, Any],
         tripinfo_data: Dict[str, Any],
         weights_path: str,
-        use_policy: bool = True,
         gui: bool = False,
         mc_run: int = None
 ) -> None:
@@ -118,26 +120,36 @@ def run_trial(
         "net-file": netfile_path,
         "rand_routes_on_reset": True,
         "ranked": ranked,
-        # "horizon": 360  # NOTE: Lookie here!!!
+        # "horizon": 3#60  # NOTE: Lookie here!!!
     })
     netfile = netfile_path.split(os.sep)[-1].split(".")[0]
-    policy = load_policy(weights_path, env_config)
-    policy_id = weights_path.split(os.sep)[-1]
-    intersection = weights_path.split(os.sep)[-2]
-    trainer = weights_path.split(os.sep)[-3]
+
+    if weights_path is not None:
+        policy = load_policy(weights_path, env_config)
+        policy_id = weights_path.split(os.sep)[-1]
+        intersection = weights_path.split(os.sep)[-2]
+        use_policy = True
+    else:
+        policy = None
+        policy_id = "Timed-Phase"
+        intersection = None
+        use_policy = False
+
     trainer_ranked = "ranked" if ranked else "unranked"
     env = SumoEnv(env_config)
     obs, done = env.reset(), False
     step = 1
+    trainer = "Timed-Phase" if trainer is None else trainer
     while not done:
+        
         if use_policy:
             # Must have the `policy_id` argument, otherwise you'll get random behavior.
             actions = {agent_id: policy.compute_action(agent_obs, policy_id=agent_id)
                        for agent_id, agent_obs in obs.items()}
-            obs, rewards, dones, _ = env.step(actions)
         else:
-            obs, rewards, dones, _ = env.step(None)
-
+            actions = None
+        
+        obs, rewards, dones, _ = env.step(actions)
         n_vehicles = env.kernel.get_num_of_vehicles()
         for tls, r in rewards.items():
             tls_rewards["tls_id"].append(tls)
@@ -190,67 +202,78 @@ def run_trial(
 
 # =========================================================================== #
 
+def get_filename(trainer: Optional[str], ranked: bool) -> str:
+    version = "v4"
+    ranked_str = "ranked" if ranked else "unranked"
+    if trainer == "Timed-Phase":
+        return None
+    elif trainer == "FedRL":
+        aggr = "naive-aggr"
+        return f"{version}_{aggr}_{ranked_str}.pkl"
+    elif trainer == "MARL" or trainer == "SARL":
+        return f"{version}_{ranked_str}.pkl"
+    else:
+        raise ValueError("Invalid trainer value for `get_filename()`.")
+
+
+def get_weight_path(
+        trainer: str, 
+        trainer_intersection: str, 
+        filename: str
+) -> Optional[str]:
+    if trainer == "Timed-Phase":
+        return None
+    elif trainer in ["FedRL", "MARL", "SARL"]:
+        return join(*WEIGHTS_PATH_PREFIX, trainer, trainer_intersection, filename)
+    else:
+        raise ValueError("Invalid trainer value for `get_weight_path()`.")
+
+# =========================================================================== #
+
 
 if __name__ == "__main__":
-    import time
-    from collections import defaultdict
-
     # Initialize the dictionary object to record the evaluation data (i.e.,
     # `tls_rewards`) and then begin the evaluation by looping over each of the netfiles.
+    NUM_MC_RUNS = 10
     feature_data = defaultdict(list)
     tls_rewards = defaultdict(list)
     tripinfo_data = defaultdict(list)
-    log_template = "Trial (run={}/{}, trainer='{}-{}') took {} seconds"
+    run_start_template = "Eval Trial ({}/{}) | trainer='{}::{}::{}' | netfile='{}'"
     times = []
 
     ray.init(include_dashboard=False)
-    for trainer in ["FedRL", "MARL", "SARL"]:
+    for trainer in ["FedRL", "MARL", "SARL", "Timed-Phase"]:
         for trainer_intersection in ["grid-3x3", "grid-5x5", "grid-7x7"]:
-            for ranked in [True, False]:
+            for ranked in [False]: # [True, False]:
                 ranked_str = "ranked" if ranked else "unranked"
-                if trainer == "FedRL":
-                    filename = f"v4_pos-reward-aggr_{ranked_str}.pkl"
-                else:
-                    filename = f"v4_{ranked_str}.pkl"
-
-                weights_path = join(*WEIGHTS_PATH_PREFIX, trainer,
-                                    trainer_intersection, filename)
-                for netfile_label, netfile_path in NETFILES.items():
-                    logging.info(f"Performing evaluation using '{netfile_label}' "
-                                 f"net-file ({ranked_str}).")
-                    for mc_run in range(1):  # (10):
+                filename = get_filename(trainer, ranked)
+                weights_path = get_weight_path(trainer, trainer_intersection, filename)
+                for (netfile_label, netfile_path) in NETFILES.items():
+                    for mc_run in range(NUM_MC_RUNS):
+                        logging.info(run_start_template.format(
+                            mc_run+1, NUM_MC_RUNS,
+                            trainer, trainer_intersection, ranked_str,
+                            netfile_label 
+                        ))
                         start = time.perf_counter()
                         run_trial(netfile_path,
                                   ranked,
+                                  trainer=trainer,
                                   tls_rewards=tls_rewards,
                                   feature_data=feature_data,
                                   tripinfo_data=tripinfo_data,
                                   weights_path=weights_path,
-                                  use_policy=True,
                                   gui=False,
                                   mc_run=mc_run)
                         runtime = time.perf_counter() - start
-                        logging.info(log_template.format(
-                            mc_run+1, 10, trainer, trainer_intersection, runtime
-                        ))
                         times.append(runtime)
+
     ray.shutdown()
     end = time.perf_counter()
 
-    logging.info(f"Experiment trials took {sum(times) / len(times)} "
+    print("\n\n")
+    logging.info(f"Done! Experiment trials took {sum(times) / len(times)} "
                  "seconds on average.")
-
-    # Plot the results.
-    # sns.displot(data=feature_data, kind="ecdf", hue="netfile", x="value",
-    #             col="feature", col_wrap=len(FEATURE_PAIRS)//2)
-    # plt.show()
-
-    # sns.displot(data=tls_rewards, kind="ecdf", hue="netfile", x="reward")
-    # plt.show()
-
-    # sns.relplot(data=tls_rewards, kind="line", hue="netfile",
-    #             x="step", y="n_vehicles", ci=None)
-    # plt.show()
 
     experiment_data_dir = join("out", "experiments", "smartcomp-digital")
     feature_df = DataFrame.from_dict(feature_data)
