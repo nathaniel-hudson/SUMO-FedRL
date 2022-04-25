@@ -20,7 +20,7 @@ Policy = NewType("Policy", Dict[Any, np.array])
 MIN_REWARD = -4
 DEFAULT_AGGR_FN = "pos_reward"
 WEIGHT_FUNCTIONS = {
-    "naive":      naive_weight_function,
+    "naive":      naive_weight_function,       # Best (what is used in publication)
     "neg_reward": neg_reward_weight_function,  # BAD
     "pos_reward": pos_reward_weight_function,  # Good
     "traffic":    traffic_weight_function      # Experimental
