@@ -1,22 +1,18 @@
 # Smart Edge-Enabled trAffic Lights (SEAL)
 Implementation of Federated Reinforcement Learning for traffic control using SUMO and a real-world testbed.
 
-The goal of this project is to provide a platform for *simple* single- and multi-agent reinforcement learning (RL) and federated reinforcement learning (FedRL) for smart traffic light control. The traffic simulator we use is SUMO.
+This repository contains the code used for the following paper:
+> [Hudson, N., Oza, P., Khamfroush, H., & Chantem, T. (2022, June). Smart edge-enabled traffic light control: Improving reward-communication trade-offs with federated reinforcement learning. In 2022 IEEE International Conference on Smart Computing (SMARTCOMP) (pp. 40-47). IEEE.](https://nathaniel-hudson.github.io/assets/pdf/hudson2022seal.pdf)
 
-## Multi-Agent FedRL
-We consider a multi-agent approach for FedRL using the OpenAI Gym interface. The gym for this scenario is defined as follows:
-```python
-class MultiAgentEnv(gym.Env):
-    def step(self, action_n: List[Any]) -> Tuple:
-        obs_n = list()
-        reward_n = list()
-        done_n = list()
-        info_n = {"n": []}
-        # ...
-        return obs_n, reward_n, done_n, info_n
+If you use SEAL or any of this repository's code in your work, please cite the following paper:
+
+```bibtex
+@inproceedings{hudson2022smart,
+  title={Smart edge-enabled traffic light control: Improving reward-communication trade-offs with federated reinforcement learning},
+  author={Hudson, Nathaniel and Oza, Pratham and Khamfroush, Hana and Chantem, Thidapat},
+  booktitle={2022 IEEE International Conference on Smart Computing (SMARTCOMP)},
+  pages={40--47},
+  year={2022},
+  organization={IEEE}
+}
 ```
-For the multi-agent environment, we will use the `MultiAgentEnv` class provided by the RlLib API.
-> https://docs.ray.io/en/master/rllib-env.html#multi-agent-and-hierarchical
-
-Go here for `netgenerate` documentation:
-> https://sumo.dlr.de/docs/netgenerate.html
