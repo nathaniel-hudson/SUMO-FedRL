@@ -31,16 +31,16 @@ class TrafficLight:
         index: int,
         tls_id: int,
         netfile: str,
-        sort_phases: bool=SORT_DEFAULT,
-        force_all_red: bool=False,
-        ranked: bool=True
-    ):
+        sort_phases: bool = SORT_DEFAULT,
+        force_all_red: bool = False,
+        ranked: bool = True
+    ) -> None:
         # The `index` data member is for the consistently simple indexing for actions
         # that are represented via lists. This is important for the `stable-baselines`
         # implementation that does not support Dict spaces.
         self.index = index
         self.id = tls_id
-        self.program = self.get_program(netfile, sort_phases, force_all_red)
+        self.program = self.get_program(netfile, force_all_red)
         self.num_phases = len(self.program)
         self.state = random.randrange(self.num_phases)
         self.phase = self.program[self.state]
@@ -75,16 +75,13 @@ class TrafficLight:
     def get_program(
         self,
         road_netfile: str,
-        sort_phases: bool=SORT_DEFAULT,
-        force_all_red: bool=False
+        force_all_red: bool = False
     ) -> List[str]:
         """Get the possible traffic light phases for the specific traffic light via the
            given `tls_id`.
 
         Args:
             road_netfile (str): The traffic light id.
-            sort_phases (bool, optional): Sorts the possible phases if True. Defaults to
-                SORT_DEFAULT.
             force_all_red (bool, optional): Requires there's a state of all red lights if
                 True. Defaults to False.
 
@@ -95,13 +92,11 @@ class TrafficLight:
             tree = ET.parse(f)
             logic = tree.find(f"tlLogic[@id='{self.id}']")
             states = [phase.attrib["state"] for phase in logic]
-
             if force_all_red:
-                all_reds = len(states[0]) * "r"
+                all_reds = len(states[0]) * STATE_r_STR
                 if all_reds not in states:
                     states.append(all_reds)
-
-            return states if (sort_phases == False) else sorted(states)
+            return states
 
     def get_observation(self) -> np.ndarray:
         # Initialize the observation list (obs).
@@ -109,50 +104,64 @@ class TrafficLight:
         obs = [0 for _ in range(n_features)]
 
         # Extract the lane-specific features.
-        max_lane_speeds = vehicle_speeds = 0
-        total_lane_length = vehicle_lengths = halted_vehicle_lengths = 0
-        for l in traci.trafficlight.getControlledLanes(self.id):
-            total_lane_length += traci.lane.getLength(l)
-            max_speed = traci.lane.getMaxSpeed(l)
-            for v in traci.lane.getLastStepVehicleIDs(l):
-                speed = traci.vehicle.getSpeed(v)
-                vehicle_speeds += speed
-                max_lane_speeds += max_speed
-                vehicle_lengths += traci.vehicle.getLength(v)
-                if speed < HALTING_SPEED:
-                    halted_vehicle_lengths += traci.vehicle.getLength(v)
-
-        obs[LANE_OCCUPANCY] = vehicle_lengths / total_lane_length
-        obs[HALTED_LANE_OCCUPANCY] = halted_vehicle_lengths / total_lane_length
-        try:
-            # We need to "clip" average speed because drivers sometimes exceed the
-            # speed limit.
-            obs[SPEED_RATIO] = min(1.0, vehicle_speeds / max_lane_speeds)
-        except ZeroDivisionError:
-            # This happens when 0 vehicles are on lanes controlled by the traffic light.
-            obs[SPEED_RATIO] = 0.0
+        obs[LANE_OCCUPANCY] = self.__get_lane_occupancy()
+        obs[HALTED_LANE_OCCUPANCY] = self.__get_halted_lane_occupancy()
+        obs[SPEED_RATIO] = self.__get_speed_ratio()
 
         # Extract descriptive statistics features for the current traffic light state.
         curr_tls_state = traci.trafficlight.getRedYellowGreenState(self.id)
-        curr_tls_state_arr = [STATE_STR_TO_INT[phase]
-                              for phase in curr_tls_state]
-        obs[PHASE_STATE_MODE] = stats.mode(curr_tls_state_arr)[
-            0].item() / NUM_TLS_STATES
-        obs[PHASE_STATE_STD] = np.std(curr_tls_state_arr) / NUM_TLS_STATES
+        for light in curr_tls_state:
+            if light == STATE_r_STR:
+                obs[PHASE_STATE_r] += 1/len(curr_tls_state)
+            elif light == STATE_y_STR:
+                obs[PHASE_STATE_y] += 1/len(curr_tls_state)
+            elif light == STATE_g_STR:
+                obs[PHASE_STATE_g] += 1/len(curr_tls_state)
+            elif light == STATE_G_STR:
+                obs[PHASE_STATE_G] += 1/len(curr_tls_state)
+            # elif light == STATE_s_STR:
+            #     obs[PHASE_STATE_s] += 1/len(curr_tls_state)
+            elif light == STATE_u_STR:
+                obs[PHASE_STATE_u] += 1/len(curr_tls_state)
+            elif light == STATE_o_STR:
+                obs[PHASE_STATE_o] += 1/len(curr_tls_state)
+            elif light == STATE_O_STR:
+                obs[PHASE_STATE_O] += 1/len(curr_tls_state)
 
         return np.array(obs)
 
+    def get_num_of_controlled_vehicles(self) -> int:
+        return sum(traci.lane.getLastStepVehicleNumber(lane)
+                   for lane in traci.trafficlight.getControlledLanes(self.id))
+
     def __get_lane_occupancy(self) -> float:
-        pass
+        lane_lengths = sum(traci.lane.getLength(l)
+                           for l in traci.trafficlight.getControlledLanes(self.id))
+        vehicle_lengths = sum(sum(traci.vehicle.getLength(v)
+                                  for v in traci.lane.getLastStepVehicleIDs(l))
+                              for l in traci.trafficlight.getControlledLanes(self.id))
+        return min(vehicle_lengths/lane_lengths, 1.0)
 
     def __get_halted_lane_occupancy(self) -> float:
-        pass
+        lane_lengths = sum(traci.lane.getLength(l)
+                           for l in traci.trafficlight.getControlledLanes(self.id))
+        halted_lengths = sum(sum(traci.vehicle.getLength(v)
+                                 for v in traci.lane.getLastStepVehicleIDs(l)
+                                 if traci.vehicle.getSpeed(v) < HALTING_SPEED)
+                             for l in traci.trafficlight.getControlledLanes(self.id))
+        return min(halted_lengths/lane_lengths, 1.0)
 
     def __get_speed_ratio(self) -> float:
-        pass
-
-    def __get_phase_mode(self) -> float:
-        pass
-
-    def __get_phase_std(self) -> float:
-        pass
+        max_lane_speeds = vehicle_speeds = 0
+        for l in traci.trafficlight.getControlledLanes(self.id):
+            for v in traci.lane.getLastStepVehicleIDs(l):
+                speed_limit = traci.lane.getMaxSpeed(l)
+                vehicle_speeds += min(traci.vehicle.getSpeed(v), speed_limit)
+                max_lane_speeds += speed_limit
+        # We need to "clip" average speed because drivers sometimes exceed the
+        # speed limit. If there were 0 vehicles on controlled lanes by the traffic light,
+        # then the case is caught by the ZeroDivisionError and returns 0.
+        try:
+            return min(1.0, vehicle_speeds / max_lane_speeds)
+        except ZeroDivisionError:
+            return 1.0

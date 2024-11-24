@@ -6,7 +6,9 @@ import ray
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from pandas import DataFrame
+from seal.logging import *
 from ray.rllib.agents import (a3c, dqn, ppo)
+from ray.rllib.agents.callbacks import DefaultCallbacks
 from time import ctime
 from typing import Any, Callable, Dict, List, Tuple
 
@@ -15,11 +17,12 @@ from seal.trainer.defaults import *
 from seal.trainer.util import *
 from seal.sumo.abstract_env import AbstractSumoEnv
 
+RAY_TRAINER_SEED = 54321
 
-# TODO: To avoid confusion with RlLib's `Trainer` class, let's rename this to
-#       `sealTrainer`.
+
 class BaseTrainer(ABC):
 
+    communication_callback_cls: DefaultCallbacks
     counter: Counter
     idx: int
     num_gpus: int
@@ -34,25 +37,28 @@ class BaseTrainer(ABC):
     out_weights_dir: str
     policy: str
     policy_mapping_fn: Callable
-    policy_type: Any  # TODO: Change this.
-    trainer_type: Any  # TODO: Change this.
+    policy_type: ray.rllib.policy.Policy
+    trainer_type: ray.rllib.agents.trainer.Trainer
 
     def __init__(
-        self,
-        checkpoint_freq: int=25,
-        env: AbstractSumoEnv=None,
-        gamma: float=0.95,
-        learning_rate: float=0.001,
-        log_level: str="ERROR",
-        model_name: str=None,
-        num_gpus: int=0,
-        num_workers: int=0,
-        root_dir: List[str]=["out"],
-        sub_dir: str=None,
-        policy: str="ppo",
-        **kwargs
+            self,
+            checkpoint_freq: int = 5,
+            env: AbstractSumoEnv = None,
+            gamma: float = 0.95,
+            learning_rate: float = 0.001,
+            log_level: str = "ERROR",
+            model_name: str = None,
+            num_gpus: int = 0,
+            num_workers: int = 0,
+            root_dir: List[str] = ["out", "SMARTCOMP"],
+            sub_dir: str = None,
+            policy: str = "ppo",
+            out_prefix: str = None,
+            trainer_kwargs: dict = None,
+            **kwargs
     ) -> None:
         assert 0 <= gamma <= 1
+        self.communication_callback_cls = None
         self.checkpoint_freq = checkpoint_freq
         self.counter = Counter()
         self.env = env
@@ -67,7 +73,8 @@ class BaseTrainer(ABC):
         self.out_data_dir = os.path.join(*(root_dir + ["data"]))
         self.out_weights_dir = os.path.join(*(root_dir + ["weights"]))
         if sub_dir is not None:
-            self.out_checkpoint_dir = os.path.join(self.out_checkpoint_dir, sub_dir)
+            self.out_checkpoint_dir = os.path.join(
+                self.out_checkpoint_dir, sub_dir)
             self.out_data_dir = os.path.join(self.out_data_dir, sub_dir)
             self.out_weights_dir = os.path.join(self.out_weights_dir, sub_dir)
 
@@ -76,9 +83,13 @@ class BaseTrainer(ABC):
         self.ranked = kwargs.get("ranked", defaults.RANKED)
         self.rand_routes_on_reset = kwargs.get("rand_routes_on_reset",
                                                defaults.RAND_ROUTES_ON_RESET)
+        self.rand_routes_config = kwargs.get("rand_routes_config",
+                                             defaults.RAND_ROUTES_CONFIG)
 
+        self.out_prefix = out_prefix
         self.net_dir = self.net_file.split(os.sep)[-1].split(".")[0]
-        self.out_checkpoint_dir = os.path.join(self.out_checkpoint_dir, self.net_dir)
+        self.out_checkpoint_dir = os.path.join(
+            self.out_checkpoint_dir, self.net_dir)
         self.out_data_dir = os.path.join(self.out_data_dir, self.net_dir)
         self.out_weights_dir = os.path.join(self.out_weights_dir, self.net_dir)
 
@@ -96,6 +107,9 @@ class BaseTrainer(ABC):
         self.idx = None
         self.policy_config = None
         self.policy_mapping_fn = None
+        self.trainer_kwargs = trainer_kwargs
+
+    # ------------------------------------------------------------------------- #
 
     def load(self, checkpoint: str) -> None:
         if type(self) is BaseTrainer:
@@ -104,7 +118,9 @@ class BaseTrainer(ABC):
         self.on_setup()
         self.ray_trainer.restore(checkpoint)
 
-    def train(self, num_rounds: int, save_on_end: bool=True, **kwargs) -> DataFrame:
+    # ------------------------------------------------------------------------- #
+
+    def train(self, num_rounds: int, save_on_end: bool = True, **kwargs) -> DataFrame:
         if kwargs.get("checkpoint", None) is not None:
             self.load(kwargs["checkpoint"])
         else:
@@ -123,21 +139,28 @@ class BaseTrainer(ABC):
             self.on_logging_step()
             if r % self.checkpoint_freq == 0:
                 self.ray_trainer.save(self.model_path)
-        # Get the global test policy weights and then save them to a PICKLE file object.
-        # This will then be used to reload the test policy's weights for evaluation
-        # in both the synthetic simulations and real-world implementation.
-        weights = self.on_make_final_policy()
-        ranked_str = "ranked" if self.ranked else "unranked"
-        with open(os.path.join(self.out_weights_dir, f"{ranked_str}.pkl"), "wb") as f:
-            pickle.dump(weights, f)
+            self.save_test_policy()
+        # Set the global test policy that will be used for evaluation.
+        weights = self.save_test_policy()
         self.ray_trainer.get_policy(GLOBAL_POLICY_VAR).set_weights(weights)
         # Get the data from the training process and output it for visualization to see
         # how training performed over time.
         dataframe = self.on_tear_down()
         if save_on_end:
-            path = os.path.join(self.out_data_dir, f"{self.get_filename()}.csv")
-            dataframe.to_csv(path)
+            path = os.path.join(self.out_data_dir, self.get_filename())
+            try:
+                dataframe.to_csv(f"{path}.csv")
+                dataframe.to_excel(f"{path}.xlsx")
+                dataframe.to_json(f"{path}.json")
+            except FileNotFoundError:
+                new_dir = os.path.join(path.split(os.sep[:-1]))
+                os.makedirs(new_dir)
+                dataframe.to_csv(f"{path}.csv")
+                dataframe.to_excel(f"{path}.xlsx")
+                dataframe.to_json(f"{path}.json")
         return dataframe
+
+    # ------------------------------------------------------------------------- #
 
     def __load_policy_type(self) -> None:
         if self.policy == "a3c":
@@ -152,10 +175,10 @@ class BaseTrainer(ABC):
         else:
             raise NotImplemented(f"Do not support policies for `{policy}`.")
 
-    # ------------------------------------------------------------------------------ #
+    # ------------------------------------------------------------------------- #
 
     def init_config(self) -> Dict[str, Any]:
-        return {
+        config = {
             "env_config": self.env_config_fn(),
             "framework": "torch",
             "log_level": self.log_level,
@@ -166,28 +189,66 @@ class BaseTrainer(ABC):
             },
             "num_gpus": self.num_gpus,
             "num_workers": self.num_workers,
+            "seed": RAY_TRAINER_SEED,
+            "callbacks": self.communication_callback_cls,
+            # "train_batch_size": 100,
+            # "rollout_fragment_length": 100,
+            # "batch_mode": "complete_episodes",
+            # "horizon": 450, # NOTE: Will terminate the episode early (faster training).
+            #                 #       This value represents an hour / 8.
+        }
+        if self.trainer_kwargs is not None:
+            config.update(self.trainer_kwargs)
+        return config
+
+    def env_config_fn(self) -> Dict[str, Any]:
+        return {
+            "gui": self.gui,
+            "net-file": self.net_file,
+            "rand_routes_on_reset": self.rand_routes_on_reset,
+            "ranked": self.ranked,
+            "use_dynamic_seed": True,
+            # "horizon": 450,
+            # "rand_route_args": {
+            #     "seed": 0,
+            #     "vehicles_per_lane_per_hour": 360
+            # }
         }
 
-    # ------------------------------------------------------------------------------ #
+    def save_test_policy(self) -> Weights:
+        # Get the global test policy weights and then save them to a PICKLE file object.
+        # This will then be used to reload the test policy's weights for evaluation
+        # in both the synthetic simulations and real-world implementation.
+        weights = self.on_make_final_policy()
+        ranked_str = "ranked" if self.ranked else "unranked"
+        if self.out_prefix is not None:
+            ranked_str = f"{self.out_prefix}_{ranked_str}"
+        with open(os.path.join(self.out_weights_dir, f"{ranked_str}.pkl"), "wb") as f:
+            pickle.dump(weights, f)
+        return weights
+
+    # ------------------------------------------------------------------------- #
 
     def on_setup(self) -> None:
-        ray.init()
+        ray.init(include_dashboard=False)
         self.ray_trainer = self.trainer_type(env=self.env,
                                              config=self.init_config())
-        self.model_path = os.path.join(self.out_checkpoint_dir, self.get_filename())
+        out_dir = self.out_checkpoint_dir
+        self.model_path = os.path.join(out_dir, self.get_filename())
         self.training_data = defaultdict(list)
 
     def on_tear_down(self) -> DataFrame:
         self.ray_trainer.save(self.model_path)
         self.ray_trainer.stop()
         ray.shutdown()
-        self.ray_trainer.workers.local_worker().env.close()
         return DataFrame.from_dict(self.training_data)
 
     def on_logging_step(self) -> None:
-        status = "[Ep. #{}] Mean reward: {:6.2f}, Mean length: {:4.2f}, Saved {} ({})."
-        print(status.format(
+        status = "{}Ep. #{} | ranked={} | Mean reward: {:6.2f} | Mean length: {:4.2f} | Saved {} ({})"
+        logging.info(status.format(
+            "" if self.trainer_name is None else f"[{self.trainer_name}] ",
             self._round+1,
+            self.ranked,
             self._result["episode_reward_mean"],
             self._result["episode_len_mean"],
             self.model_path.split(os.sep)[-1],
@@ -211,22 +272,19 @@ class BaseTrainer(ABC):
         if self.trainer_name is None:
             raise ValueError("`trainer_name` cannot be None.")
         ranked = "ranked" if self.ranked else "unranked"
-        return f"{ranked}_{self.idx}"
+        if self.out_prefix is not None:
+            ranked = f"{self.out_prefix}_{ranked}"
+        return f"{ranked}"
+        # return f"{ranked}_{self.idx}"
 
     def get_weights_filename(self) -> str:
         ranked = "ranked" if self.ranked else "unranked"
         return f"{ranked}"
 
-    def env_config_fn(self) -> Dict[str, Any]:
-        return {
-            "gui": self.gui,
-            "net-file": self.net_file,
-            "rand_routes_on_reset": self.rand_routes_on_reset,
-            "ranked": self.ranked,
-            # TODO: Add the random route generation arguments here.
-        }
+    def set_rand_route_seed(self, seed) -> None:
+        self.env
 
-    # ------------------------------------------------------------------------------ #
+    # ------------------------------------------------------------------------- #
 
     @abstractmethod
     def on_make_final_policy() -> Weights:

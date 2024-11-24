@@ -1,13 +1,14 @@
 from seal.sumo.env import SumoEnv
 from seal.trainer.base import BaseTrainer
+from seal.trainer.communication.single_callback import SinglePolicyCommCallback
+from seal.trainer.data.parser import DataParser
 from seal.trainer.util import *
 from typing import Any, Dict, Tuple
 
 
-# TODO: Add communication cost trade-off code.
 class SinglePolicyTrainer(BaseTrainer):
 
-    POLICY_KEY: str = "sarl_policy"
+    POLICY_KEY: str = "sarl-policy"
 
     def __init__(self, **kwargs):
         name = "SARL"
@@ -21,23 +22,20 @@ class SinglePolicyTrainer(BaseTrainer):
         self.incr_key_count()
         self.policy_config = {}
         self.policy_mapping_fn = lambda _: SinglePolicyTrainer.POLICY_KEY
+        self.communication_callback_cls = SinglePolicyCommCallback
 
     def on_make_final_policy(self) -> Weights:
         policy = self.ray_trainer.get_policy(SinglePolicyTrainer.POLICY_KEY)
         return policy.get_weights()
 
     def on_data_recording_step(self) -> None:
-        for policy in self.policies:
-            self.training_data["round"].append(self._round)
-            self.training_data["trainer"].append("SARL")
-            for key, value in self._result.items():
-                if isinstance(value, dict):
-                    if policy in value:
-                        self.training_data[key].append(value[policy])
-                    else:
-                        self.training_data[key].append(value)
-                else:
-                    self.training_data[key].append(value)
+        self.training_data["round"].append(self._round)
+        self.training_data["trainer"].append("SARL")
+        self.training_data["fed_round"].append(False)
+        self.training_data["ranked"].append(self.ranked)
+        self.training_data["weight_aggr_fn"].append(None)
+        for key, value in self._result.items():
+            self.training_data[key].append(value)
 
     def on_policy_setup(self) -> Dict[str, Tuple[Any]]:
         dummy_env = self.env(config=self.env_config_fn())

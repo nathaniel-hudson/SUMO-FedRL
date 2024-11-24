@@ -2,11 +2,12 @@ import numpy as np
 
 from seal.sumo.env import SumoEnv
 from seal.trainer.base import BaseTrainer
+from seal.trainer.communication.multi_callback import MultiPolicyCommCallback
+from seal.trainer.data.parser import DataParser
 from seal.trainer.util import *
 from typing import Any, Dict, Tuple
 
 
-# TODO: Add communication cost trade-off code.
 class MultiPolicyTrainer(BaseTrainer):
 
     def __init__(self, **kwargs):
@@ -20,6 +21,7 @@ class MultiPolicyTrainer(BaseTrainer):
         self.incr_key_count()
         self.policy_config = {}
         self.policy_mapping_fn = lambda agent_id: agent_id
+        self.communication_callback_cls = MultiPolicyCommCallback
 
     def on_make_final_policy(self) -> Weights:
         """This function takes the policy weights for each of the traffic light policies
@@ -42,18 +44,13 @@ class MultiPolicyTrainer(BaseTrainer):
         return new_weights
 
     def on_data_recording_step(self) -> None:
-        for policy in self.policies:
-            self.training_data["round"].append(self._round)
-            self.training_data["trainer"].append("MARL")
-            self.training_data["policy"].append(policy)
-            for key, value in self._result.items():
-                if isinstance(value, dict):
-                    if policy in value:
-                        self.training_data[key].append(value[policy])
-                    else:
-                        self.training_data[key].append(value)
-                else:
-                    self.training_data[key].append(value)
+        self.training_data["round"].append(self._round)
+        self.training_data["trainer"].append("MARL")
+        self.training_data["fed_round"].append(False)
+        self.training_data["ranked"].append(self.ranked)
+        self.training_data["weight_aggr_fn"].append(None)
+        for key, value in self._result.items():
+            self.training_data[key].append(value)
 
     def on_policy_setup(self) -> Dict[str, Tuple[Any]]:
         dummy_env = self.env(config=self.env_config_fn())
@@ -66,3 +63,4 @@ class MultiPolicyTrainer(BaseTrainer):
                        self.policy_config)
             for agent_id in dummy_env._observe()
         }
+

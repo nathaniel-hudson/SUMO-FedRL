@@ -1,56 +1,91 @@
-from random import randint
+import random
+
 from typing import List, Tuple, Union
 from os.path import join
-
+from seal.sumo.config import VEHICLE_LENGTH
 from seal.sumo.utils import random_trips
 
 VALID_DISTRIBUTIONS = ["arcsine", "uniform", "zipf"]
+HOUR = 3600
+DEFAULT_END_TIME = HOUR / 10  # (equivalent to 10 minutes)
+DEFAULT_VPLPH = 360
+
+
+def __extract_vplph(vplph: Union[int, Tuple[int, int]]) -> int:
+    if isinstance(vplph, int):
+        assert vplph > 0
+    if isinstance(vplph, tuple):
+        assert len(vplph) == 2, \
+            "`vplph` must be of len 2 if provided a tuple."
+        a, b = vplph
+        assert a < b, \
+            "`vplph` must be a valid and sorted range."
+        vplph = random.randint(a, b)
+    return vplph
+
+
+def __extract_end_time(end_time: Union[int, Tuple[int, int]]) -> int:
+    if isinstance(end_time, tuple):
+        assert len(end_time) == 2, \
+            "`end_time` must be of len 2 if provided as a tuple."
+        a, b = end_time
+        assert a < b, \
+            "`end_time` must be a valid and sorted tuple."
+        end_time = random.randint(a, b)
+    return end_time
+
+
+def __extract_congestion_coeff(
+    congestion_coeff: Union[float, Tuple[float, float]]
+) -> float:
+    if isinstance(congestion_coeff, tuple):
+        assert len(congestion_coeff) == 2, \
+            "`congestion_coeff` must be of len 2 if provided as a tuple."
+        a, b = congestion_coeff
+        assert a < b, \
+            "`congestion_coeff` must be a valid and sorted tuple."
+        congestion_coeff = random.uniform(a, b)
+    return congestion_coeff
 
 
 def generate_random_routes(
-    net_name: str,
-    n_vehicles: Union[int, Tuple[int, int]]=(100, 1000),
-    generator: str="uniform",
-    n_routefiles: int=1,
-    end_time: Union[int, Tuple[int, int]]=(1500, 3000),
-    seed: float=None,
-    path: str=None,
+    netfile: str,
+    number_of_lanes: int,
+    generator: str = "uniform",
+    vehicles_per_lane_per_hour: int = DEFAULT_VPLPH,
+    n_routefiles: int = 1,
+    end_time: int = DEFAULT_END_TIME,
+    seed: float = None,
+    path: str = None,
+    # 90,  # Try upping this to 90 (was 60) ---- 30
 ) -> List[str]:
     """This function generates a *.rou.xml file for vehicles in the given road network.
 
-    Parameters
-    ----------
-    net_name : str
-        Filename of the SUMO *.net.xml file.
-    n_vehicles : int
-        Number of vehicles to be used in the simulation.
-    generator : str
-        A token that specifies the random distribution that will be used to assigning
-        routes to vehicles.
-    seed : float, optional
-        A random seed to fix the generator distribution, by default None
+    Args:
+        netfile (str): Filename of the SUMO *.net.xml file.
+        generator (str): A token that specifies the random distribution that will be
+            used to assigning routes to vehicles.
+        n_routefiles (int): Number of routefiles to be generated. Typically no reason
+            to change this input.
+        end_time (Union[int, Tuple[int, int]]): When the simulation ends --- this affects
+            the number of vehicles.
+        seed (float): A random seed to fix the generator distribution, by default None.
+
+    Returns:
+        List[str]: A list containing the names of the randomly-generated route files.
     """
-    if isinstance(n_vehicles, int):
-        assert n_vehicles > 0
     assert generator.lower() in VALID_DISTRIBUTIONS
+    assert vehicles_per_lane_per_hour > 0
+    assert end_time > 0
 
-    if isinstance(n_vehicles, tuple):
-        assert len(n_vehicles) == 2, \
-            "`n_vehicles` must be of len 2 if provided a tuple."
-        a, b = n_vehicles
-        assert a < b, \
-            "`n_vehicles` must be a valid and sorted range."
-        n_vehicles = randint(a, b)
+    random.seed(seed)
+    # end_time = __extract_end_time(end_time)
+    # vehicles_per_lane_per_hour = __extract_vplph(vehicles_per_lane_per_hour)
+    number_of_hours = 1
+    n_vehicles = vehicles_per_lane_per_hour * \
+        number_of_lanes * \
+        number_of_hours
 
-    if isinstance(end_time, tuple):
-        assert len(end_time) == 2, \
-            "`end_time` must be of len 2 if provided a tuple."
-        a, b = end_time
-        assert a < b, \
-            "`end_time` must be a valid and sorted range."
-        end_time = randint(a, b)
-
-    begin_time = 0
     routes = []
     for i in range(n_routefiles):
         routefile = "traffic.rou.xml" \
@@ -59,27 +94,21 @@ def generate_random_routes(
         if path is not None:
             routefile = join(path, routefile)
 
-        # Use with the v1 version that Aram sent you.
-        # opts = rrs.set_options(
-        #     netfile=net_name,
-        #     routefile=routefile,
-        #     begin=begin_time,
-        #     end=end_time,
-        #     length=True,
-        #     period=end_time/n_vehicles,
-        #     generator=generator.lower(),
-        #     seed=seed,
-        #     dir=path
-        # )
-
         # Use with the most recent version of randomTrips.py on GitHub.
+        begin_time = 0
         tripfile = join(path, "trips.trips.xml")
-        args = ["--net-file", net_name, "--route-file", routefile, "-b", begin_time,
-                "-e", end_time, "--length", "--period", end_time/n_vehicles,
-                "--seed", seed, "--output-trip-file", tripfile,
-                "--random"]  # NOTE: The `--random` flag basically makes it ignore `seed`.
+        args = [
+            "--net-file", netfile,
+            "--route-file", routefile,
+            "--begin", begin_time,
+            "--end", end_time,
+            "--period", (HOUR - begin_time) / n_vehicles,
+            "--seed", str(seed),
+            "--output-trip-file", tripfile,
+            "--fringe-factor", 100,
+            "--trip-attributes", "departLane=\"best\""
+        ]
         opts = random_trips.get_options(args=args)
-
         routes.append(routefile)
         random_trips.main(opts)
 

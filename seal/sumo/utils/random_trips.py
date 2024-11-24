@@ -32,6 +32,7 @@ import optparse
 if "SUMO_HOME" in os.environ:
     sys.path.append(os.path.join(os.environ["SUMO_HOME"], "tools"))
 import sumolib  # noqa
+from seal.logging import *
 from sumolib.miscutils import euclidean  # noqa
 from sumolib.geomhelper import naviDegree, minAngleDegreeDiff  # noqa
 
@@ -46,14 +47,16 @@ VERBOSE_LEVELS = {
 
 
 verbosity = 0
+
+
 def my_log(*msg: str) -> None:
-    """This function just wraps the standard `print()` function so that it follows the
-       verbosity rules. This is mostly to avoid exhaustive warning messages caused by this
-       script document.
+    """This function just wraps the  `logging.info()` function so that it follows the
+       verbosity rules. This is mostly to avoid exhaustive warning messages caused by
+       this script document.
     """
     global verbosity
     if verbosity > 0:
-        print(msg)
+        logging.info(msg)
 
 
 def get_options(args=None):
@@ -94,9 +97,9 @@ def get_options(args=None):
     optParser.add_option("-b", "--begin", default=0, help="begin time")
     optParser.add_option("-e", "--end", default=3600,
                          help="end time (default 3600)")
-    optParser.add_option(
-        "-p", "--period", type="float", default=1, help="Generate vehicles with equidistant departure times and " +
-        "period=FLOAT (default 1.0). If option --binomial is used, the expected arrival rate is set to 1/period.")
+    optParser.add_option("-p", "--period", type="float", default=1,
+                         help="Generate vehicles with equidistant departure times and " +
+                         "period=FLOAT (default 1.0). If option --binomial is used, the expected arrival rate is set to 1/period.")
     optParser.add_option("-s", "--seed", type="int",
                          default=42, help="random seed")
     optParser.add_option("--random", action="store_true",
@@ -114,7 +117,7 @@ def get_options(args=None):
     optParser.add_option("--angle-factor", type="float", dest="angle_weight",
                          default=1.0, help="maximum weight factor for angle")
     optParser.add_option("--fringe-factor", type="float", dest="fringe_factor",
-                         default=1.0, help="multiply weight of fringe edges by <FLOAT> (default 1")
+                         default=1.0, help="multiply weight of fringe edges by <FLOAT> (default 1)")
     optParser.add_option("--fringe-threshold", type="float", dest="fringe_threshold",
                          default=0.0, help="only consider edges with speed above <FLOAT> as fringe edges (default 0)")
     optParser.add_option("--allow-fringe", dest="allow_fringe", action="store_true",
