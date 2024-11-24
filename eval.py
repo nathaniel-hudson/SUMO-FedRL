@@ -141,14 +141,14 @@ def run_trial(
     step = 1
     trainer = "Timed-Phase" if trainer is None else trainer
     while not done:
-        
+
         if use_policy:
             # Must have the `policy_id` argument, otherwise you'll get random behavior.
             actions = {agent_id: policy.compute_action(agent_obs, policy_id=agent_id)
                        for agent_id, agent_obs in obs.items()}
         else:
             actions = None
-        
+
         obs, rewards, dones, _ = env.step(actions)
         n_vehicles = env.kernel.get_num_of_vehicles()
         for tls, r in rewards.items():
@@ -217,8 +217,8 @@ def get_filename(trainer: Optional[str], ranked: bool) -> str:
 
 
 def get_weight_path(
-        trainer: str, 
-        trainer_intersection: str, 
+        trainer: str,
+        trainer_intersection: str,
         filename: str
 ) -> Optional[str]:
     if trainer == "Timed-Phase":
@@ -244,16 +244,17 @@ if __name__ == "__main__":
     ray.init(include_dashboard=False)
     for trainer in ["FedRL", "MARL", "SARL", "Timed-Phase"]:
         for trainer_intersection in ["grid-3x3", "grid-5x5", "grid-7x7"]:
-            for ranked in [False]: # [True, False]:
+            for ranked in [False]:  # [True, False]:
                 ranked_str = "ranked" if ranked else "unranked"
                 filename = get_filename(trainer, ranked)
-                weights_path = get_weight_path(trainer, trainer_intersection, filename)
+                weights_path = get_weight_path(
+                    trainer, trainer_intersection, filename)
                 for (netfile_label, netfile_path) in NETFILES.items():
                     for mc_run in range(NUM_MC_RUNS):
                         logging.info(run_start_template.format(
                             mc_run+1, NUM_MC_RUNS,
                             trainer, trainer_intersection, ranked_str,
-                            netfile_label 
+                            netfile_label
                         ))
                         start = time.perf_counter()
                         run_trial(netfile_path,
